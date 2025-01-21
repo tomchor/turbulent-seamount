@@ -37,7 +37,7 @@ omit_topology = True
 topology_string = "NPN-"
 verbose = 1
 aux_filename = "aux_pbs_twake.sh"
-julia_file = "headland.jl"
+julia_file = "seamount.jl"
 #---
 
 pbs_script = \

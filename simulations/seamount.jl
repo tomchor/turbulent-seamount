@@ -20,20 +20,30 @@ function parse_command_line_arguments()
 
         "--simname"
             help = "Setup and name of simulation in siminfo.jl"
-            default = "NPN-TEST-f64"
+            default = "TEST-f64"
             arg_type = String
+
+       "--x₀"
+            help = "x location of seamoutn peak"
+            default = 0
+            arg_type = Number
+
+       "--y₀"
+            help = "y location of seamoutn peak"
+            default = 0
+            arg_type = Number
 
     end
     return parse_args(settings)
 end
 args = parse_command_line_arguments()
 simname = args["simname"]
-rundir = "$(DrWatson.findproject())/headland_simulations"
+rundir = "$(DrWatson.findproject())/simulations"
 #---
 
 #+++ Figure out name, dimensions, modifier, etc
 sep = "-"
-global topology, configname, modifiers... = split(simname, sep)
+global configname, modifiers... = split(simname, sep)
 global f2  = "f2"  in modifiers ? true : false
 global f4  = "f4"  in modifiers ? true : false
 global f8  = "f8"  in modifiers ? true : false
@@ -96,14 +106,6 @@ pprintln(params)
 #---
 
 #+++ Base grid
-#+++ Figure out topology and domain
-if topology == "NPN"
-    topo = (Bounded, Bounded, Bounded)
-else
-    throw(AssertionError("Topology must be NPN"))
-end
-#---
-
 params = (; params..., factor)
 
 NxNyNz = get_sizes(params.N ÷ (factor^3),
@@ -112,28 +114,25 @@ NxNyNz = get_sizes(params.N ÷ (factor^3),
 
 params = (; params..., NxNyNz...)
 
+refinement = 1.35 # controls spacing near surface (higher means finer spaced)
+stretching = 15 # controls rate of stretching at bottom 
 
-refinement = 1.55 # controls spacing near surface (higher means finer spaced)
-stretching = 18 # controls rate of stretching
-
-# Normalized height ranging from 0 to 1
-h(k) = (k - 1) / params.Nx
+h₁(k) = ((-k + params.Nz) + 1) / params.Nz
 
 # Linear near-surface generator
-ζ₀(k) = 1 + (h(k) - 1) / refinement
+ζ₁(k) = 1 + (h₁(k) - 1) / refinement
 
-# Right-intensified stretching function
-Σ(k) = (1 - exp(-stretching * h(k))) / (1 - exp(-stretching))
+# Bottom-intensified stretching function 
+Σ₁(k) = (1 - exp(-stretching * h₁(k))) / (1 - exp(-stretching))
 
 # Generating function
-f(k) = ζ₀(k) * Σ(k)
-x_extent(k) = params.Lx * (f(k) - 1) + params.headland_intrusion_size_max
+z_faces(k) = -params.Lz * (ζ₁(k) * Σ₁(k) - 1)
 
-grid_base = RectilinearGrid(arch, topology = topo,
+grid_base = RectilinearGrid(arch, topology = (Periodic, Bounded, Bounded),
                             size = (params.Nx, params.Ny, params.Nz),
-                            x = x_extent,
+                            x = (-params.Lx/2, +params.Lx/2),
                             y = (-params.y_offset, params.Ly-params.y_offset),
-                            z = (0, params.Lz),
+                            z = z_faces,
                             halo = (4,4,4),
                             )
 @info grid_base
@@ -142,25 +141,10 @@ params = (; params..., Δz_min = minimum_zspacing(grid_base))
 
 #+++ Immersed boundary
 include("bathymetry.jl")
-@inline headland(x, y, z) = x > headland_x_of_yz(y, z, params)
 
 #+++ Bathymetry visualization
 if false
-
-    bathymetry2(x, y) = headland_x_of_yz(x, y, params.H) # For visualization purposes
-    bathymetry3(y) = headland_x_of_yz(0, y, 0) # For visualization purposes
-
-    xc = xnodes(grid_base, Center())
-    yc = ynodes(grid_base, Center())
-    zc = znodes(grid_base, Center())
-
-    using GLMakie
-    lines(yc, bathymetry3)
-    pause
-end
-
-if false
-    bathymetry2(x, y, z) = headland(x, y, z)
+    bathymetry2(x, y, z) = seamount(x, y, z)
 
     xc = xnodes(grid_base, Center())
     yc = ynodes(grid_base, Center())
@@ -176,8 +160,10 @@ if false
 end
 #---
 
-GFB = GridFittedBoundary(headland)
-grid = ImmersedBoundaryGrid(grid_base, GFB)
+GFB = GridFittedBottom(seamount)
+PCB = PartialCellBottom(seamount)
+
+grid = ImmersedBoundaryGrid(grid_base, PCB)
 @info grid
 #---
 

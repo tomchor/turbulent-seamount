@@ -20,25 +20,60 @@ function parse_command_line_arguments()
 
         "--simname"
             help = "Setup and name of simulation in siminfo.jl"
-            default = "TEST-f64"
+            default = "seamount-f64"
             arg_type = String
 
-       "--x₀"
-            help = "x location of seamoutn peak"
+        "--x₀"
             default = 0
             arg_type = Number
 
-       "--y₀"
-            help = "y location of seamoutn peak"
+        "--y₀"
             default = 0
             arg_type = Number
 
+        "--N"
+            default = 100e6
+            arg_type = Number
+
+        "--V∞"
+            default = 0.01meters/second
+
+        "--H"
+            default = 40meters
+
+        "--α"
+            default = 0.2 # Headland slope
+
+        "--Fr_h"
+            default = 0.2
+
+        "--Ro_h"
+            default = 0.2
+
+        "--Lx_ratio"
+            default = 3 # Lx / L
+
+        "--Ly_ratio"
+            default = 15 # Ly / L
+
+        "--Rz"
+            default = 2.5e-3
+
+        "--runway_length_fraction_L"
+            default = 4 # y_offset / L (how far from the inflow is the headland)
+
+        "--T_advective_spinup"
+            default = 20 # Should be a multiple of 20
+
+        "--T_advective_statistics"
+            default = 60 # Should be a multiple of 20
+ 
     end
-    return parse_args(settings)
+    return parse_args(settings, as_symbols=true)
 end
-args = parse_command_line_arguments()
-simname = args["simname"]
-rundir = "$(DrWatson.findproject())/simulations"
+
+params = (; parse_command_line_arguments()...)
+rundir = @__DIR__
 #---
 
 #+++ Figure out name, dimensions, modifier, etc
@@ -83,6 +118,26 @@ end
 #---
 
 #+++ Get primary simulation parameters
+let
+    Nx, Ny, Nz = get_sizes(N_max; Lx=params.Lx, Ly=params.Ly, Lz=params.Lz, aspect_ratio_x=3.2, aspect_ratio_y=3.2)
+    N_total = Nx*Ny*Nz
+    T_inertial = 2π/params.f₀
+    α = 2e-5 / second # 2e-6 /s mesoscale strain rate from Bodner.ea (2023), https://doi.org/10.1175/JPO-D-21-0297.1
+    δ = -0.0 * params.f₀ / second # 0.5 * f₀ from Srinivasan.ea (2023), 10.1175/JPO-D-22-0001.1
+    Δb₀ = 4 * params.f₀^2 * params.Ly
+    u_error_ampl = 1e-5
+    b_error_ampl = 1e-1 * Δb₀
+    U = max(params.Ly * α / 2, 1e-4)
+    M²₀ = Δb₀ / params.Ly
+    dvdz = M²₀ / params.f₀
+
+    Ro_b = α / params.f₀
+    𝒫 = params.Qb * α / Δb₀^2
+
+    global params = merge(params, Base.@locals)
+end
+params = expand_headland_parameters(params)
+
 include("$(@__DIR__)/siminfo.jl")
 params = getproperty(Headland(), Symbol(configname))
 
@@ -92,7 +147,6 @@ end
 #---
 
 #+++ Get secondary parameters
-params = expand_headland_parameters(params)
 
 if south
     params = (; params..., f_0 = -params.f_0, f₀ = -params.f₀)

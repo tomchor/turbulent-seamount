@@ -1,30 +1,15 @@
 from os import system
 
 #+++ Define simnames
-simnames = [#"NPN-TEST",
-            "NPN-R008F008",
-            "NPN-R02F008",
-            "NPN-R05F008",
-            "NPN-R1F008",
-            "NPN-R008F02",
-            "NPN-R02F02",
-            "NPN-R05F02",
-            "NPN-R1F02",
-            "NPN-R008F05",
-            "NPN-R02F05",
-            "NPN-R05F05",
-            "NPN-R1F05",
-            "NPN-R008F1",
-            "NPN-R02F1",
-            "NPN-R05F1",
-            "NPN-R1F1",
+simnames = [#"TEST",
+            "tokara",
             ]
 
 from cycler import cycler
 names = cycler(name=simnames)
-resolutions = cycler(resolution = ["-f4", "-f2", ""])
-modifiers = cycler(rotation = ["", "-S", "-AMD"])
-modifiers = cycler(rotation = ["", "-S"])
+resolutions = cycler(resolution = ["-f8", "-f4", "-f2",])
+resolutions = cycler(resolution = ["-f8",])
+modifiers = cycler(rotation = ["",])
 simnames = [ nr["name"] + nr["rotation"] + nr["resolution"] for nr in modifiers * resolutions * names ]
 #---
 

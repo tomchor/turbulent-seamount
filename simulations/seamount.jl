@@ -32,7 +32,7 @@ function parse_command_line_arguments()
             arg_type = Number
 
         "--N_max"
-            default = 100e6
+            default = 120e6
             arg_type = Number
 
         "--V∞"

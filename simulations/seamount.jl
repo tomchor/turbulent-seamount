@@ -330,11 +330,11 @@ simulation.callbacks[:wizard] = Callback(wizard, IterationInterval(4))
 
 #+++ Diagnostics
 #+++ Check for checkpoints
-if any(startswith("chk.$(simname)_iteration"), readdir("$rundir/data"))
-    @warn "Checkpoint for $simname found. Assuming this is a pick-up simulation! Setting overwrite_existing=false."
+if any(startswith("chk.$(params.simname)_iteration"), readdir("$rundir/data"))
+    @warn "Checkpoint for $(params.simname) found. Assuming this is a pick-up simulation! Setting overwrite_existing=false."
     overwrite_existing = false
 else
-    @warn "No checkpoint for $simname found. Setting overwrite_existing=true."
+    @warn "No checkpoint for $(params.simname) found. Setting overwrite_existing=true."
     overwrite_existing = true
 end
 #---
@@ -342,7 +342,7 @@ end
 include("$rundir/diagnostics.jl")
 tick()
 checkpointer = construct_outputs(simulation,
-                                 simname = simname,
+                                 simname = params.simname,
                                  rundir = rundir,
                                  params = params,
                                  overwrite_existing = overwrite_existing,

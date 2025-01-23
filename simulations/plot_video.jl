@@ -18,10 +18,10 @@ end
 
 #+++ Read datasets
 if @isdefined simulation
-    fpath_iyz = simulation.output_writers[:nc_iyz].filepath
+    fpath_xyi = simulation.output_writers[:nc_xyi].filepath
 else
-    simname = "NPN-R02F008-f2"
-    fpath_iyz = "data/iyz.$simname.nc"
+    simname = "tokara-f64"
+    fpath_xyi = "data/xyi.$simname.nc"
 end
 
 using Rasters
@@ -34,24 +34,24 @@ function squeeze(ds::Union{Raster, RasterStack})
 end
 
 broad_variables = (:v, :PV, :εₖ, :Ro,)
-@info "Reading ds_iyz"
-ds_iyz = RasterStack(fpath_iyz, lazy=true, name=broad_variables)
+@info "Reading ds_xyi"
+ds_xyi = RasterStack(fpath_xyi, lazy=true, name=broad_variables)
 
 #+++ Get rid of extra time steps from picking up simulations
 using StatsBase
-times_orig = dims(ds_iyz, :Ti)
+times_orig = dims(ds_xyi, :Ti)
 Δt = mode(times_orig[2:end] .- times_orig[1:end-1])
 times_fixed = 0:Δt:times_orig[end]
-ds_iyz = ds_iyz[Ti=Near(times_fixed)]
+ds_xyi = ds_xyi[Ti=Near(times_fixed)]
 #---
 
 # Get other datasets
-dslist = Vector{Any}([(ds_iyz, "yz")])
-for (prefix, slice) in [("xiz", "xz"), ("xyi", "xy")]
-    fpath = replace(fpath_iyz, "iyz" => prefix)
+dslist = Vector{Any}([(ds_xyi, "xy")])
+for (prefix, slice) in [("xiz", "xz"), ("iyz", "yz")]
+    fpath = replace(fpath_xyi, "xyi" => prefix)
     if isfile(fpath)
         ds = RasterStack(fpath, lazy=true, name=broad_variables)
-        pushfirst!(dslist, (ds[Ti=Near(times_fixed)], slice))
+        push!(dslist, (ds[Ti=Near(times_fixed)], slice))
     end
 end
 
@@ -74,7 +74,7 @@ end
 
 #+++ Get parameters
 if !((@isdefined params) && (@isdefined simulation))
-    md = metadata(ds_iyz)
+    md = metadata(ds_xyi)
     params = (; (Symbol(k) => v for (k, v) in md)...)
 end
 #---
@@ -83,12 +83,12 @@ end
 u_lims = (-params.V∞, +params.V∞) .* 1.2
 w_lims = u_lims
 PV_lims = params.N²∞ * abs(params.f₀) * [-5, +5]
-ε_max = maximum(ds_iyz.εₖ)
+ε_max = maximum(ds_xyi.εₖ)
 ε_lims = (ε_max/1e6, ε_max/1e2)
 #---
 
 #+++ Decide datasets, frames, etc.
-times = dims(ds_iyz, :Ti)
+times = dims(ds_xyi, :Ti)
 n_times = length(times)
 max_frames = 200
 step = max(1, floor(Int, n_times / max_frames))
@@ -130,7 +130,7 @@ fig = Figure(resolution = (1500, 500))
 n = Observable(1)
 
 title = @lift "α = $(@sprintf "%.2g" params.α),     Frₕ = $(@sprintf "%.2g" params.Fr_h),    Roₕ = $(@sprintf "%.2g" params.Ro_h);    " *
-              "Buₕ = Roₕ²/Frₕ² = $(@sprintf "%.2g" params.Bu_h),    Sᴮᵘ = $(@sprintf "%.2g" params.Slope_Bu),    Γ = $(@sprintf "%.2f" params.Γ);    " *
+              "Sᴮᵘ = $(@sprintf "%.2g" params.Slope_Bu);    " *
               "V∞ = $(@sprintf "%.2g" params.V∞) m/s,    Δzₘᵢₙ = $(@sprintf "%.2g" params.Δz_min) m,    z₀ = $(@sprintf "%.2g" params.z₀) m;     " *
               "Time = $(@sprintf "%s" prettytime(times[$n]))  =  $(@sprintf "%.2g" times[$n]/params.T_advective) advective periods  =  " *
               "$(@sprintf "%.2g" times[$n]/params.T_inertial) Inertial periods"
@@ -157,8 +157,11 @@ for (i, variable) in enumerate(variables)
         ylabel      = i == 1            ? string(dimnames[2])   : ""
         #---
 
-        ax = Axis(fig[j+1, i], title=panel_title, xlabel=string(dimnames[1]), ylabel=ylabel, height=panel_height, width=panel_width)
+        #+++ Create axis and plot heatmap
+        height = slice == "xy" ? 2*panel_width : panel_width/2
+        ax = Axis(fig[j+1, i]; title=panel_title, xlabel=string(dimnames[1]), ylabel, width=panel_width, height)
         global hm = heatmap!(vₙ; kwargs[variable]...)
+        #---
 
         #+++ Plot vlines when appropriate
         for (other_slice, dim, dim_value) in slicelist
@@ -189,40 +192,12 @@ for (i, variable) in enumerate(variables)
 end
 #---
 
-#+++ Maybe plot avg
-fpath_avg = replace(fpath_iyz, "iyz" => "avg")
-if isfile(fpath_avg)
-    ds_avg = RasterStack(fpath_avg)
-    gb = fig[length(dslist)+3, 1:length(variables)] = GridLayout()
-    for (i, variable) in enumerate(variables)
-        variable_avg = Symbol(variable, :_zavg)
-        variable_avg ∉ keys(ds_avg) && continue
-
-        global var_raster = ds_avg[variable_avg]
-        dimnames = collect( el for el in dimnames_tup if el in map(name, dims(var_raster)) )
-        push!(dimnames, :Ti)
-        @show dimnames
-
-        v = permutedims(var_raster, dimnames)
-        vₙ = @lift v[Ti=$n]
-
-        #+++ Plot heatmap
-        ylabel = i == 1 ? string(dimnames[2]) : ""
-        ax = Axis(gb[1, i], title=string(variable_avg), xlabel=string(dimnames[1]), ylabel=ylabel, height=panel_height, width=panel_width)
-        global hm = heatmap!(vₙ; kwargs[variable]...)
-        #---
-
-    end
-end
-#---
-
 #+++ Record animation
-using DrWatson
 frames = 1:step:n_times
 @show step n_times max_frames length(frames)
 
 resize_to_layout!(fig) # Resize figure after everything is done to it, but before recording
-Mk.record(fig, "$(DrWatson.findproject())/anims/$(params.simname).mp4", frames, framerate=14) do frame
+Mk.record(fig, "$(@__DIR__)/../anims/$(params.simname).mp4", frames, framerate=14) do frame
     @info "Plotting time step $frame of $(n_times)..."
     n[] = frame
 end

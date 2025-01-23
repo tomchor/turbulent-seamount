@@ -205,7 +205,7 @@ function construct_outputs(simulation;
     #+++ iyz (low def) SNAPSHOTS
     if write_iyz
         @info "Setting up iyz writer"
-        indices = (ceil(Int, 4*grid.Nx/5), :, :)
+        indices = (ceil(Int, grid.Nx/2), :, :)
         simulation.output_writers[:nc_iyz] = ow = NetCDFOutputWriter(model, outputs_full;
                                                                      filename = "$rundir/data/iyz.$(simname).nc",
                                                                      schedule = TimeInterval(interval_2d),

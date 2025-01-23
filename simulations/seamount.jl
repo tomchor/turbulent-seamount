@@ -31,7 +31,7 @@ function parse_command_line_arguments()
             default = 0
             arg_type = Number
 
-        "--N"
+        "--N_max"
             default = 100e6
             arg_type = Number
 
@@ -56,6 +56,9 @@ function parse_command_line_arguments()
         "--Ly_ratio"
             default = 15 # Ly / L
 
+        "--Lz_ratio"
+            default = 1.6 # Lz / L
+
         "--Rz"
             default = 2.5e-3
 
@@ -78,7 +81,7 @@ rundir = @__DIR__
 
 #+++ Figure out name, dimensions, modifier, etc
 sep = "-"
-global configname, modifiers... = split(simname, sep)
+global configname, modifiers... = split(params.simname, sep)
 global f2  = "f2"  in modifiers ? true : false
 global f4  = "f4"  in modifiers ? true : false
 global f8  = "f8"  in modifiers ? true : false
@@ -86,7 +89,6 @@ global f16 = "f16" in modifiers ? true : false
 global f32 = "f32" in modifiers ? true : false
 global f64 = "f64" in modifiers ? true : false
 global AMD = "AMD" in modifiers ? true : false
-global south = "S" in modifiers ? true : false
 global V2  =  "V2" in modifiers ? true : false
 #---
 
@@ -114,59 +116,62 @@ if has_cuda_gpu()
 else
     arch = CPU()
 end
-@info "Starting simulation $simname with a dividing factor of $factor and a $arch architecture\n"
+@info "Starting simulation $(params.simname) with a dividing factor of $factor and a $arch architecture\n"
 #---
 
 #+++ Get primary simulation parameters
-let
-    Nx, Ny, Nz = get_sizes(N_max; Lx=params.Lx, Ly=params.Ly, Lz=params.Lz, aspect_ratio_x=3.2, aspect_ratio_y=3.2)
-    N_total = Nx*Ny*Nz
-    T_inertial = 2π/params.f₀
-    α = 2e-5 / second # 2e-6 /s mesoscale strain rate from Bodner.ea (2023), https://doi.org/10.1175/JPO-D-21-0297.1
-    δ = -0.0 * params.f₀ / second # 0.5 * f₀ from Srinivasan.ea (2023), 10.1175/JPO-D-22-0001.1
-    Δb₀ = 4 * params.f₀^2 * params.Ly
-    u_error_ampl = 1e-5
-    b_error_ampl = 1e-1 * Δb₀
-    U = max(params.Ly * α / 2, 1e-4)
-    M²₀ = Δb₀ / params.Ly
-    dvdz = M²₀ / params.f₀
+include("$(@__DIR__)/siminfo.jl")
 
-    Ro_b = α / params.f₀
-    𝒫 = params.Qb * α / Δb₀^2
+let
+
+    #+++ Geometry
+    θ_rad = atan(params.α)
+    L = params.H / params.α
+
+    Lx = params.Lx_ratio * L
+    Ly = params.Ly_ratio * L
+    Lz = params.Lz_ratio * params.H
+
+    y_offset = params.runway_length_fraction_L * L
+    #---
+
+    #+++ Simulation size
+    Nx, Ny, Nz = get_sizes(params.N_max ÷ (factor^3); Lx, Ly, Lz, aspect_ratio_x=3.2, aspect_ratio_y=3.2)
+    N_total = Nx * Ny * Nz
+    #---
+
+    #+++ Dynamically-relevant secondary parameters
+    f₀ = f_0 = params.V∞ / (params.Ro_h * L)
+    N²∞ = N2_inf = (params.V∞ / (params.Fr_h * params.H))^2
+    R1 = √N²∞ * params.H / f₀
+    z₀ = z_0 = params.Rz * params.H
+    #---
+
+    #+++ Diagnostic parameters
+    Γ = params.α * params.Fr_h # nonhydrostatic parameter (Schar 2002)
+    Bu_h = (params.Ro_h / params.Fr_h)^2
+    Slope_Bu = params.Ro_h / params.Fr_h # approximate slope Burger number
+    @assert Slope_Bu ≈ params.α * √N²∞ / f₀
+    #---
+
+    #+++ Time scales
+    T_inertial = 2π / f₀
+    T_strouhal = L / (params.V∞ * 0.2)
+    T_cycle = Ly / params.V∞
+    T_advective = L / params.V∞
+    #---
 
     global params = merge(params, Base.@locals)
 end
-params = expand_headland_parameters(params)
-
-include("$(@__DIR__)/siminfo.jl")
-params = getproperty(Headland(), Symbol(configname))
 
 if V2
     params = (; params..., V∞ = 2*params.V∞)
 end
 #---
-
-#+++ Get secondary parameters
-
-if south
-    params = (; params..., f_0 = -params.f_0, f₀ = -params.f₀)
-end
-
-simname_full = simname
-@info "Nondimensional parameter space" params.Ro_h params.Fr_h params.α params.Bu_h params.Γ 
-@info "Dimensional parameters" params.L params.H params.N²∞ params.f₀ params.z₀
-pprintln(params)
-#---
 #---
 
 #+++ Base grid
 params = (; params..., factor)
-
-NxNyNz = get_sizes(params.N ÷ (factor^3),
-                   Lx=params.Lx, Ly=params.Ly, Lz=params.Lz,
-                   aspect_ratio_x=4.2, aspect_ratio_y=3.5)
-
-params = (; params..., NxNyNz...)
 
 refinement = 1.35 # controls spacing near surface (higher means finer spaced)
 stretching = 15 # controls rate of stretching at bottom 
@@ -297,12 +302,12 @@ model = NonhydrostaticModel(grid = grid, timestepper = :RungeKutta3,
 if has_cuda_gpu() run(`nvidia-smi -i $(ENV["CUDA_VISIBLE_DEVICES"])`) end
 
 f_params = (; params.H, params.L, params.V∞, params.f₀, params.N²∞,)
-set!(model, b=(x, y, z) -> b∞(x, y, z, 0, f_params), v=params.V_inf)
+set!(model, b=(x, y, z) -> b∞(x, y, z, 0, f_params), v=params.V∞)
 #---
 
 #+++ Create simulation
 params = (; params..., T_advective_max = params.T_advective_spinup + params.T_advective_statistics)
-simulation = Simulation(model, Δt = 0.2*minimum_zspacing(grid.underlying_grid)/params.V_inf,
+simulation = Simulation(model, Δt = 0.2 * minimum_zspacing(grid.underlying_grid) / params.V∞,
                         stop_time = params.T_advective_max * params.T_advective,
                         wall_time_limit = 23hours,
                         minimum_relative_step = 1e-10,

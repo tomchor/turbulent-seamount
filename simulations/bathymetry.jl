@@ -5,17 +5,17 @@ ynode(j, grid, ℓy) = ynode(1, j, 1, grid, Center(), ℓy, Center())
 znode(k, grid, ℓz) = znode(1, 1, k, grid, Center(), Center(), ℓz)
 
 #+++ Define it as z(x, y)
-@inline seamount(x, y, p) = p.H * exp(-((x)/p.L)^2 - ((y)/p.L)^2)
+@inline seamount(x, y, p) = p.H * exp(-((x - p.x₀)/p.L)^2 - ((y - p.y₀)/p.L)^2)
 @inline seamount(x, y) = seamount(x, y, params)
 @inline seamount(i, j, k, grid, 𝓁x, 𝓁y) = seamount(xnode(i, grid, 𝓁x), ynode(j, grid, 𝓁y))
 #---
 
 #+++ Now calculate approximate x, z distance
 using Oceananigans.Grids: xnode, ynode, znode
-params_geometry = (; params.H, params.Lx, params.β, params.L)
+params_geometry = (; params.H, params.L, params.x₀, params.y₀)
 
-@inline z_distance_from_headland_boundary_ccc(i, j, k, grid, p) = znode(k, grid, Center()) - seamount(xnode(i, grid, Center()), ynode(j, grid, Center()))
-@compute altitude = Field(KernelFunctionOperation{Center, Center, Center}(z_distance_from_headland_boundary_ccc, grid_base, params_geometry))
+@inline z_distance_from_seamount_boundary_ccc(i, j, k, grid, p) = znode(k, grid, Center()) - seamount(xnode(i, grid, Center()), ynode(j, grid, Center()), p)
+@compute altitude = Field(KernelFunctionOperation{Center, Center, Center}(z_distance_from_seamount_boundary_ccc, grid_base, params_geometry))
 #---
 
 xC = KernelFunctionOperation{Center, Center, Center}(xnode, grid_base, Center(), Center(), Center())

@@ -135,7 +135,7 @@ function construct_outputs(simulation;
     model = simulation.model
 
     #+++ Preamble and common keyword arguments
-    k_half = @allowscalar Int(ceil(params.H / minimum_zspacing(grid))) # Approximately half the headland height
+    k_half = ceil(Int, params.H / 2params.Δz_min) # Approximately half the seamount height
     kwargs = (overwrite_existing = overwrite_existing,
               deflatelevel = 5,
               global_attributes = params)
@@ -154,8 +154,6 @@ function construct_outputs(simulation;
         @info "Starting to write grid metrics and deltas to xyz"
         laptimer()
         add_grid_metrics_to!(ow)
-        write_to_ds(ow.filepath, "Δx_from_headland", interior(compute!(Field(Δx_from_headland))), coords = ("xC", "yC", "zC"))
-        write_to_ds(ow.filepath, "Δz_from_headland", interior(compute!(Field(Δz_from_headland))), coords = ("xC", "yC", "zC"))
         write_to_ds(ow.filepath, "altitude", interior(compute!(Field(altitude))), coords = ("xC", "yC", "zC"))
         write_to_ds(ow.filepath, "ΔxΔz", interior(compute!(Field(ΔxΔz))), coords = ("xC", "yC", "zC"))
         write_to_ds(ow.filepath, "bottom_height", Array(interior(maximum(compute!(Field(bottom_height)), dims=3)))[:,:,1], coords = ("xC", "yC",))

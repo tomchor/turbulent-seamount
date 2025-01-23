@@ -2,7 +2,6 @@ if ("PBS_JOBID" in keys(ENV))  @info "Job ID" ENV["PBS_JOBID"] end # Print job I
 #using Pkg; Pkg.instantiate()
 using InteractiveUtils
 versioninfo()
-using DrWatson
 using ArgParse
 using Oceananigans
 using Oceananigans.Units
@@ -32,7 +31,7 @@ function parse_command_line_arguments()
             arg_type = Number
 
         "--N_max"
-            default = 120e6
+            default = 200e6
             arg_type = Number
 
         "--V∞"

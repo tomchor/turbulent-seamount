@@ -20,8 +20,8 @@ end
 if @isdefined simulation
     fpath_iyz = simulation.output_writers[:nc_iyz].filepath
 else
-    simname_full = "NPN-R02F008-f2"
-    fpath_iyz = "data/iyz.$simname_full.nc"
+    simname = "NPN-R02F008-f2"
+    fpath_iyz = "data/iyz.$simname.nc"
 end
 
 using Rasters
@@ -80,9 +80,9 @@ end
 #---
 
 #+++ Auxiliary parameters
-u_lims = (-params.V_inf, +params.V_inf) .* 1.2
+u_lims = (-params.V∞, +params.V∞) .* 1.2
 w_lims = u_lims
-PV_lims = params.N2_inf * abs(params.f_0) * [-5, +5]
+PV_lims = params.N²∞ * abs(params.f₀) * [-5, +5]
 ε_max = maximum(ds_iyz.εₖ)
 ε_lims = (ε_max/1e6, ε_max/1e2)
 #---
@@ -222,7 +222,7 @@ frames = 1:step:n_times
 @show step n_times max_frames length(frames)
 
 resize_to_layout!(fig) # Resize figure after everything is done to it, but before recording
-Mk.record(fig, "$(DrWatson.findproject())/anims/$(simname_full).mp4", frames, framerate=14) do frame
+Mk.record(fig, "$(DrWatson.findproject())/anims/$(params.simname).mp4", frames, framerate=14) do frame
     @info "Plotting time step $frame of $(n_times)..."
     n[] = frame
 end

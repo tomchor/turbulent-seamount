@@ -367,5 +367,5 @@ run!(simulation, pickup=true)
 #---
 
 #+++ Plot video
-include("$rundir/plot_headland_video.jl")
+include("$rundir/plot_video.jl")
 #---

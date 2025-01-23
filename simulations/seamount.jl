@@ -173,8 +173,8 @@ end
 #+++ Base grid
 params = (; params..., factor)
 
-refinement = 1.35 # controls spacing near surface (higher means finer spaced)
-stretching = 15 # controls rate of stretching at bottom 
+refinement = 1.1 # controls spacing near surface (higher means finer spaced)
+stretching = 25 # controls rate of stretching at bottom
 
 h₁(k) = ((-k + params.Nz) + 1) / params.Nz
 
@@ -254,7 +254,6 @@ v_north = PerturbationAdvectionOpenBoundaryCondition(params.V∞; inflow_timesca
 
 w_south = w_north = ValueBoundaryCondition(0)
 #---
-
 
 #+++ Boundary conditions for buoyancy
 b∞(x, y, z, t, p) = p.N²∞ * z

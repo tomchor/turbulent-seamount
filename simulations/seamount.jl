@@ -20,7 +20,7 @@ function parse_command_line_arguments()
 
         "--simname"
             help = "Setup and name of simulation in siminfo.jl"
-            default = "seamount-f64"
+            default = "tokara-f64"
             arg_type = String
 
         "--x₀"
@@ -36,28 +36,28 @@ function parse_command_line_arguments()
             arg_type = Number
 
         "--V∞"
-            default = 0.01meters/second
+            default = 0.1meters/second
 
         "--H"
             default = 40meters
 
         "--α"
-            default = 0.2 # Headland slope
-
-        "--Fr_h"
-            default = 0.2
+            default = 0.05
 
         "--Ro_h"
-            default = 0.2
+            default = 1.7
+
+        "--Fr_h"
+            default = 0.6
 
         "--Lx_ratio"
-            default = 3 # Lx / L
+            default = 4 # Lx / L
 
         "--Ly_ratio"
             default = 15 # Ly / L
 
         "--Lz_ratio"
-            default = 1.6 # Lz / L
+            default = 1.5 # Lz / L
 
         "--Rz"
             default = 2.5e-3

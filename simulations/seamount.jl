@@ -237,9 +237,6 @@ params = (; params..., c_dz = (κᵛᵏ / log(z₁/z₀))^2) # quadratic drag co
 @inline τᵛ_drag(x, y, z, t, u, v, w, p) = -p.Cᴰ * v * √(u^2 + v^2 + w^2)
 @inline τʷ_drag(x, y, z, t, u, v, w, p) = -p.Cᴰ * w * √(u^2 + v^2 + w^2)
 
-@inline τᵘ_drag(x, y, t, u, v, w, p) = -p.Cᴰ * u * √(u^2 + v^2 + w^2)
-@inline τᵛ_drag(x, y, t, u, v, w, p) = -p.Cᴰ * v * √(u^2 + v^2 + w^2)
-
 τᵘ = FluxBoundaryCondition(τᵘ_drag, field_dependencies = (:u, :v, :w), parameters=(; Cᴰ = params.c_dz,))
 τᵛ = FluxBoundaryCondition(τᵛ_drag, field_dependencies = (:u, :v, :w), parameters=(; Cᴰ = params.c_dz,))
 τʷ = FluxBoundaryCondition(τʷ_drag, field_dependencies = (:u, :v, :w), parameters=(; Cᴰ = params.c_dz,))
@@ -264,8 +261,8 @@ b_south = b_north = ValueBoundaryCondition(b∞, parameters = (; params.N²∞))
 #---
 
 #+++ Assemble BCs
-u_bcs = FieldBoundaryConditions(south=u_south, north=u_north, immersed=τᵘ, bottom=τᵘ)
-v_bcs = FieldBoundaryConditions(south=v_south, north=v_north, immersed=τᵛ, bottom=τᵛ)
+u_bcs = FieldBoundaryConditions(south=u_south, north=u_north, immersed=τᵘ)
+v_bcs = FieldBoundaryConditions(south=v_south, north=v_north, immersed=τᵛ)
 w_bcs = FieldBoundaryConditions(south=w_south, north=w_north, immersed=τʷ)
 b_bcs = FieldBoundaryConditions(south=b_south, north=b_north)
 

@@ -221,7 +221,7 @@ end
 GFB = GridFittedBottom(seamount)
 PCB = PartialCellBottom(seamount)
 
-grid = ImmersedBoundaryGrid(grid_base, PCB)
+grid = ImmersedBoundaryGrid(grid_base, GFB)
 @info grid
 #---
 

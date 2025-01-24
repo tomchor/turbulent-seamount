@@ -269,7 +269,6 @@ b_bcs = FieldBoundaryConditions(south=b_south, north=b_north)
 bcs = (u=u_bcs, v=v_bcs, w=w_bcs, b=b_bcs)
 #---
 
-params = (; params..., y_south = ynode(1, grid, Face()))
 #+++ Define geostrophic forcing
 @inline geostrophy(x, y, z, t, p) = -p.f₀ * p.V∞
 Fᵤ = Forcing(geostrophy, parameters = (; params.f₀, params.V∞))

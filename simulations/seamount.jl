@@ -59,7 +59,7 @@ function parse_command_line_arguments()
             default = 1.5 # Lz / L
 
         "--Rz"
-            default = 2.5e-3
+            default = 2.5e-4
 
         "--runway_length_fraction_L"
             default = 4 # y_offset / L (how far from the inflow is the headland)
@@ -107,6 +107,7 @@ elseif f64
 else
     factor = 1
 end
+params = (; params..., factor)
 #---
 
 #+++ Figure out architecture
@@ -166,12 +167,11 @@ end
 if V2
     params = (; params..., V∞ = 2*params.V∞)
 end
+pprintln(params)
 #---
 #---
 
 #+++ Base grid
-params = (; params..., factor)
-
 refinement = 1.1 # controls spacing near surface (higher means finer spaced)
 stretching = 25 # controls rate of stretching at bottom
 

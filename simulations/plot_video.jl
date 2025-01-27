@@ -20,7 +20,7 @@ end
 if @isdefined simulation
     fpath_xyi = simulation.output_writers[:nc_xyi].filepath
 else
-    simname = "tokara-f64"
+    simname = "tokara-f4"
     fpath_xyi = "data/xyi.$simname.nc"
 end
 
@@ -42,7 +42,7 @@ using StatsBase
 times_orig = dims(ds_xyi, :Ti)
 Δt = mode(times_orig[2:end] .- times_orig[1:end-1])
 times_fixed = 0:Δt:times_orig[end]
-ds_xyi = ds_xyi[Ti=Near(times_fixed)]
+ds_xyi = ds_xyi
 #---
 
 # Get other datasets
@@ -51,7 +51,7 @@ for (prefix, slice) in [("xiz", "xz"), ("iyz", "yz")]
     fpath = replace(fpath_xyi, "xyi" => prefix)
     if isfile(fpath)
         ds = RasterStack(fpath, lazy=true, name=broad_variables)
-        push!(dslist, (ds[Ti=Near(times_fixed)], slice))
+        push!(dslist, (ds, slice))
     end
 end
 
@@ -126,7 +126,7 @@ bottom_axis_height = 2panel_height/3
 using Oceananigans.Units, Printf
 using Oceananigans: prettytime
 
-fig = Figure(resolution = (1500, 500))
+fig = Figure(size = (1500, 500))
 n = Observable(1)
 
 title = @lift "α = $(@sprintf "%.2g" params.α),     Frₕ = $(@sprintf "%.2g" params.Fr_h),    Roₕ = $(@sprintf "%.2g" params.Ro_h);    " *
@@ -149,7 +149,7 @@ for (i, variable) in enumerate(variables)
         push!(dimnames, :Ti)
         @show dimnames
 
-        v = permutedims(var_raster, dimnames)
+        local v = permutedims(var_raster, dimnames)
         vₙ = @lift v[Ti=$n]
 
         #+++ Set axes labels

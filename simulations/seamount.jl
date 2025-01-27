@@ -7,6 +7,7 @@ using Oceananigans
 using Oceananigans.Units
 using PrettyPrinting
 using TickTock
+using DrWatson
 
 using CUDA: @allowscalar, has_cuda_gpu
 

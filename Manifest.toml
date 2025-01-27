@@ -2,7 +2,7 @@
 
 julia_version = "1.10.2"
 manifest_format = "2.0"
-project_hash = "355aee338c97011706c68d8305d97d22698df76b"
+project_hash = "1bf71c87bc67b0e676ec3e6c38f9851b1822c505"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -408,6 +408,12 @@ version = "0.9.3"
 deps = ["ArgTools", "FileWatching", "LibCURL", "NetworkOptions"]
 uuid = "f43a241f-c20a-4ad4-852c-f6b1247861c6"
 version = "1.6.0"
+
+[[deps.DrWatson]]
+deps = ["Dates", "FileIO", "JLD2", "LibGit2", "MacroTools", "Pkg", "Random", "Requires", "Scratch", "UnPack"]
+git-tree-sha1 = "17c9db646d6cb3f68a90053bf46faf5312d13b36"
+uuid = "634d3b9d-ee7a-5ddf-bec9-22491ea816e1"
+version = "2.18.0"
 
 [[deps.EarCut_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]

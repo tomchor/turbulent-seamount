@@ -10,6 +10,7 @@ names = cycler(name=simnames)
 resolutions = cycler(resolution = ["-f8", "-f4", "-f2",])
 resolutions = cycler(resolution = ["-f8",])
 modifiers = cycler(rotation = ["",])
+modifiers = cycler(rotation = ["-large-fast",])
 simnames = [ nr["name"] + nr["rotation"] + nr["resolution"] for nr in modifiers * resolutions * names ]
 #---
 

@@ -36,10 +36,10 @@ function parse_command_line_arguments()
             arg_type = Number
 
         "--V∞"
-            default = 0.1meters/second
+            default = 1meters/second
 
         "--H"
-            default = 40meters
+            default = 400meters
 
         "--α"
             default = 0.05

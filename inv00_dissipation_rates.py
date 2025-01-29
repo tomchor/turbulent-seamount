@@ -14,10 +14,10 @@ plt.rcParams["font.size"] = 9
 π = np.pi
 
 path = "simulations/data/"
-modifier = "-f2"
+modifier = "-f8"
 
 
-CSM = open_simulation(path+f"iyz.tokara{modifier}.nc",
+regl = open_simulation(path+f"iyz.tokara{modifier}.nc",
                       use_inertial_periods = True,
                       topology = "PNN",
                       squeeze = True,
@@ -25,7 +25,7 @@ CSM = open_simulation(path+f"iyz.tokara{modifier}.nc",
                       open_dataset_kwargs = dict(chunks="auto"),
                       get_grid = False,
                       )
-DSM = open_simulation(path+f"iyz.tokara-DYN{modifier}.nc",
+larg = open_simulation(path+f"iyz.tokara-large{modifier}.nc",
                       use_inertial_periods = True,
                       topology = "PNN",
                       squeeze = True,
@@ -33,7 +33,7 @@ DSM = open_simulation(path+f"iyz.tokara-DYN{modifier}.nc",
                       open_dataset_kwargs = dict(chunks="auto"),
                       get_grid = False,
                       )
-AMD = open_simulation(path+f"iyz.tokara-AMD{modifier}.nc",
+fast = open_simulation(path+f"iyz.tokara-large-fast{modifier}.nc",
                       use_inertial_periods = True,
                       topology = "PNN",
                       squeeze = True,
@@ -42,16 +42,29 @@ AMD = open_simulation(path+f"iyz.tokara-AMD{modifier}.nc",
                       get_grid = False,
                       )
 
-CSM = adjust_times(CSM, round_times=True)
-DSM = adjust_times(DSM, round_times=True)
-AMD = adjust_times(AMD, round_times=True)
+regl = adjust_times(regl, round_times=True)
+larg = adjust_times(larg, round_times=True)
+fast = adjust_times(fast, round_times=True)
 
-CSM = CSM.sel(time=1, method="nearest")
-DSM = DSM.sel(time=1, method="nearest")
-AMD = AMD.sel(time=1, method="nearest")
+def nondimensionalize(ds):
+    ds = ds.assign_coords(xC=ds.xC / ds.L)
+    ds = ds.assign_coords(yC=ds.yC / ds.L)
+    ds = ds.assign_coords(zC=ds.zC / ds.H)
+    ds["ε̂ₖ"] = ds["εₖ"] / (ds.attrs["V∞"]**3 / ds.L)
+    return ds
 
-opts = dict(norm=LogNorm(clip=True), vmin=1e-10, vmax=1e-7, cmap="inferno", rasterized=True)
+def regularize(ds):
+    ds = nondimensionalize(ds)
+    ds = ds.sel(time=1, method="nearest")
+    return ds
+
+regl = regularize(regl)
+larg = regularize(larg)
+fast = regularize(fast)
+
+opts = dict(norm=LogNorm(clip=True), vmin=1e-5, vmax=1e-1, cmap="inferno", rasterized=True)
 fig, axes = plt.subplots(nrows=3, constrained_layout=True, sharey=True, figsize=(14, 7))
 
-for ax, ds in zip(axes, [CSM, DSM, AMD]):
-    ds["εₖ"].pnplot(ax=ax, **opts)
+for ax, ds in zip(axes, [regl, larg, fast]):
+    ds["ε̂ₖ"].pnplot(ax=ax, **opts)
+    ax.set_title(f"V∞ = {ds.attrs['V∞']} m/s; L = {ds.L} m; $V_\infty^2/L=$ {ds.attrs["V∞"]**3 / ds.L} m²/s³")

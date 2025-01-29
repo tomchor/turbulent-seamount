@@ -1,4 +1,8 @@
 if ("PBS_JOBID" in keys(ENV))  @info "Job ID" ENV["PBS_JOBID"] end # Print job ID if this is a PBS simulation
+
+using DrWatson: @quickactivate, projectdir
+@quickactivate "tokara-straight" # <- project name
+
 #using Pkg; Pkg.instantiate()
 using InteractiveUtils
 versioninfo()
@@ -7,7 +11,6 @@ using Oceananigans
 using Oceananigans.Units
 using PrettyPrinting
 using TickTock
-using DrWatson
 
 using CUDA: @allowscalar, has_cuda_gpu
 

@@ -41,10 +41,14 @@ fast = open_simulation(path+f"iyz.tokara-large-fast{modifier}.nc",
                       open_dataset_kwargs = dict(chunks="auto"),
                       get_grid = False,
                       )
-
-regl = adjust_times(regl, round_times=True)
-larg = adjust_times(larg, round_times=True)
-fast = adjust_times(fast, round_times=True)
+stra = open_simulation(path+f"iyz.tokara-stratified{modifier}.nc",
+                      use_inertial_periods = True,
+                      topology = "PNN",
+                      squeeze = True,
+                      load = False,
+                      open_dataset_kwargs = dict(chunks="auto"),
+                      get_grid = False,
+                      )
 
 def nondimensionalize(ds):
     ds = ds.assign_coords(xC=ds.xC / ds.L)
@@ -54,6 +58,7 @@ def nondimensionalize(ds):
     return ds
 
 def regularize(ds):
+    ds = adjust_times(ds, round_times=True)
     ds = nondimensionalize(ds)
     ds = ds.sel(time=1, method="nearest")
     return ds
@@ -61,10 +66,11 @@ def regularize(ds):
 regl = regularize(regl)
 larg = regularize(larg)
 fast = regularize(fast)
+stra = regularize(stra)
 
 opts = dict(norm=LogNorm(clip=True), vmin=1e-5, vmax=1e-1, cmap="inferno", rasterized=True)
-fig, axes = plt.subplots(nrows=3, constrained_layout=True, sharey=True, figsize=(14, 7))
+fig, axes = plt.subplots(nrows=4, constrained_layout=True, sharey=True, figsize=(14, 7))
 
-for ax, ds in zip(axes, [regl, larg, fast]):
+for ax, ds in zip(axes, [regl, larg, fast, stra]):
     ds["ε̂ₖ"].pnplot(ax=ax, **opts)
     ax.set_title(f"V∞ = {ds.attrs['V∞']} m/s; L = {ds.L} m; $V_\infty^2/L=$ {ds.attrs["V∞"]**3 / ds.L} m²/s³")

@@ -88,8 +88,8 @@ global f8  = "f8"  in modifiers ? true : false
 global f16 = "f16" in modifiers ? true : false
 global f32 = "f32" in modifiers ? true : false
 global f64 = "f64" in modifiers ? true : false
-global AMD = "AMD" in modifiers ? true : false
-global DYN = "DYN" in modifiers ? true : false
+global CSM = "CSM" in modifiers ? true : false # Constan SMagorinsky
+global DSM = "DSM" in modifiers ? true : false # Dynamic SMagorinsky
 global V2  =  "V2" in modifiers ? true : false
 #---
 
@@ -277,12 +277,12 @@ Fᵤ = Forcing(geostrophy, parameters = (; params.f₀, params.V∞))
 #---
 
 #+++ Turbulence closure
-if AMD
-    closure = AnisotropicMinimumDissipation()
-elseif DYN
+if CSM
+    closure = SmagorinskyLilly(C=0.13, Pr=1)
+elseif DSM
     closure = Smagorinsky(coefficient=DynamicCoefficient(averaging=LagrangianAveraging()))
 else
-    closure = SmagorinskyLilly(C=0.13, Pr=1)
+    closure = AnisotropicMinimumDissipation()
 end
 #---
 

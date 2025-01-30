@@ -21,6 +21,10 @@ stratification above that. For the strong stratification region at the top:
 ∂ρ/∂z ≈ 0.02 kg / m⁴
 N²∞ = - g (∂ρ/∂z) / ρ₀ ≈ 1e-4 1/s²
 
+Roₕ = V∞ / f L ≈ 1.71
+Frₕ = V∞ / N H ≈ 0.25
+Sₕ  = Roₕ / Frₕ ≈ 6.84
+
 For the weakly stratified reason,
 
 Δσ ≈ (26 - 25.5) kg/m³

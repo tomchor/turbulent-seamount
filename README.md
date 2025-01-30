@@ -8,7 +8,7 @@ Seamount data based on the Figure 1 of [Nagai et al.
 - Lz ≈ 600 m
 - H ≈ 400 m maybe 500 m
 - FWMH ≈ 10km to 15km (Full width at half-maximum)
-- L = FWHM / (2√(log(2))) = 6km to 9km
+- L = FWHM / (2√log(2)) = 6km to 9km
 - α = H / FWMH ≈ 0.05 to 0.08
 - V∞ ≈ 1 m/s
 - f = 7.3e-5 1/s
@@ -30,6 +30,6 @@ N² = - g (∂ρ/∂z) / ρ₀ ≈ 1.5e-5 1/s
 
 With these data (and using the lower value for stratification):
 
-Roₕ = V∞ / f L ≈ 1.71
+Roₕ = V∞ / f FWMH ≈ 1.4 to 0.9
 Frₕ = V∞ / N H ≈ 0.64
 Sₕ  = Roₕ / Frₕ ≈ 2.67

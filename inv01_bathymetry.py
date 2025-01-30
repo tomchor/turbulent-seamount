@@ -2,7 +2,7 @@ import xarray as xr
 from matplotlib import pyplot as plt
 from cmocean import cm
 
-ds = xr.load_dataset("gebco_2024_n33.0_s28.0_w128.0_e134.0.nc")
+ds = xr.load_dataset("elevation.nc")
 zoom_in = ds.sel(lat=slice(30, 30.10, 4), lon=slice(129.6, 130.2))
 
 ds.elevation.plot(cmap=cm.topo)

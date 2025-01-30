@@ -45,7 +45,7 @@ function parse_command_line_arguments()
             default = 0.05
 
         "--Ro_h"
-            default = 1.7
+            default = 1.4
 
         "--Fr_h"
             default = 0.6
@@ -127,7 +127,7 @@ let
     #+++ Geometry
     θ_rad = atan(params.α)
     FWMH = params.H / params.α
-    L = FWMH / (2√(log(2))) # The proper L for an exponential to achieve FWMH
+    L = FWMH / (2√log(2)) # The proper L for an exponential to achieve FWMH
 
     Lx = params.Lx_ratio * L
     Ly = params.Ly_ratio * L

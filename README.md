@@ -19,14 +19,14 @@ stratification above that. For the strong stratification region at the top:
 Δσ ≈ (24 - 23) kg/m³
 Δz ≈ 50 m
 ∂ρ/∂z ≈ 0.02 kg / m⁴
-N²∞ = - g (∂ρ/∂z) / ρ₀ ≈ 2e-4 1/s
+N²∞ = - g (∂ρ/∂z) / ρ₀ ≈ 1e-4 1/s²
 
 For the weakly stratified reason,
 
 Δσ ≈ (26 - 25.5) kg/m³
 Δz ≈ 300 m
 ∂ρ/∂z ≈ 0.00167 kg / m⁴
-N² = - g (∂ρ/∂z) / ρ₀ ≈ 1.5e-5 1/s
+N² = - g (∂ρ/∂z) / ρ₀ ≈ 1.5e-5 1/s²
 
 With these data (and using the lower value for stratification):
 

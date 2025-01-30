@@ -83,8 +83,7 @@ end
 u_lims = (-params.V∞, +params.V∞) .* 1.2
 w_lims = u_lims
 PV_lims = params.N²∞ * abs(params.f₀) * [-5, +5]
-ε_max = maximum(ds_xyi.εₖ)
-ε_lims = (ε_max/1e6, ε_max/1e2)
+ε_lims = (1e-10, 1e-7)
 #---
 
 #+++ Decide datasets, frames, etc.

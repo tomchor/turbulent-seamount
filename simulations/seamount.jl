@@ -41,6 +41,7 @@ function parse_command_line_arguments()
             default = 40meters
 
         "--α"
+            help = "H / FWMH"
             default = 0.05
 
         "--Ro_h"
@@ -125,7 +126,8 @@ let
 
     #+++ Geometry
     θ_rad = atan(params.α)
-    L = params.H / params.α
+    FWMH = params.H / params.α
+    L = FWMH / (2√(log(2))) # The proper L for an exponential to achieve FWMH
 
     Lx = params.Lx_ratio * L
     Ly = params.Ly_ratio * L
@@ -140,7 +142,7 @@ let
     #---
 
     #+++ Dynamically-relevant secondary parameters
-    f₀ = f_0 = params.V∞ / (params.Ro_h * L)
+    f₀ = f_0 = params.V∞ / (params.Ro_h * FWMH)
     N²∞ = N2_inf = (params.V∞ / (params.Fr_h * params.H))^2
     R1 = √N²∞ * params.H / f₀
     z₀ = z_0 = params.Rz * params.H

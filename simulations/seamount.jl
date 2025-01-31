@@ -39,7 +39,7 @@ function parse_command_line_arguments()
             default = 0.1meters/second
 
         "--H"
-            default = 40meters
+            default = 50meters
 
         "--α"
             help = "H / FWMH"
@@ -58,7 +58,7 @@ function parse_command_line_arguments()
             default = 15 # Ly / L
 
         "--Lz_ratio"
-            default = 1.5 # Lz / L
+            default = 1.2 # Lz / L
 
         "--Rz"
             default = 2.5e-4

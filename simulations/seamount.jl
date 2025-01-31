@@ -282,7 +282,7 @@ Fᵤ = Forcing(geostrophy, parameters = (; params.f₀, params.V∞))
 if CSM
     closure = SmagorinskyLilly(C=0.13, Pr=1)
 elseif DSM
-    closure = Smagorinsky(coefficient=DynamicCoefficient(averaging=LagrangianAveraging()))
+    closure = Smagorinsky(coefficient=DynamicCoefficient(averaging=LagrangianAveraging(), schedule=IterationInterval(5)))
 else
     closure = AnisotropicMinimumDissipation()
 end

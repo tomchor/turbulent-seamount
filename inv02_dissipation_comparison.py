@@ -14,47 +14,60 @@ plt.rcParams["font.size"] = 9
 π = np.pi
 
 path = "simulations/data/"
-modifier = "-f2"
+modifiers = ["-f4", ""]
+#modifiers = ["-f8", "-f4",]
+alphas = (0.3, 1)
+normalized_offsets = (-1/2, 0, 1/2)
+V_tokara = 1 # m/s
+H_tokara = 500 # meters
 
+fig, ax = plt.subplots(constrained_layout=True, sharey=True, figsize=(10, 4))
 
-iyz = open_simulation(path+f"iyz.tokara{modifier}.nc",
-                      use_inertial_periods = True,
-                      topology = "PNN",
-                      squeeze = True,
-                      load = False,
-                      open_dataset_kwargs = dict(chunks="auto"),
-                      get_grid = False,
-                      )
+for j, modifier in enumerate(modifiers):
+    #+++ Open dataset and pick time
+    xyz = open_simulation(path+f"xyz.tokara{modifier}.nc",
+                          use_inertial_periods = True,
+                          topology = "PNN",
+                          squeeze = True,
+                          load = False,
+                          open_dataset_kwargs = dict(chunks=dict(yC="auto", time="auto")),
+                          get_grid = False,
+                          )
+    xyz = adjust_times(xyz, round_times=True)
+    xyz = xyz.sel(time=1.5, method="nearest")
+    #---
 
-xyz = open_simulation(path+f"xyz.tokara{modifier}.nc",
-                      use_inertial_periods = True,
-                      topology = "PNN",
-                      squeeze = True,
-                      load = False,
-                      open_dataset_kwargs = dict(chunks="auto"),
-                      get_grid = False,
-                      )
+    opts = dict(norm=LogNorm(clip=True), vmin=1e-10, vmax=1e-7, cmap="inferno")
 
-iyz = adjust_times(iyz, round_times=True)
-iyz = iyz.sel(time=3, method="nearest")
+    #+++ Take vertical average
+    xyz["ε̄ₖ"]  = (xyz["εₖ"]  * xyz["Δzᶜᶜᶜ"]).pnsum("z") / xyz["Δzᶜᶜᶜ"].pnsum("z")
 
-iyz["altitude"] = xyz.altitude.interp(xC=iyz.xC, yC=iyz.yC, zC=iyz.zC)
+    xyz["ℱεₖ"] = xyz["εₖ"].where(xyz.altitude > 4)
+    xyz["ℱε̄ₖ"] = (xyz["ℱεₖ"] * xyz["Δzᶜᶜᶜ"]).pnsum("z") / xyz["Δzᶜᶜᶜ"].pnsum("z")
+    #---
 
-iyz["ℱεₖ"] = iyz["εₖ"].where(iyz.altitude > 4)
+    #+++ Upscale LES results
+    FWMH_tokara = (H_tokara / xyz.H) * xyz.FWMH # m
+    ℰₖ_tokara = V_tokara**3 / FWMH_tokara
+    ℰₖ_LES = xyz.attrs["V∞"]**3 / (xyz.FWMH)
 
-opts = dict(norm=LogNorm(clip=True), vmin=1e-10, vmax=1e-7, cmap="inferno")
+    xyz["ε̄ₖ_upscaled"]  = xyz["ε̄ₖ"]  * ℰₖ_tokara / ℰₖ_LES
+    xyz["ℱε̄ₖ_upscaled"] = xyz["ℱε̄ₖ"] * ℰₖ_tokara / ℰₖ_LES
+    #---
 
-iyz["ε̄ₖ"]  = (iyz["εₖ"]  * iyz["Δzᶜᶜᶜ"]).pnsum("z") / iyz["Δzᶜᶜᶜ"].pnsum("z")
-iyz["ℱε̄ₖ"] = (iyz["ℱεₖ"] * iyz["Δzᶜᶜᶜ"]).pnsum("z") / iyz["Δzᶜᶜᶜ"].pnsum("z")
+    alpha = alphas[j]
+    for i, offset in enumerate(normalized_offsets):
+        label = f"Filtered Vert avg εₖ @ {offset:.1f} FWMH" if j==0 else ""
+        print(f"Plotting {j}-th modifier = {modifier}, {i}-th offset = {offset}")
+        color = plt.rcParams["axes.prop_cycle"].by_key()["color"][i]
 
-V = 1 # m/s
-FWMH = 10_000 # m
-ℰₖ_tokara = V**3 / FWMH
-ℰₖ_LES = iyz.attrs["V∞"]**3 / (iyz.L * (2*np.log(2)))
+        xyz_line = xyz.sel(xC=offset*xyz.FWMH, method="nearest")
+        xyz_line["ℱε̄ₖ_upscaled"].plot(ax=ax, label=label, color=color, alpha=alpha)
 
-fig, ax = plt.subplots(ncols=1, constrained_layout=True, sharey=True, figsize=(10, 4))
-
-(iyz["ε̄ₖ"] * ℰₖ_tokara / ℰₖ_LES).plot(ax=ax, ylim=(1e-9, 1e-5), yscale="log", label="Vert avg εₖ")
-(iyz["ℱε̄ₖ"] * ℰₖ_tokara / ℰₖ_LES).plot(ax=ax, label="Filtered Vert avg εₖ")
+ax.set_ylim(1e-9, 1e-5)
+ax.set_yscale("log")
+ax.set_title("")
 ax.legend()
+ax.grid(True)
 
+fig.savefig(f"figures/dissipation_comparison.png")

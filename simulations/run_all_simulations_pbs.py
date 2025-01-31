@@ -7,10 +7,9 @@ simnames = [#"TEST",
 
 from cycler import cycler
 names = cycler(name=simnames)
-resolutions = cycler(resolution = ["-f8", "-f4", "-f2",])
-resolutions = cycler(resolution = ["-f8",])
-modifiers = cycler(rotation = ["",])
-simnames = [ nr["name"] + nr["rotation"] + nr["resolution"] for nr in modifiers * resolutions * names ]
+resolutions = cycler(resolution = ["-f8", "-f4", "-f2", ""])
+modifiers = cycler(modifier = ["",])
+simnames = [ nr["name"] + nr["modifier"] + nr["resolution"] for nr in modifiers * resolutions * names ]
 #---
 
 #+++ Options

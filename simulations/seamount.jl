@@ -174,25 +174,11 @@ end
 #+++ Base grid
 params = (; params..., factor)
 
-refinement = 1.1 # controls spacing near surface (higher means finer spaced)
-stretching = 25 # controls rate of stretching at bottom
-
-h₁(k) = ((-k + params.Nz) + 1) / params.Nz
-
-# Linear near-surface generator
-ζ₁(k) = 1 + (h₁(k) - 1) / refinement
-
-# Bottom-intensified stretching function 
-Σ₁(k) = (1 - exp(-stretching * h₁(k))) / (1 - exp(-stretching))
-
-# Generating function
-z_faces(k) = -params.Lz * (ζ₁(k) * Σ₁(k) - 1)
-
 grid_base = RectilinearGrid(arch, topology = (Periodic, Bounded, Bounded),
                             size = (params.Nx, params.Ny, params.Nz),
                             x = (-params.Lx/2, +params.Lx/2),
-                            y = (-params.y_offset, params.Ly-params.y_offset),
-                            z = z_faces,
+                            y = (-params.y_offset, params.Ly - params.y_offset),
+                            z = (0, params.Lz),
                             halo = (4,4,4),
                             )
 @info grid_base

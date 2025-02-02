@@ -5,6 +5,7 @@ versioninfo()
 using ArgParse
 using Oceananigans
 using Oceananigans.Units
+using Oceananigans.TurbulenceClosures: Smagorinsky, DynamicCoefficient, LagrangianAveraging
 using PrettyPrinting
 using TickTock
 
@@ -31,14 +32,14 @@ function parse_command_line_arguments()
             arg_type = Number
 
         "--N_max"
-            default = 200e6
+            default = 180e6
             arg_type = Number
 
         "--V∞"
             default = 0.1meters/second
 
         "--H"
-            default = 40meters
+            default = 50meters
 
         "--α"
             help = "H / FWMH"
@@ -57,10 +58,10 @@ function parse_command_line_arguments()
             default = 15 # Ly / L
 
         "--Lz_ratio"
-            default = 1.5 # Lz / L
+            default = 1.2 # Lz / L
 
         "--Rz"
-            default = 2.5e-3
+            default = 2.5e-4
 
         "--runway_length_fraction_L"
             default = 4 # y_offset / L (how far from the inflow is the headland)
@@ -88,7 +89,8 @@ global f8  = "f8"  in modifiers ? true : false
 global f16 = "f16" in modifiers ? true : false
 global f32 = "f32" in modifiers ? true : false
 global f64 = "f64" in modifiers ? true : false
-global AMD = "AMD" in modifiers ? true : false
+global CSM = "CSM" in modifiers ? true : false # Constan SMagorinsky
+global DSM = "DSM" in modifiers ? true : false # Dynamic SMagorinsky
 global V2  =  "V2" in modifiers ? true : false
 #---
 
@@ -108,6 +110,7 @@ elseif f64
 else
     factor = 1
 end
+params = (; params..., factor)
 #---
 
 #+++ Figure out architecture
@@ -168,6 +171,7 @@ end
 if V2
     params = (; params..., V∞ = 2*params.V∞)
 end
+pprintln(params)
 #---
 #---
 
@@ -263,10 +267,12 @@ Fᵤ = Forcing(geostrophy, parameters = (; params.f₀, params.V∞))
 #---
 
 #+++ Turbulence closure
-if AMD
-    closure = AnisotropicMinimumDissipation()
-else
+if CSM
     closure = SmagorinskyLilly(C=0.13, Pr=1)
+elseif DSM
+    closure = Smagorinsky(coefficient=DynamicCoefficient(averaging=LagrangianAveraging(), schedule=IterationInterval(5)))
+else
+    closure = AnisotropicMinimumDissipation()
 end
 #---
 
@@ -332,12 +338,12 @@ checkpointer = construct_outputs(simulation,
                                  overwrite_existing = overwrite_existing,
                                  interval_2d = 0.2*params.T_advective,
                                  interval_3d = 2.0*params.T_advective,
-                                 interval_time_avg = 20*params.T_advective,
-                                 write_xyz = false,
+                                 interval_time_avg = 2*params.T_advective,
+                                 write_xyz = true,
                                  write_xiz = false,
                                  write_xyi = true,
                                  write_iyz = true,
-                                 write_ttt = true,
+                                 write_ttt = false,
                                  write_tti = false,
                                  debug = false,
                                  )

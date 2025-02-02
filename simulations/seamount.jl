@@ -43,7 +43,7 @@ function parse_command_line_arguments()
 
         "--α"
             help = "H / FWMH"
-            default = 0.05
+            default = 0.2
 
         "--Ro_h"
             default = 1.4

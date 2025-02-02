@@ -2,7 +2,7 @@ from os import system
 
 #+++ Define simnames
 simnames = [#"TEST",
-            "tokara",
+            "tokara-A02",
             ]
 
 from cycler import cycler

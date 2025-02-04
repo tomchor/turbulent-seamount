@@ -54,10 +54,10 @@ module li
 export JULIA_DEPOT_PATH="/glade/work/tomasc/.julia"
 echo $CUDA_VISIBLE_DEVICES
 
-time julia --project --pkgimages=no {julia_script} {run_options} --simname={simname} 2>&1 | tee logs/{simname}.out
+time julia --project --pkgimages=no {julia_script} {run_options} --simname={simname} 2>&1 | tee logs/{simname_ascii}.out
 
-qstat -f $PBS_JOBID >> logs/{simname}.log
-qstat -f $PBS_JOBID >> logs/{simname}.out
+qstat -f $PBS_JOBID >> logs/{simname_ascii}.log
+qstat -f $PBS_JOBID >> logs/{simname_ascii}.out
 """
 
 for modifiers in runs:

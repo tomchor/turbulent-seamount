@@ -20,7 +20,7 @@ function parse_command_line_arguments()
 
         "--simname"
             help = "Setup and name of simulation in siminfo.jl"
-            default = "tokara-f64"
+            default = "tokara"
             arg_type = String
 
         "--x₀"
@@ -35,42 +35,58 @@ function parse_command_line_arguments()
             default = 180e6
             arg_type = Number
 
+        "--res"
+            default = 64
+            arg_type = Int
+
         "--V∞"
             default = 0.1meters/second
+            arg_type = Number
 
         "--H"
             default = 50meters
+            arg_type = Number
 
         "--α"
             help = "H / FWMH"
-            default = 0.2
+            default = 0.05
+            arg_type = Float64
 
         "--Ro_h"
             default = 1.4
+            arg_type = Float64
 
         "--Fr_h"
             default = 0.6
+            arg_type = Float64
 
         "--Lx_ratio"
             default = 4 # Lx / L
+            arg_type = Float64
 
         "--Ly_ratio"
             default = 15 # Ly / L
+            arg_type = Float64
 
         "--Lz_ratio"
             default = 1.2 # Lz / L
+            arg_type = Float64
 
         "--Rz"
             default = 2.5e-4
+            arg_type = Float64
 
         "--runway_length_fraction_L"
             default = 4 # y_offset / L (how far from the inflow is the headland)
+            arg_type = Float64
 
         "--T_advective_spinup"
             default = 20 # Should be a multiple of 20
+            arg_type = Float64
 
         "--T_advective_statistics"
             default = 60 # Should be a multiple of 20
+            arg_type = Float64
  
     end
     return parse_args(settings, as_symbols=true)
@@ -83,34 +99,8 @@ rundir = @__DIR__
 #+++ Figure out name, dimensions, modifier, etc
 sep = "-"
 global configname, modifiers... = split(params.simname, sep)
-global f2  = "f2"  in modifiers ? true : false
-global f4  = "f4"  in modifiers ? true : false
-global f8  = "f8"  in modifiers ? true : false
-global f16 = "f16" in modifiers ? true : false
-global f32 = "f32" in modifiers ? true : false
-global f64 = "f64" in modifiers ? true : false
 global CSM = "CSM" in modifiers ? true : false # Constan SMagorinsky
 global DSM = "DSM" in modifiers ? true : false # Dynamic SMagorinsky
-global V2  =  "V2" in modifiers ? true : false
-#---
-
-#+++ Modify factor accordingly
-if f2
-    factor = 2
-elseif f4
-    factor = 4
-elseif f8
-    factor = 8
-elseif f16
-    factor = 16
-elseif f32
-    factor = 32
-elseif f64
-    factor = 64
-else
-    factor = 1
-end
-params = (; params..., factor)
 #---
 
 #+++ Figure out architecture
@@ -119,7 +109,7 @@ if has_cuda_gpu()
 else
     arch = CPU()
 end
-@info "Starting simulation $(params.simname) with a dividing factor of $factor and a $arch architecture\n"
+@info "Starting simulation $(params.simname) with a dividing factor of $(params.res) and a $arch architecture\n"
 #---
 
 #+++ Get primary simulation parameters
@@ -140,7 +130,7 @@ let
     #---
 
     #+++ Simulation size
-    Nx, Ny, Nz = get_sizes(params.N_max ÷ (factor^3); Lx, Ly, Lz, aspect_ratio_x=3.2, aspect_ratio_y=3.2)
+    Nx, Ny, Nz = get_sizes(params.N_max ÷ (params.res^3); Lx, Ly, Lz, aspect_ratio_x=3.2, aspect_ratio_y=3.2)
     N_total = Nx * Ny * Nz
     #---
 
@@ -168,16 +158,11 @@ let
     global params = merge(params, Base.@locals)
 end
 
-if V2
-    params = (; params..., V∞ = 2*params.V∞)
-end
 pprintln(params)
 #---
 #---
 
 #+++ Base grid
-params = (; params..., factor)
-
 grid_base = RectilinearGrid(arch, topology = (Periodic, Bounded, Bounded),
                             size = (params.Nx, params.Ny, params.Nz),
                             x = (-params.Lx/2, +params.Lx/2),

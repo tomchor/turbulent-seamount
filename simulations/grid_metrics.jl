@@ -135,7 +135,6 @@ end
 
 function add_grid_metrics_to!(ow; kwargs...)
     Δξ_list = grid_spacings(grid, ow)
-    @info "Got Δξ_list"
     write_grid_metrics!(ow, Δξ_list; kwargs...)
 end
 

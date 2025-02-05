@@ -130,6 +130,7 @@ function construct_outputs(simulation;
                            write_ttt = false,
                            write_tti = false,
                            write_aaa = false,
+                           write_chk = false,
                            debug = false,
                            )
     model = simulation.model
@@ -258,18 +259,20 @@ function construct_outputs(simulation;
 
     #+++ Checkpointer
     @info "Setting up chk writer"
-    simulation.output_writers[:chk_writer] = checkpointer = 
-                                             Checkpointer(model;
-                                             dir="$rundir/data/",
-                                             prefix = "chk.$(simname)",
-                                             schedule = TimeInterval(interval_time_avg),
-                                             overwrite_existing = true,
-                                             cleanup = true,
-                                             verbose = debug,
-                                             )
+    if write_chk
+        simulation.output_writers[:chk_writer] = checkpointer = Checkpointer(model;
+                                                                             dir="$rundir/data/",
+                                                                             prefix = "chk.$(simname)",
+                                                                             schedule = TimeInterval(interval_time_avg),
+                                                                             overwrite_existing = true,
+                                                                             cleanup = true,
+                                                                             verbose = debug,
+                                                                             )
+        return checkpointer
+    else
+        return nothing
+    end
     #---
-
-    return checkpointer
 end
 #---
 

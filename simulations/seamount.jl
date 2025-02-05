@@ -304,19 +304,25 @@ simulation.callbacks[:wizard] = Callback(wizard, IterationInterval(4))
 #---
 
 #+++ Diagnostics
-#+++ Check for checkpoints
-if any(startswith("chk.$(params.simname)_iteration"), readdir("$rundir/data"))
-    @warn "Checkpoint for $(params.simname) found. Assuming this is a pick-up simulation! Setting overwrite_existing=false."
-    overwrite_existing = false
+#+++ Define pickup characteristics
+write_chk = params.res < 2
+if write_chk
+    if any(startswith("chk.$(params.simname)_iteration"), readdir("data"))
+        @warn "Checkpoint for $(params.simname) found. Assuming this is a pick-up simulation! Setting overwrite_existing=false."
+        overwrite_existing = false
+    else
+        @warn "No checkpoint for $(params.simname) found. Setting overwrite_existing=true."
+        overwrite_existing = true
+    end
 else
-    @warn "No checkpoint for $(params.simname) found. Setting overwrite_existing=true."
+    @warn "No checkpointing necessary for this simulation."
     overwrite_existing = true
 end
 #---
 
 include("$rundir/diagnostics.jl")
 tick()
-checkpointer = construct_outputs(simulation,
+checkpointer = construct_outputs(simulation;
                                  simname = params.simname,
                                  rundir = rundir,
                                  params = params,
@@ -330,6 +336,7 @@ checkpointer = construct_outputs(simulation,
                                  write_iyz = true,
                                  write_ttt = false,
                                  write_tti = false,
+                                 write_chk,
                                  debug = false,
                                  )
 tock()
@@ -338,7 +345,7 @@ tock()
 #+++ Run simulations and plot video afterwards
 if has_cuda_gpu() run(`nvidia-smi -i $(ENV["CUDA_VISIBLE_DEVICES"])`) end
 @info "Starting simulation"
-run!(simulation, pickup=true)
+run!(simulation, pickup=write_chk)
 #---
 
 #+++ Plot video

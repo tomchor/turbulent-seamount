@@ -1,15 +1,16 @@
 from os import system
-
-#+++ Define simnames
-simnames = [#"TEST",
-            "tokara",
-            ]
-
 from cycler import cycler
-names = cycler(name=simnames)
-resolutions = cycler(resolution = ["-f8", "-f4", "-f2", ""])
-modifiers = cycler(modifier = ["",])
-simnames = [ nr["name"] + nr["modifier"] + nr["resolution"] for nr in modifiers * resolutions * names ]
+from aux00_utils import aggregate_parameters
+
+#+++ Define run options
+simname_base = "tokara"
+
+#resolutions = cycler(res = [8, 4, 2, 1])
+resolutions = cycler(res = [8,])
+slopes = cycler(α = [0.05, 0.1, 0.2])
+Rossby_numbers = cycler(Ro_h = [1.4])
+Froude_numbers = cycler(Fr_h = [0.6])
+runs = resolutions * slopes * Rossby_numbers * Froude_numbers
 #---
 
 #+++ Options
@@ -18,18 +19,17 @@ only_one_job = False
 dry_run = False
 omit_topology = True
 
-topology_string = "NPN-"
 verbose = 1
-aux_filename = "aux_pbs_twake.sh"
-julia_file = "seamount.jl"
+aux_filename = "aux_pbs.sh"
+julia_script = "seamount.jl"
 #---
 
 pbs_script = \
 """#!/bin/bash -l
 #PBS -A UMCP0028
-#PBS -N {simname_fullshort}
-#PBS -o logs/{simname_full}.log
-#PBS -e logs/{simname_full}.log
+#PBS -N {simname_ascii}
+#PBS -o logs/{simname_ascii}.log
+#PBS -e logs/{simname_ascii}.log
 #PBS -l walltime=23:59:00
 #PBS -q casper
 #PBS -l {options_string1}
@@ -50,27 +50,21 @@ module li
 export JULIA_DEPOT_PATH="/glade/work/tomasc/.julia"
 echo $CUDA_VISIBLE_DEVICES
 
-time julia --project --pkgimages=no {julia_file} --simname={simname} 2>&1 | tee logs/{simname_full}.out
-#time julia --check-bounds=no --pkgimages=no --project {julia_file} --simname={simname} 2>&1 | tee logs/{simname_full}.out
+time julia --project --pkgimages=no {julia_script} {run_options} --simname={simname} 2>&1 | tee logs/{simname_ascii}.out
 
-qstat -f $PBS_JOBID >> logs/{simname_full}.log
-qstat -f $PBS_JOBID >> logs/{simname_full}.out
+qstat -f $PBS_JOBID >> logs/{simname_ascii}.log
+qstat -f $PBS_JOBID >> logs/{simname_ascii}.out
 """
 
-for simname in simnames:
+for modifiers in runs:
+    run_options = aggregate_parameters(modifiers)
+    simname = f"{simname_base}_" + aggregate_parameters(modifiers, sep="_", prefix="")
+    simname_ascii = simname.replace("α", "A").replace("=", "")
+    print(simname_ascii)
 
-    #+++ Define simulation name
-    simname_full = f"{simname}"
-
-    if omit_topology and simname_full.startswith(topology_string):
-        simname_fullshort = simname_full.replace(topology_string, "")
-    else:
-        simname_fullshort = simname_full
-    #----
-
-    #++++ Remove previous checkpoints
+    #+++ Remove previous checkpoints
     if remove_checkpoints:
-        cmd0 = f"rm data/chk.{simname_full}*.jld2"
+        cmd0 = f"rm data/chk.{simname}*.jld2"
         if verbose>0: print(cmd0)
         system(cmd0)
     #---
@@ -79,30 +73,33 @@ for simname in simnames:
     options1 = dict(select=1, ncpus=1, ngpus=1)
     options2 = dict()
 
-    if ("-f16" in simname) or ("-f8" in simname) or ("-f4" in simname):
+    res_divider = modifiers["res"] if "res" in modifiers.keys() else None
+    if res_divider >= 8:
         options2 = options2 | dict(gpu_type = "v100")
         cmd1 = f"qsub {aux_filename}"
-    elif ("-f2" in simname):
+    elif res_divider >= 2:
         options2 = options2 | dict(gpu_type = "a100")
         cmd1 = f"qsub {aux_filename}"
-    else:
+    elif res_divider == 1:
         options1 = options1 | dict(cpu_type = "milan")
         options2 = options2 | dict(gpu_type = "a100")
 
         if only_one_job:
             cmd1 = f"qsub {aux_filename}"
         else:
-            if "F008" in simname:
-                cmd1 = f"JID1=`qsub {aux_filename}`; JID2=`qsub -W depend=afterok:$JID1 {aux_filename}`; JID3=`qsub -W depend=afterok:$JID2 {aux_filename}`; qrls $JID1"
-            else:
-                cmd1 = f"JID1=`qsub {aux_filename}`; JID2=`qsub -W depend=afterok:$JID1 {aux_filename}`; qrls $JID1"
+            cmd1 = f"JID1=`qsub {aux_filename}`; JID2=`qsub -W depend=afterok:$JID1 {aux_filename}`; qrls $JID1"
+    else:
+        raise(ValueError("`res_divider` has an unexpected value"))
 
     options_string1 = ":".join([ f"{key}={val}" for key, val in options1.items() ])
     options_string2 = ":".join([ f"{key}={val}" for key, val in options2.items() ])
 
-    pbs_script_filled = pbs_script.format(simname_fullshort=simname_fullshort, simname=simname,
-                                          simname_full=simname_full, julia_file=julia_file,
-                                          options_string1=options_string1, options_string2=options_string2)
+    pbs_script_filled = pbs_script.format(simname_ascii = simname_ascii,
+                                          simname = simname,
+                                          julia_script = julia_script,
+                                          run_options = run_options,
+                                          options_string1 = options_string1,
+                                          options_string2 = options_string2)
     if verbose>1: print(pbs_script_filled)
     if verbose>0: print(cmd1)
     #---

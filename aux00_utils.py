@@ -123,6 +123,12 @@ def check_simulation_completion(simnames, slice_name="ttt", path="./headland_sim
     return
 #---
 
+#+++ Aggregate parameters into strings
+def aggregate_parameters(parameters, sep=" ", prefix="--"):
+    written_out_list = [ f"{prefix}{key}={val}" for key, val in parameters.items() ]
+    return sep.join(written_out_list)
+#---
+
 #+++ Define collect_datasets() function
 def collect_datasets(simnames_filtered, slice_name="xyi", path="./headland_simulations/data/", verbose=False):
     dslist = []

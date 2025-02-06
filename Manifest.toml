@@ -1252,11 +1252,11 @@ version = "0.5.5"
 
 [[deps.Oceananigans]]
 deps = ["Adapt", "CUDA", "Crayons", "CubedSphere", "Dates", "Distances", "DocStringExtensions", "FFTW", "GPUArrays", "Glob", "IncompleteLU", "InteractiveUtils", "IterativeSolvers", "JLD2", "KernelAbstractions", "LinearAlgebra", "Logging", "MPI", "NCDatasets", "OffsetArrays", "OrderedCollections", "Pkg", "Printf", "Random", "Rotations", "SeawaterPolynomials", "SparseArrays", "Statistics", "StructArrays"]
-git-tree-sha1 = "72cca68bdd82f32b79be8c3cbf6572ea62bb0417"
+git-tree-sha1 = "5daa4eba3ea6f5b17cb2296b6e58dfc0f297b843"
 repo-rev = "jsw/pertubation-advection-obc"
 repo-url = "https://github.com/CliMA/Oceananigans.jl.git"
 uuid = "9e8cae18-63c1-5223-a75c-80ca9d6e9a09"
-version = "0.95.7"
+version = "0.95.8"
 
     [deps.Oceananigans.extensions]
     OceananigansEnzymeExt = "Enzyme"

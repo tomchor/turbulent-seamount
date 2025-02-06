@@ -1,17 +1,13 @@
 from os import system
 from cycler import cycler
-
-def aggregate_parameters(parameters, sep=" ", prefix="--"):
-    written_out_list = [ f"{prefix}{key}={val}" for key, val in parameters.items() ]
-    return sep.join(written_out_list)
+from aux00_utils import aggregate_parameters
 
 #+++ Define run options
 simname_base = "tokara"
 
-resolutions = cycler(res = [8, 4, 2, 1])
-#resolutions = cycler(res = [8,])
+#resolutions = cycler(res = [8, 4, 2, 1])
+resolutions = cycler(res = [8,])
 slopes = cycler(α = [0.05, 0.1, 0.2])
-#slopes = cycler(α = [0.05,])
 Rossby_numbers = cycler(Ro_h = [1.4])
 Froude_numbers = cycler(Fr_h = [0.6])
 runs = resolutions * slopes * Rossby_numbers * Froude_numbers

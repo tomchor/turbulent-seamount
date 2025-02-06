@@ -4,9 +4,10 @@ sys.path.append("/glade/u/home/tomasc/repos/xanimations")
 import numpy as np
 import pynanigans as pn
 import xarray as xr
+from cycler import cycler
 from matplotlib import pyplot as plt
 from matplotlib.colors import LogNorm
-from aux00_utils import open_simulation, adjust_times
+from aux00_utils import open_simulation, adjust_times, aggregate_parameters
 from aux02_plotting import BuRd
 from cmocean import cm
 plt.rcParams["figure.constrained_layout.use"] = True
@@ -14,8 +15,17 @@ plt.rcParams["font.size"] = 9
 π = np.pi
 
 path = "simulations/data/"
-modifiers = ["-A02-f4", "-A02"]
-#modifiers = ["-f8", "-f4",]
+
+#+++ Runs
+simname_base = "tokara"
+
+resolutions = cycler(res = [4, 2])
+slopes = cycler(α = [0.1,])
+Rossby_numbers = cycler(Ro_h = [1.4])
+Froude_numbers = cycler(Fr_h = [0.6])
+runs = resolutions * slopes * Rossby_numbers * Froude_numbers
+#---
+
 alphas = (0.3, 1)
 normalized_offsets = (-1/2, 0, 1/2)
 V_tokara = 1 # m/s
@@ -24,9 +34,10 @@ H_tokara = 500 # meters
 fig, axes = plt.subplots(nrows=3, constrained_layout=True, figsize=(10, 8),
                          sharex=True)
 
-for j, modifier in enumerate(modifiers):
+for j, modifiers in enumerate(runs):
+    simname = f"{simname_base}_" + aggregate_parameters(modifiers, sep="_", prefix="")
     #+++ Open dataset and pick time
-    xyz = open_simulation(path+f"xyz.tokara{modifier}.nc",
+    xyz = open_simulation(path+f"xyz.{simname}.nc",
                           use_inertial_periods = True,
                           topology = "PNN",
                           squeeze = True,
@@ -67,7 +78,7 @@ for j, modifier in enumerate(modifiers):
 
     alpha = alphas[j]
     for i, offset in enumerate(normalized_offsets):
-        print(f"Plotting {j}-th modifier = {modifier}, {i}-th offset = {offset}")
+        print(f"Plotting {j}-th run = {simname}, {i}-th offset = {offset}")
         color = plt.rcParams["axes.prop_cycle"].by_key()["color"][i]
         xyz_line = xyz.sel(xC=offset*xyz.FWMH, method="nearest")
 
@@ -87,5 +98,4 @@ for i, ax in enumerate(axes):
     ax.set_title("")
     ax.legend()
     ax.grid(True)
-
 fig.savefig(f"figures/dissipation_comparison.png")

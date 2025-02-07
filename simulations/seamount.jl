@@ -19,7 +19,7 @@ function parse_command_line_arguments()
     @add_arg_table! settings begin
 
         "--simname"
-            help = "Setup and name of simulation in siminfo.jl"
+            help = "Simulation name for output"
             default = "tokara"
             arg_type = String
 
@@ -81,11 +81,11 @@ function parse_command_line_arguments()
             arg_type = Float64
 
         "--T_advective_spinup"
-            default = 20 # Should be a multiple of 20
+            default = 20 # Should be a multiple of interval_time_avg
             arg_type = Float64
 
         "--T_advective_statistics"
-            default = 60 # Should be a multiple of 20
+            default = 40 # Should be a multiple of interval_time_avg
             arg_type = Float64
  
     end
@@ -329,13 +329,13 @@ checkpointer = construct_outputs(simulation;
                                  overwrite_existing = overwrite_existing,
                                  interval_2d = 0.2*params.T_advective,
                                  interval_3d = 2.0*params.T_advective,
-                                 interval_time_avg = 2*params.T_advective,
+                                 interval_time_avg = 10*params.T_advective,
                                  write_xyz = true,
                                  write_xiz = false,
                                  write_xyi = true,
                                  write_iyz = true,
-                                 write_ttt = false,
-                                 write_tti = false,
+                                 write_ttt = true,
+                                 write_tti = true,
                                  write_chk,
                                  debug = false,
                                  )

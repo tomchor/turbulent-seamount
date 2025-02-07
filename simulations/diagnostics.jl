@@ -102,15 +102,24 @@ outputs_grads = Dict{Symbol, Any}(:∂u∂x => (@at CellCenter ∂x(u)),
                                   :∂w∂z => (@at CellCenter ∂z(w)),)
 #---
 
-#+++ Define energy budget terms
+#+++ Define other energy budget terms
 @info "Calculating energy budget terms"
-outputs_budget = Dict{Symbol, Any}(:uᵢbᵢ => (@at CellCenter w * b),
-                                   :Ek   => TurbulentKineticEnergy(model, u, v, w),)
+wb = @at CellCenter w * b
+outputs_budget = Dict{Symbol, Any}(:wb => wb,
+                                   :Ek => TurbulentKineticEnergy(model, u, v, w),)
+#---
+
+#+++
+@info "Defining volume averages"
+outputs_vol_averages = Dict{Symbol, Any}(:∭⁵εₖdV => Integral(εₖ; mask = far_from_seamount),
+                                         :∭⁵εₚdV => Integral(εₚ; mask = far_from_seamount),
+                                         :∭⁵wbdV => Integral(wb; mask = far_from_seamount),
+                                         )
 #---
 
 #+++ Assemble the "full" outputs tuple
 @info "Assemble diagnostics quantities"
-outputs_full = merge(outputs_state_vars, outputs_dissip, outputs_misc, outputs_grads, outputs_budget,)
+outputs_full = merge(outputs_state_vars, outputs_dissip, outputs_misc, outputs_covs, outputs_grads, outputs_budget,)
 #---
 #---
 
@@ -167,14 +176,13 @@ function construct_outputs(simulation;
     if write_xyi
         @info "Setting up xyi writer"
         indices = (:, :, k_half)
-        outputs_xyi = outputs_full
 
         if write_aaa
             outputs_budget_integrated = Dict( Symbol(:∫∫∫, k, :dxdydz) => Integral(ScratchedField(v))  for (k, v) in outputs_budget )
             outputs_xyi = merge(outputs_xyi, outputs_budget_integrated)
         end
 
-        simulation.output_writers[:nc_xyi] = ow = NetCDFOutputWriter(model, outputs_xyi;
+        simulation.output_writers[:nc_xyi] = ow = NetCDFOutputWriter(model, outputs_full;
                                                                      filename = "$rundir/data/xyi.$(simname).nc",
                                                                      schedule = TimeInterval(interval_2d),
                                                                      array_type = Array{Float64},
@@ -226,7 +234,7 @@ function construct_outputs(simulation;
         indices = (:, :, :)
         simulation.output_writers[:nc_ttt] = ow = NetCDFOutputWriter(model, outputs_ttt;
                                                                      filename = "$rundir/data/ttt.$(simname).nc",
-                                                                     schedule = AveragedTimeInterval(interval_time_avg, stride=5),
+                                                                     schedule = AveragedTimeInterval(interval_time_avg, stride=10),
                                                                      array_type = Array{Float64},
                                                                      with_halos = false,
                                                                      indices = indices,
@@ -242,11 +250,11 @@ function construct_outputs(simulation;
     #+++ tti (Time averages)
     if write_tti
         @info "Setting up tti writer"
-        outputs_tti = outputs_full
+        outputs_tti = merge(outputs_full, outputs_vol_averages)
         indices = (:, :, k_half)
         simulation.output_writers[:nc_tti] = ow = NetCDFOutputWriter(model, outputs_tti;
                                                                      filename = "$rundir/data/tti.$(simname).nc",
-                                                                     schedule = AveragedTimeInterval(interval_time_avg, stride=5),
+                                                                     schedule = AveragedTimeInterval(interval_time_avg, stride=10),
                                                                      array_type = Array{Float64},
                                                                      with_halos = false,
                                                                      indices = indices,

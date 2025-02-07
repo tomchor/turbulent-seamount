@@ -50,15 +50,15 @@ for j, modifiers in enumerate(runs):
                                     get_grid = False,
                                     open_dataset_kwargs = dict(chunks="auto"),
                                     )
-    print(f"Opening {simname} ttt")
-    ttt = open_simulation(path+f"ttt.{simname}.nc",
-                                    use_advective_periods = True,
-                                    topology = simname[:3],
-                                    squeeze = True,
-                                    load = False,
-                                    get_grid = False,
-                                    open_dataset_kwargs = dict(chunks="auto"),
-                                    )
+#    print(f"Opening {simname} ttt")
+#    ttt = open_simulation(path+f"ttt.{simname}.nc",
+#                                    use_advective_periods = True,
+#                                    topology = simname[:3],
+#                                    squeeze = True,
+#                                    load = False,
+#                                    get_grid = False,
+#                                    open_dataset_kwargs = dict(chunks="auto"),
+#                                    )
     print(f"Opening {simname} tti")
     tti = open_simulation(path+f"tti.{simname}.nc",
                                     use_advective_periods = True,
@@ -73,10 +73,10 @@ for j, modifiers in enumerate(runs):
     #+++ Get rid of slight misalignment in times
     xyz = adjust_times(xyz, round_times=True)
     xyi = adjust_times(xyi, round_times=True)
-    ttt = adjust_times(ttt, round_times=True)
+    #ttt = adjust_times(ttt, round_times=True)
     tti = adjust_times(tti, round_times=True)
 
-    ttt = ttt.assign_coords(xC=tti.xC.values, yC=tti.yC.values) # This is needed just as long as ttt is float32 and tti is float64
+    #ttt = ttt.assign_coords(xC=tti.xC.values, yC=tti.yC.values) # This is needed just as long as ttt is float32 and tti is float64
     #---
 
     #+++ Preliminary definitions and checks
@@ -97,15 +97,14 @@ for j, modifiers in enumerate(runs):
     #---
 
     #+++ Trimming domain
-    t_slice_inclusive = slice(ttt.T_advective_spinup, np.inf) # For snapshots, we want to include t=T_advective_spinup
-    t_slice_exclusive = slice(ttt.T_advective_spinup+0.01, np.inf) # For time-averaged outputs, we want to exclude t=T_advective_spinup
+    t_slice_inclusive = slice(tti.T_advective_spinup, np.inf) # For snapshots, we want to include t=T_advective_spinup
+    t_slice_exclusive = slice(tti.T_advective_spinup + 0.01, np.inf) # For time-averaged outputs, we want to exclude t=T_advective_spinup
     x_slice = slice(xyz.xF[0], np.inf)
-    y_slice = slice(xyz.yF[0] + xyz.sponge_length_y, np.inf)
-    z_slice = slice(ttt.zF[0], np.inf)
+    y_slice = slice(None, np.inf)
 
-    xyz = xyz.sel(time=t_slice_inclusive, xC=x_slice, xF=x_slice, yC=y_slice, yF=y_slice, zC=z_slice, zF=z_slice)
+    xyz = xyz.sel(time=t_slice_inclusive, xC=x_slice, xF=x_slice, yC=y_slice, yF=y_slice)
     xyi = xyi.sel(time=t_slice_inclusive, xC=x_slice, xF=x_slice, yC=y_slice, yF=y_slice)
-    ttt = ttt.sel(time=t_slice_exclusive, xC=x_slice, xF=x_slice, yC=y_slice, yF=y_slice)
+    #ttt = ttt.sel(time=t_slice_exclusive, xC=x_slice, xF=x_slice, yC=y_slice, yF=y_slice)
     tti = tti.sel(time=t_slice_exclusive, xC=x_slice, xF=x_slice, yC=y_slice, yF=y_slice)
     #---
 
@@ -130,35 +129,35 @@ for j, modifiers in enumerate(runs):
         ds = condense(ds, ["u₁uᵢ", "u₂uᵢ", "u₃uᵢ"], "uⱼuᵢ", dimname="j", indices=indices)
         return ds
 
-    ttt = condense_velocities(ttt)
-    ttt = condense_velocity_gradient_tensor(ttt)
-    ttt = condense_reynolds_stress_tensor(ttt)
+    #ttt = condense_velocities(ttt)
+    #ttt = condense_velocity_gradient_tensor(ttt)
+    #ttt = condense_reynolds_stress_tensor(ttt)
     tti = condense_velocities(tti)
     tti = condense_velocity_gradient_tensor(tti)
+    tti = condense_reynolds_stress_tensor(tti)
     tti = condense(tti, ["dbdx", "dbdy", "dbdz"], "∂ⱼb", dimname="j", indices=indices)
     #---
 
     #+++ Time average
     # Here ū and ⟨u⟩ₜ are interchangeable
-    tafields = ttt.mean("time")
-    tafields = tafields.rename({"uᵢ"       : "ūᵢ",
-                                "∂ⱼuᵢ"     : "∂ⱼūᵢ",
-                                "uⱼuᵢ"     : "⟨uⱼuᵢ⟩ₜ",
-                                "b"        : "b̄",
-                                "uᵢbᵢ"     : "⟨wb⟩ₜ",
-                                "εₖ"       : "ε̄ₖ",
-                                "εₚ"       : "ε̄ₚ",
-                                "κₑ"       : "κ̄ₑ",
-                                "Ek"       : "⟨Ek⟩ₜ",
-                                "p"        : "p̄",
+    tafields = tti.mean("time")
+    tafields = tafields.rename({"uᵢ"   : "ūᵢ",
+                                "∂ⱼuᵢ" : "∂ⱼūᵢ",
+                                "uⱼuᵢ" : "⟨uⱼuᵢ⟩ₜ",
+                                "b"    : "b̄",
+                                "∂ⱼb"  : "∂ⱼb̄",
+                                "wb"   : "⟨wb⟩ₜ",
+                                "εₖ"   : "ε̄ₖ",
+                                "εₚ"   : "ε̄ₚ",
+                                "κₑ"   : "κ̄ₑ",
+                                "Ek"   : "⟨Ek⟩ₜ",
+                                "PV"   : "q̄",
                                 })
-    tafields["⟨∂ₜEk⟩ₜ"] = (xyz.Ek.sel(time=(xyz.T_advective_spinup+xyz.T_advective_statistics))
-                          -xyz.Ek.sel(time=(xyz.T_advective_spinup))) / (xyz.T_advective_statistics * xyz.T_advective)
-    tafields.attrs = ttt.attrs
+    tafields.attrs = tti.attrs
     #---
 
     #+++ Get turbulent Reynolds stress tensor
-    tafields["ūⱼūᵢ"]     = tafields["ūᵢ"] * tafields["ūᵢ"].rename(i="j")
+    tafields["ūⱼūᵢ"]      = tafields["ūᵢ"] * tafields["ūᵢ"].rename(i="j")
     tafields["⟨u′ⱼu′ᵢ⟩ₜ"] = tafields["⟨uⱼuᵢ⟩ₜ"] - tafields["ūⱼūᵢ"]
     #---
 
@@ -167,7 +166,7 @@ for j, modifiers in enumerate(runs):
     #---
 
     #+++ Get buoyancy production rates
-    tafields["w̄b̄"]     = tafields["ūᵢ"].sel(i=3) * tafields["b̄"]
+    tafields["w̄b̄"]      = tafields["ūᵢ"].sel(i=3) * tafields["b̄"]
     tafields["⟨w′b′⟩ₜ"] = tafields["⟨wb⟩ₜ"] - tafields["w̄b̄"]
     #---
 
@@ -176,64 +175,33 @@ for j, modifiers in enumerate(runs):
     #---
 
     #+++ Volume-average/integrate results so far
-    tafields["ΔxΔyΔz"] = tafields["Δxᶜᶜᶜ"] * tafields["Δyᶜᶜᶜ"] * tafields["Δzᶜᶜᶜ"]
-    tafields["ΔxΔz"]   = tafields["Δxᶜᶜᶜ"] * tafields["Δzᶜᶜᶜ"]
-    def integrate(da, dV=tafields["ΔxΔyΔz"], dims=("x", "y", "z")):
-        return (da*dV).pnsum(dims)
+    #tafields["ΔxΔyΔz"] = tafields["Δxᶜᶜᶜ"] * tafields["Δyᶜᶜᶜ"] * tafields["Δzᶜᶜᶜ"]
+    #tafields["ΔxΔz"]   = tafields["Δxᶜᶜᶜ"] * tafields["Δzᶜᶜᶜ"]
+    #def integrate(da, dV=tafields["ΔxΔyΔz"], dims=("x", "y", "z")):
+    #    return (da*dV).pnsum(dims)
 
-    tafields["1"] = xr.ones_like(tafields["Δxᶜᶜᶜ"])
-    buffer = 5 # meters
+    #tafields["1"] = xr.ones_like(tafields["Δxᶜᶜᶜ"])
+    #buffer = 5 # meters
 
-    distance_mask = tafields.altitude > buffer
-    for var in ["ε̄ₖ", "ε̄ₚ", "⟨∂ₜEk⟩ₜ", "⟨wb⟩ₜ", "⟨Ek⟩ₜ", "SPR", "w̄b̄", "⟨w′b′⟩ₜ", "⟨Ek′⟩ₜ", "κ̄ₑ", "1"]:
-        int_all = f"∫∫∫⁰{var}dxdydz"
-        int_buf = f"∫∫∫⁵{var}dxdydz"
-        tafields[int_all] = integrate(tafields[var])
-        tafields[int_buf] = integrate(tafields[var], dV=tafields.ΔxΔyΔz.where(distance_mask))
-        tafields = condense(tafields, [int_all, int_buf], f"∫∫∫ᵇ{var}dxdydz", dimname="buffer", indices=[0, buffer])
+    #distance_mask = tafields.altitude > buffer
+    #for var in ["ε̄ₖ", "ε̄ₚ", "⟨∂ₜEk⟩ₜ", "⟨wb⟩ₜ", "⟨Ek⟩ₜ", "SPR", "w̄b̄", "⟨w′b′⟩ₜ", "⟨Ek′⟩ₜ", "κ̄ₑ", "1"]:
+    #    int_all = f"∫∫∫⁰{var}dxdydz"
+    #    int_buf = f"∫∫∫⁵{var}dxdydz"
+    #    tafields[int_all] = integrate(tafields[var])
+    #    tafields[int_buf] = integrate(tafields[var], dV=tafields.ΔxΔyΔz.where(distance_mask))
+    #    tafields = condense(tafields, [int_all, int_buf], f"∫∫∫ᵇ{var}dxdydz", dimname="buffer", indices=[0, buffer])
 
-    #+++ For debugging only
-    if ("-f4" in simname) or ("-f2" in simname):
-        for var in ["⟨∂ₜEk⟩ₜ", "⟨wb⟩ₜ", ]:
-            int_all = f"∫⁰{var}dxdydz"
-            tafields[int_all] = integrate(tafields[var], dims=("z",))
-    #---
+    #for var in ["ε̄ₖ", "ε̄ₚ", "SPR", "⟨w′b′⟩ₜ", "⟨Ek′⟩ₜ", "1"]:
+    #    int_all = f"∫∫⁰{var}dxdz"
+    #    int_buf = f"∫∫⁵{var}dxdz"
+    #    tafields[int_all] = integrate(tafields[var], dV=tafields.ΔxΔz, dims=("x", "z"))
+    #    tafields[int_buf] = integrate(tafields[var], dV=tafields.ΔxΔz.where(distance_mask), dims=("x", "z"))
+    #    tafields = condense(tafields, [int_all, int_buf], f"∫∫ᵇ{var}dxdz", dimname="buffer", indices=[0, buffer])
 
-    for var in ["ε̄ₖ", "ε̄ₚ", "SPR", "⟨w′b′⟩ₜ", "⟨Ek′⟩ₜ", "1"]:
-        int_all = f"∫∫⁰{var}dxdz"
-        int_buf = f"∫∫⁵{var}dxdz"
-        tafields[int_all] = integrate(tafields[var], dV=tafields.ΔxΔz, dims=("x", "z"))
-        tafields[int_buf] = integrate(tafields[var], dV=tafields.ΔxΔz.where(distance_mask), dims=("x", "z"))
-        tafields = condense(tafields, [int_all, int_buf], f"∫∫ᵇ{var}dxdz", dimname="buffer", indices=[0, buffer])
-
-    tafields["average_turbulence_mask"] = tafields["ε̄ₖ"] > 1e-10
-    for var in ["ε̄ₖ", "ε̄ₚ", "SPR", "⟨wb⟩ₜ", "1"]:
-        int_turb = f"∫∫∫ᵋ{var}dxdydz"
-        tafields[int_turb] = integrate(tafields[var], dV=tafields.ΔxΔyΔz.where(tafields.average_turbulence_mask))
-    #---
-
-    #+++ Calculate form drag from topography
-    dhdy = ttt.bottom_height.differentiate("yC")
-    p̄_wet = -tafields.p̄.where(tafields.ΔxΔz!=0, other=np.inf) # Minus sign because pressure here is negative for some reason
-    p̄_bottom = p̄_wet.pnmax("z")
-
-    ΔxΔy = tafields["Δxᶜᶜᶜ"] * tafields["Δyᶜᶜᶜ"]
-    tafields["∫∫∫⁰⟨∂ᵢ(uᵢp)⟩ₜdxdydz_formdrag"] = -tafields.V_inf * integrate(p̄_bottom * dhdy, dV=ΔxΔy.pnmax("z"), dims=("x", "y"))
-    #---
-
-    #+++ Depth-integrate (for debugging only)
-    if ("-f4" in simname) or ("-f2" in simname):
-        for var in ["⟨∂ₜEk⟩ₜ", "⟨wb⟩ₜ", ]:
-            int_all = f"∫⁰{var}dxdydz"
-            tafields[int_all] = integrate(tafields[var], dims=("z",))
-    #---
-
-    #+++ Get time-avg results at half-depth
-    tafields = tafields.sel(zC=tti.zC.item(), method="nearest")
-    tafields["q̄"] = tti.PV.mean("time")
-
-    tafields["∂ⱼūᵢ"]  = tti["∂ⱼuᵢ"].mean("time")
-    tafields["∂ⱼb̄"]   = tti["∂ⱼb"].mean("time")
+    #tafields["average_turbulence_mask"] = tafields["ε̄ₖ"] > 1e-10
+    #for var in ["ε̄ₖ", "ε̄ₚ", "SPR", "⟨wb⟩ₜ", "1"]:
+    #    int_turb = f"∫∫∫ᵋ{var}dxdydz"
+    #    tafields[int_turb] = integrate(tafields[var], dV=tafields.ΔxΔyΔz.where(tafields.average_turbulence_mask))
     #---
 
     #+++ Get CSI mask and CSI-integral
@@ -242,11 +210,8 @@ for j, modifiers in enumerate(runs):
     #---
 
     #+++ Drop unnecessary vars
-    tafields = tafields.drop_vars(["ūⱼūᵢ",
-                                   "⟨uⱼuᵢ⟩ₜ", "⟨u′ⱼu′ᵢ⟩ₜ",
-                                   "ΔxΔyΔz",
-                                   "ΔxC", "ΔyC", "ΔzC"])
-    tafields = tafields.drop_dims(("xF", "yF", "zF"))
+    tafields = tafields.drop_vars(["ūⱼūᵢ", "⟨uⱼuᵢ⟩ₜ", "⟨u′ⱼu′ᵢ⟩ₜ",])
+    tafields = tafields.drop_dims(("xF", "yF",))
     #---
 
     #+++ Save
@@ -255,5 +220,5 @@ for j, modifiers in enumerate(runs):
         print(f"Saving results to {outname}...")
         tafields.to_netcdf(outname)
         print("Done!\n")
-    xyi.close(); xyz.close(); ttt.close(); tti.close()
+    xyi.close(); xyz.close(); tti.close(); #ttt.close()
     #---

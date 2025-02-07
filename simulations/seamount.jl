@@ -19,7 +19,7 @@ function parse_command_line_arguments()
     @add_arg_table! settings begin
 
         "--simname"
-            help = "Setup and name of simulation in siminfo.jl"
+            help = "Simulation name for output"
             default = "tokara"
             arg_type = String
 

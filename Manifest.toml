@@ -280,6 +280,12 @@ deps = ["Artifacts", "Libdl"]
 uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
 version = "1.1.0+0"
 
+[[deps.CompoundPeriods]]
+deps = ["Dates"]
+git-tree-sha1 = "147d988f6a91fcdd5c07a86b52eb774803477326"
+uuid = "a216cea6-0a8c-5945-ab87-5ade47210022"
+version = "0.5.4"
+
 [[deps.ConstructionBase]]
 git-tree-sha1 = "76219f1ed5771adbb096743bff43fb5fdd4c1157"
 uuid = "187b0558-2788-49d3-abe0-74a17ed4e7c9"
@@ -1183,6 +1189,12 @@ version = "1.2.0"
 [[deps.Mmap]]
 uuid = "a63ad114-7e13-5084-954f-fe012c677804"
 
+[[deps.Mocking]]
+deps = ["Compat", "ExprTools"]
+git-tree-sha1 = "2c140d60d7cb82badf06d8783800d0bcd1a7daa2"
+uuid = "78c3b35d-d492-501b-9361-3d52fe80e533"
+version = "0.8.1"
+
 [[deps.ModernGL]]
 deps = ["Libdl"]
 git-tree-sha1 = "b76ea40b5c0f45790ae09492712dd326208c28b2"
@@ -1251,27 +1263,29 @@ uuid = "510215fc-4207-5dde-b226-833fc4488ee2"
 version = "0.5.5"
 
 [[deps.Oceananigans]]
-deps = ["Adapt", "CUDA", "Crayons", "CubedSphere", "Dates", "Distances", "DocStringExtensions", "FFTW", "GPUArrays", "Glob", "IncompleteLU", "InteractiveUtils", "IterativeSolvers", "JLD2", "KernelAbstractions", "LinearAlgebra", "Logging", "MPI", "NCDatasets", "OffsetArrays", "OrderedCollections", "Pkg", "Printf", "Random", "Rotations", "SeawaterPolynomials", "SparseArrays", "Statistics", "StructArrays"]
-git-tree-sha1 = "5daa4eba3ea6f5b17cb2296b6e58dfc0f297b843"
+deps = ["Adapt", "CUDA", "Crayons", "CubedSphere", "Dates", "Distances", "DocStringExtensions", "FFTW", "GPUArrays", "Glob", "IncompleteLU", "InteractiveUtils", "IterativeSolvers", "JLD2", "KernelAbstractions", "LinearAlgebra", "Logging", "MPI", "NCDatasets", "OffsetArrays", "OrderedCollections", "Pkg", "Printf", "Random", "Rotations", "SeawaterPolynomials", "SparseArrays", "Statistics", "StructArrays", "TimesDates"]
+git-tree-sha1 = "207e8a7269e6e624b59100d5bb5380614befeffe"
 repo-rev = "jsw/pertubation-advection-obc"
 repo-url = "https://github.com/CliMA/Oceananigans.jl.git"
 uuid = "9e8cae18-63c1-5223-a75c-80ca9d6e9a09"
-version = "0.95.8"
+version = "0.95.9"
 
     [deps.Oceananigans.extensions]
     OceananigansEnzymeExt = "Enzyme"
     OceananigansMakieExt = ["MakieCore", "Makie"]
+    OceananigansReactantExt = "Reactant"
 
     [deps.Oceananigans.weakdeps]
     Enzyme = "7da242da-08ed-463a-9acd-ee780be4f1d9"
     Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
     MakieCore = "20f20a25-4f0e-4fdf-b5d1-57303727442b"
+    Reactant = "3c362404-f566-11ee-1572-e11a4b42c853"
 
 [[deps.Oceanostics]]
 deps = ["DocStringExtensions", "Oceananigans", "Printf", "SeawaterPolynomials"]
-git-tree-sha1 = "0bf10c727fce471da5324c50679780e8cf1338b6"
+git-tree-sha1 = "e45a200f7f1cc012769704f1e3e7bb9bdf8ebdaf"
 uuid = "d0ccf422-c8fb-49b5-a76d-74acdde946ac"
-version = "0.15.0"
+version = "0.15.1"
 
 [[deps.OffsetArrays]]
 git-tree-sha1 = "1a27764e945a152f7ca7efa04de513d473e9542e"
@@ -1796,6 +1810,12 @@ deps = ["Dates"]
 uuid = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
 version = "1.0.3"
 
+[[deps.TZJData]]
+deps = ["Artifacts"]
+git-tree-sha1 = "006a327222dda856e2304959e566ff0104ac8594"
+uuid = "dc5dba14-91b3-4cab-a142-028a31da12f7"
+version = "1.3.1+2024b"
+
 [[deps.TableTraits]]
 deps = ["IteratorInterfaceExtensions"]
 git-tree-sha1 = "c06b2f539df1c6efa794486abfb6ed2022561a39"
@@ -1858,11 +1878,27 @@ git-tree-sha1 = "0248b1b2210285652fbc67fd6ced9bf0394bcfec"
 uuid = "731e570b-9d59-4bfa-96dc-6df516fadf69"
 version = "0.11.1"
 
+[[deps.TimeZones]]
+deps = ["Artifacts", "Dates", "Downloads", "InlineStrings", "Mocking", "Printf", "Scratch", "TZJData", "Unicode", "p7zip_jll"]
+git-tree-sha1 = "34600f9822325409bad17639ac087a382ab586b7"
+uuid = "f269a46b-ccf7-5d73-abea-4c690281aa53"
+version = "1.21.1"
+weakdeps = ["RecipesBase"]
+
+    [deps.TimeZones.extensions]
+    TimeZonesRecipesBaseExt = "RecipesBase"
+
 [[deps.TimerOutputs]]
 deps = ["ExprTools", "Printf"]
 git-tree-sha1 = "3a6f063d690135f5c1ba351412c82bae4d1402bf"
 uuid = "a759f4b9-e2f1-59dc-863e-4aeb61b1ea8f"
 version = "0.5.25"
+
+[[deps.TimesDates]]
+deps = ["CompoundPeriods", "Dates", "TimeZones"]
+git-tree-sha1 = "4ca99fd8145f6ae574b6f98e1233148e7b91ac30"
+uuid = "bdfc003b-8df8-5c39-adcd-3a9087f5df4a"
+version = "0.3.1"
 
 [[deps.TranscodingStreams]]
 git-tree-sha1 = "0c45878dcfdcfa8480052b6ab162cdd138781742"

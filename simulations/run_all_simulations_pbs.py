@@ -1,5 +1,7 @@
 from os import system
 from cycler import cycler
+import sys
+sys.path.append("..")
 from aux00_utils import aggregate_parameters
 
 #+++ Define run options

@@ -2,26 +2,6 @@ import xarray as xr
 import pynanigans as pn
 import numpy as np
 
-#+++ All simulation names
-simnames = ["NPN-R008F008",
-            "NPN-R008F02",
-            "NPN-R008F05",
-            "NPN-R008F1",
-            "NPN-R02F008",
-            "NPN-R02F02",
-            "NPN-R02F05",
-            "NPN-R02F1",
-            "NPN-R05F008",
-            "NPN-R05F02",
-            "NPN-R05F05",
-            "NPN-R05F1",
-            "NPN-R1F008",
-            "NPN-R1F02",
-            "NPN-R1F05",
-            "NPN-R1F1",
-            ]
-#---
-
 #+++ Open simulation following the standard way
 def open_simulation(fname, 
                     use_inertial_periods=False,
@@ -127,6 +107,9 @@ def check_simulation_completion(simnames, slice_name="ttt", path="./headland_sim
 def aggregate_parameters(parameters, sep=" ", prefix="--"):
     written_out_list = [ f"{prefix}{key}={val}" for key, val in parameters.items() ]
     return sep.join(written_out_list)
+
+def form_run_names(superprefix, *args, **kwargs):
+    return f"{superprefix}_" + aggregate_parameters(*args, **kwargs)
 #---
 
 #+++ Define collect_datasets() function

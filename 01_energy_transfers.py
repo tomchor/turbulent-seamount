@@ -231,6 +231,10 @@ for j, modifiers in enumerate(runs):
     bulk = xr.Dataset()
     bulk.attrs = tafields.attrs
 
+    bulk["∭⁵ε̄ₖdV"]    = tafields["∭⁵ε̄ₖdV"]
+    bulk["∭⁵ε̄ₚdV"]    = tafields["∭⁵ε̄ₚdV"]
+    bulk["⟨∭⁵wbdV⟩ₜ"] = tafields["⟨∭⁵wbdV⟩ₜ"]
+
     bulk["Slope_Bu"] = bulk.Slope_Bu
     bulk["Ro_h"] = bulk.Ro_h
     bulk["Fr_h"] = bulk.Fr_h

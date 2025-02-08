@@ -3,8 +3,8 @@ sys.path.append("/glade/u/home/tomasc/repos/pynanigans")
 from os.path import basename
 import numpy as np
 import xarray as xr
-from cycler import cycler
 import pynanigans as pn
+from cycler import cycler
 from aux00_utils import open_simulation, condense, adjust_times, aggregate_parameters
 from colorama import Fore, Back, Style
 from dask.diagnostics import ProgressBar
@@ -17,10 +17,11 @@ if basename(__file__) != "h00_run_postproc.py":
     path = "simulations/data/"
     simname_base = "tokara"
 
-    resolutions = cycler(res = [8,])
+    resolutions = cycler(res = [4,])
     slopes = cycler(α = [0.05,])
-    Rossby_numbers = cycler(Ro_h = [1.4])
-    Froude_numbers = cycler(Fr_h = [0.6])
+    slopes = cycler(α = [0.2,])
+    Rossby_numbers = cycler(Ro_h = [0.08, 0.2, 0.5, 1.25])
+    Froude_numbers = cycler(Fr_h = [0.08, 0.2, 0.5, 1.25])
     runs = resolutions * slopes * Rossby_numbers * Froude_numbers
 #---
 
@@ -141,17 +142,20 @@ for j, modifiers in enumerate(runs):
     #+++ Time average
     # Here ū and ⟨u⟩ₜ are interchangeable
     tafields = tti.mean("time")
-    tafields = tafields.rename({"uᵢ"   : "ūᵢ",
-                                "∂ⱼuᵢ" : "∂ⱼūᵢ",
-                                "uⱼuᵢ" : "⟨uⱼuᵢ⟩ₜ",
-                                "b"    : "b̄",
-                                "∂ⱼb"  : "∂ⱼb̄",
-                                "wb"   : "⟨wb⟩ₜ",
-                                "εₖ"   : "ε̄ₖ",
-                                "εₚ"   : "ε̄ₚ",
-                                "κₑ"   : "κ̄ₑ",
-                                "Ek"   : "⟨Ek⟩ₜ",
-                                "PV"   : "q̄",
+    tafields = tafields.rename({"uᵢ"     : "ūᵢ",
+                                "∂ⱼuᵢ"   : "∂ⱼūᵢ",
+                                "uⱼuᵢ"   : "⟨uⱼuᵢ⟩ₜ",
+                                "b"      : "b̄",
+                                "∂ⱼb"    : "∂ⱼb̄",
+                                "wb"     : "⟨wb⟩ₜ",
+                                "εₖ"     : "ε̄ₖ",
+                                "εₚ"     : "ε̄ₚ",
+                                "κₑ"     : "κ̄ₑ",
+                                "Ek"     : "⟨Ek⟩ₜ",
+                                "PV"     : "q̄",
+                                "∭⁵εₖdV" : "∭⁵ε̄ₖdV",
+                                "∭⁵εₚdV" : "∭⁵ε̄ₚdV",
+                                "∭⁵wbdV" : "⟨∭⁵wbdV⟩ₜ",
                                 })
     tafields.attrs = tti.attrs
     #---
@@ -214,11 +218,45 @@ for j, modifiers in enumerate(runs):
     tafields = tafields.drop_dims(("xF", "yF",))
     #---
 
-    #+++ Save
+    #+++ Save tafields
     outname = f"data_post/tafields_{simname}.nc"
     with ProgressBar(minimum=5, dt=5):
         print(f"Saving results to {outname}...")
         tafields.to_netcdf(outname)
         print("Done!\n")
     xyi.close(); xyz.close(); tti.close(); #ttt.close()
+    #---
+
+    #+++ Create bulk dataset
+    bulk = xr.Dataset()
+    bulk.attrs = tafields.attrs
+
+    bulk["Slope_Bu"] = bulk.Slope_Bu
+    bulk["Ro_h"] = bulk.Ro_h
+    bulk["Fr_h"] = bulk.Fr_h
+    bulk["α"]    = bulk.α
+
+    bulk["Bu_h"] = bulk.Bu_h
+    bulk["Γ"]    = bulk.Γ
+    bulk["c_dz"] = bulk.c_dz
+
+    bulk["f₀"]  = bulk.attrs["f₀"]
+    bulk["N²∞"] = bulk.attrs["N²∞"]
+    bulk["V∞"]  = bulk.attrs["V∞"]
+    bulk["L"]   = bulk.L
+    bulk["Δx_min"] = tafields["Δxᶜᶜᶜ"].where(tafields["Δxᶜᶜᶜ"] > 0).min().values
+    bulk["Δy_min"] = tafields["Δyᶜᶜᶜ"].where(tafields["Δyᶜᶜᶜ"] > 0).min().values
+    bulk["Δz_min"] = tafields["Δzᶜᶜᶜ"].where(tafields["Δzᶜᶜᶜ"] > 0).min().values
+
+    bulk["RoFr"] = bulk.Ro_h * bulk.Fr_h
+    bulk["V∞³÷L"] = bulk.attrs["V∞"]**3 / bulk.L
+    bulk["V∞²N∞"] = bulk.attrs["V∞"]**2 * np.sqrt(bulk.N2_inf)
+    bulk["N∞³L²"] = np.sqrt(bulk.N2_inf)**3 * bulk.L**2
+    #---
+
+    #+++ Final touches and save bulk
+    outname = f"data_post/bulkstats_{simname}.nc"
+    with ProgressBar(minimum=2, dt=5):
+        print(f"Saving bulk results to {outname}...")
+        bulk.to_netcdf(outname)
     #---

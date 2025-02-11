@@ -8,8 +8,8 @@ from aux00_utils import aggregate_parameters
 simname_base = "tokara"
 
 #resolutions = cycler(res = [8, 4, 2, 1])
-resolutions = cycler(res = [8,])
-slopes = cycler(α = [0.05, 0.1, 0.2])
+resolutions = cycler(res = [8, 4, 2])
+slopes = cycler(α = [0.05, 0.2])
 Rossby_numbers = cycler(Ro_h = [1.4])
 Froude_numbers = cycler(Fr_h = [0.6])
 runs = resolutions * slopes * Rossby_numbers * Froude_numbers

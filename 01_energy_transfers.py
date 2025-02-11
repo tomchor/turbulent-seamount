@@ -13,11 +13,11 @@ xr.set_options(display_width=140, display_max_rows=30)
 print("Starting energy transfer script")
 
 #+++ Define directory and simulation name
-if basename(__file__) != "h00_run_postproc.py":
+if basename(__file__) != "00_run_postproc.py":
     path = "simulations/data/"
     simname_base = "tokara"
 
-    resolutions = cycler(res = [4,])
+    resolutions = cycler(res = [2,])
     slopes = cycler(α = [0.05,])
     slopes = cycler(α = [0.2,])
     Rossby_numbers = cycler(Ro_h = [0.08, 0.2, 0.5, 1.25])

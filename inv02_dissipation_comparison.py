@@ -14,9 +14,8 @@ plt.rcParams["figure.constrained_layout.use"] = True
 plt.rcParams["font.size"] = 9
 π = np.pi
 
-path = "simulations/data/"
-
 #+++ Runs
+path = "simulations/data/"
 simname_base = "tokara"
 
 resolutions = cycler(res = [4, 2])
@@ -36,6 +35,7 @@ fig, axes = plt.subplots(nrows=3, constrained_layout=True, figsize=(10, 8),
 
 for j, modifiers in enumerate(runs):
     simname = f"{simname_base}_" + aggregate_parameters(modifiers, sep="_", prefix="")
+
     #+++ Open dataset and pick time
     xyz = open_simulation(path+f"xyz.{simname}.nc",
                           use_inertial_periods = True,

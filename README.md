@@ -1,4 +1,4 @@
-# LES comparison with the Tokara straight
+# LES comparison with the Tokara strait
 
 Seamount data based on the Figure 1 of [Nagai et al.
 (2021)](https://doi.org/10.1038/s43247-021-00230-7):

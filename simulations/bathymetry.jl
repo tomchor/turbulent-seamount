@@ -16,6 +16,9 @@ params_geometry = (; params.H, params.L, params.x₀, params.y₀)
 
 @inline z_distance_from_seamount_boundary_ccc(i, j, k, grid, p) = znode(k, grid, Center()) - seamount(xnode(i, grid, Center()), ynode(j, grid, Center()), p)
 @compute altitude = Field(KernelFunctionOperation{Center, Center, Center}(z_distance_from_seamount_boundary_ccc, grid_base, params_geometry))
+
+@inline far_from_seamount_ccc(args...) = ifelse(z_distance_from_seamount_boundary_ccc(args...) > 5.0, 1, 0)
+@compute far_from_seamount = Field(KernelFunctionOperation{Center, Center, Center}(far_from_seamount_ccc, grid_base, params_geometry))
 #---
 
 xC = KernelFunctionOperation{Center, Center, Center}(xnode, grid_base, Center(), Center(), Center())

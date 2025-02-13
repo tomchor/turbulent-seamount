@@ -76,9 +76,17 @@ function parse_command_line_arguments()
             default = 2.5e-4
             arg_type = Float64
 
+        "--closure"
+            default = "AMD" # or CSM or DSM
+            arg_type = String
+
         "--runway_length_fraction_L"
             default = 4 # y_offset / L (how far from the inflow is the headland)
             arg_type = Float64
+
+        "--bounded"
+            default = 1 # Is the x-direction bounded?
+            arg_type = Int
 
         "--T_advective_spinup"
             default = 20 # Should be a multiple of interval_time_avg
@@ -94,13 +102,6 @@ end
 
 params = (; parse_command_line_arguments()...)
 rundir = @__DIR__
-#---
-
-#+++ Figure out name, dimensions, modifier, etc
-sep = "-"
-global configname, modifiers... = split(params.simname, sep)
-global CSM = "CSM" in modifiers ? true : false # Constan SMagorinsky
-global DSM = "DSM" in modifiers ? true : false # Dynamic SMagorinsky
 #---
 
 #+++ Figure out architecture
@@ -163,7 +164,8 @@ pprintln(params)
 #---
 
 #+++ Base grid
-grid_base = RectilinearGrid(arch, topology = (Periodic, Bounded, Bounded),
+topology = Bool(params.bounded) ? (Bounded, Bounded, Bounded) : (Periodic, Bounded, Bounded)
+grid_base = RectilinearGrid(arch; topology,
                             size = (params.Nx, params.Ny, params.Nz),
                             x = (-params.Lx/2, +params.Lx/2),
                             y = (-params.y_offset, params.Ly - params.y_offset),
@@ -252,12 +254,14 @@ Fᵤ = Forcing(geostrophy, parameters = (; params.f₀, params.V∞))
 #---
 
 #+++ Turbulence closure
-if CSM
+if params.closure == "CSM"
     closure = SmagorinskyLilly(C=0.13, Pr=1)
-elseif DSM
+elseif params.closure == "DSM"
     closure = Smagorinsky(coefficient=DynamicCoefficient(averaging=LagrangianAveraging(), schedule=IterationInterval(5)))
-else
+elseif params.closure == "AMD"
     closure = AnisotropicMinimumDissipation()
+else
+    throw(ArgumentError("Check options for `closure`"))
 end
 #---
 

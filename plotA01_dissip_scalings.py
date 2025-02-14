@@ -10,16 +10,22 @@ from aux00_utils import collect_datasets, form_run_names
 from aux02_plotting import letterize, create_mc, mscatter
 
 #+++ Define directory and simulation name
-if basename(__file__) != "h00_run_postproc.py":
+if basename(__file__) != "00_run_postproc.py":
     path = "simulations/data/"
     simname_base = "tokara"
 
-    resolutions = cycler(res = [2,])
-    slopes = cycler(α = [0.05,])
     slopes = cycler(α = [0.2,])
     Rossby_numbers = cycler(Ro_h = [0.08, 0.2, 0.5, 1.25])
     Froude_numbers = cycler(Fr_h = [0.08, 0.2, 0.5, 1.25])
-    runs = resolutions * slopes * Rossby_numbers * Froude_numbers
+
+    resolutions = cycler(res = [2,])
+    closures       = cycler(closure = ["CSM"])
+    bcs            = cycler(bounded = [0, 1])
+
+    paramspace = slopes * Rossby_numbers * Froude_numbers
+    configs    = resolutions * closures * bcs
+
+    runs = paramspace * configs
 #---
 
 simnames_filtered = list(map(lambda run: form_run_names("tokara", run, sep="_", prefix=""), runs))
@@ -86,6 +92,6 @@ for ax in axesf:
     ax.set_xlabel("$S_h$")
 
 letterize(axesf, x=0.05, y=0.9, fontsize=14)
-fig.savefig(f"figures/dissip_scalings_m{modifier}.pdf")
+fig.savefig(f"figures/dissip_scalings.png")
 #---
 

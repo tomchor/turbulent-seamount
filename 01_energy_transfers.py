@@ -17,12 +17,18 @@ if basename(__file__) != "00_run_postproc.py":
     path = "simulations/data/"
     simname_base = "tokara"
 
-    resolutions = cycler(res = [2,])
     slopes = cycler(α = [0.05,])
-    slopes = cycler(α = [0.2,])
-    Rossby_numbers = cycler(Ro_h = [0.08, 0.2, 0.5, 1.25])
-    Froude_numbers = cycler(Fr_h = [0.08, 0.2, 0.5, 1.25])
-    runs = resolutions * slopes * Rossby_numbers * Froude_numbers
+    Rossby_numbers = cycler(Ro_h = [1.4])
+    Froude_numbers = cycler(Fr_h = [0.6])
+
+    resolutions = cycler(res = [2,])
+    closures       = cycler(closure = ["AMD"])
+    bcs            = cycler(bounded = [0])
+
+    paramspace = slopes * Rossby_numbers * Froude_numbers
+    configs    = resolutions * closures * bcs
+
+    runs = paramspace * configs
 #---
 
 #+++ Options

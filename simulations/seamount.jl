@@ -61,11 +61,11 @@ function parse_command_line_arguments()
             arg_type = Float64
 
         "--Lx_ratio"
-            default = 8 # Lx / L
+            default = 3 # Lx / FWMH
             arg_type = Float64
 
         "--Ly_ratio"
-            default = 15 # Ly / L
+            default = 10 # Ly / FWMH
             arg_type = Float64
 
         "--Lz_ratio"
@@ -123,8 +123,8 @@ let
     FWMH = params.H / params.α
     L = FWMH / (2√log(2)) # The proper L for an exponential to achieve FWMH
 
-    Lx = params.Lx_ratio * L
-    Ly = params.Ly_ratio * L
+    Lx = params.Lx_ratio * FWMH
+    Ly = params.Ly_ratio * FWMH
     Lz = params.Lz_ratio * params.H
 
     y_offset = params.runway_length_fraction_L * L

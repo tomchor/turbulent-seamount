@@ -37,5 +37,3 @@ for config in configs:
     config_suffix = aggregate_parameters(config, sep="_", prefix="")
     simnames = [ "tokara_" + aggregate_parameters(params, sep="_", prefix="") + "_" + config_suffix for params in paramspace ]
     check_simulation_completion(simnames, slice_name="tti", path="simulations/data/")
-
-pause

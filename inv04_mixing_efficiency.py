@@ -50,13 +50,14 @@ for sim_number, simname in enumerate(simnames_filtered):
     ds["sim_number"] = sim_number
     ds["f₀"] = ds.f_0
     ds["N²∞"] = ds.N2_inf
-    ds = ds.expand_dims(("α", "res", "closure")).assign_coords(α=[ds.α],
-                                                               res=[np.round(ds.res, decimals=4)],
+    ds = ds.expand_dims(("α", "Δz", "closure")).assign_coords(α=[ds.α],
+                                                               Δz=[np.round(ds.Δz_min, decimals=4)],
                                                                closure=[ds.closure])
     dslist.append(ds)
     #---
 
 bulk = xr.combine_by_coords(dslist, combine_attrs="drop_conflicts")
+bulk["Δz"].attrs = dict(units="m")
 
 #+++ Define new variables
 bulk["γ⁵"] = bulk["∭⁵ε̄ₚdV"] / (bulk["∭⁵ε̄ₚdV"] + bulk["∭⁵ε̄ₖdV"])
@@ -66,4 +67,16 @@ bulk["ℰₖ"] = bulk["∭⁵ε̄ₖdV"] / (bulk.attrs["V∞"]**3 * bulk.L * bul
 bulk["ℰₚ"] = bulk["∭⁵ε̄ₚdV"] / (bulk.attrs["V∞"]**3 * bulk.L * bulk.H)
 #---
 
+figs = []
 
+bulk["ℰₖ"].plot(col="α", x="Δz", hue="closure", marker="o", linestyle="", yscale="log", ylim=(5e-2, 1.5))
+figs.append(plt.gcf())
+
+bulk["ℰₚ"].plot(col="α", x="Δz", hue="closure", marker="o", linestyle="", yscale="log", ylim=(5e-2, 1.5))
+figs.append(plt.gcf())
+
+bulk["γ⁵"].plot(col="α", x="Δz", hue="closure", marker="o", linestyle="", ylim=(0, None))
+figs.append(plt.gcf())
+for fig in figs:
+    for ax in fig.axes:
+        ax.grid(True)

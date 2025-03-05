@@ -17,12 +17,12 @@ if basename(__file__) != "00_run_postproc.py":
     path = "simulations/data/"
     simname_base = "tokara"
 
-    slopes = cycler(α = [0.05,])
+    slopes = cycler(α = [0.05, 0.2])
     Rossby_numbers = cycler(Ro_h = [1.4])
     Froude_numbers = cycler(Fr_h = [0.6])
 
-    resolutions = cycler(res = [2,])
-    closures       = cycler(closure = ["AMD"])
+    resolutions = cycler(res = [8, 4, 2,])
+    closures       = cycler(closure = ["AMD", "CSM"])
     bcs            = cycler(bounded = [0])
 
     paramspace = slopes * Rossby_numbers * Froude_numbers

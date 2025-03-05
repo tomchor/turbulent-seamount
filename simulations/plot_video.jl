@@ -196,7 +196,7 @@ frames = 1:step:n_times
 @show step n_times max_frames length(frames)
 
 resize_to_layout!(fig) # Resize figure after everything is done to it, but before recording
-Mk.record(fig, "$(@__DIR__)/../anims/$(params.simname).mp4", frames, framerate=14) do frame
+Mk.record(fig, "$(@__DIR__)/../anims/$(params.simname).mp4", frames, framerate=14, px_per_unit=1) do frame
     @info "Plotting time step $frame of $(n_times)..."
     n[] = frame
 end

@@ -131,8 +131,8 @@ n = Observable(1)
 title = @lift "α = $(@sprintf "%.2g" params.α),     Frₕ = $(@sprintf "%.2g" params.Fr_h),    Roₕ = $(@sprintf "%.2g" params.Ro_h);    " *
               "Sᴮᵘ = $(@sprintf "%.2g" params.Slope_Bu);    " *
               "V∞ = $(@sprintf "%.2g" params.V∞) m/s,    Δzₘᵢₙ = $(@sprintf "%.2g" params.Δz_min) m,    z₀ = $(@sprintf "%.2g" params.z₀) m;     " *
-              "Time = $(@sprintf "%s" prettytime(times[$n]))  =  $(@sprintf "%.2g" times[$n]/params.T_advective) advective periods  =  " *
-              "$(@sprintf "%.2g" times[$n]/params.T_inertial) Inertial periods"
+              "Time = $(@sprintf "%s" prettytime(times[$n]))  =  $(@sprintf "%.3g" times[$n]/params.T_advective) advective periods  =  " *
+              "$(@sprintf "%.3g" times[$n]/params.T_inertial) Inertial periods"
 fig[1, 1:length(variables)] = Label(fig, title, fontsize=18, tellwidth=false, height=title_height)
 
 dimnames_tup = (:xF, :xC, :yF, :yC, :zF, :zC)
@@ -196,7 +196,7 @@ frames = 1:step:n_times
 @show step n_times max_frames length(frames)
 
 resize_to_layout!(fig) # Resize figure after everything is done to it, but before recording
-Mk.record(fig, "$(@__DIR__)/../anims/$(params.simname).mp4", frames, framerate=14, px_per_unit=1) do frame
+Mk.record(fig, "$(@__DIR__)/../anims/$(params.simname).mp4", frames, framerate=14, compression=30, px_per_unit=1) do frame
     @info "Plotting time step $frame of $(n_times)..."
     n[] = frame
 end

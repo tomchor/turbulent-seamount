@@ -1,11 +1,15 @@
 using Oceananigans.AbstractOperations: @at, ∂x, ∂y, ∂z
 using Oceananigans.Units
 using Oceananigans.Grids: Center, Face
-using Oceananigans.TurbulenceClosures: viscosity, diffusivity
+import Oceananigans.TurbulenceClosures: viscosity, diffusivity
 
 using Oceanostics: KineticEnergyDissipationRate,
                    ErtelPotentialVorticity, RossbyNumber, RichardsonNumber,
                    TracerVarianceDissipationRate, TurbulentKineticEnergy
+
+viscosity(model)           = viscosity(model.closure, model.diffusivity_fields)
+diffusivity(model, tracer) = diffusivity(model.closure, model.diffusivity_fields, tracer)
+
 
 #+++ Methods/functions definitions
 include("$(@__DIR__)/grid_metrics.jl")
@@ -66,17 +70,20 @@ dbdz = @at CellCenter ∂z(b)
 εₖ = @at CellCenter KineticEnergyDissipationRate(model)
 εₚ = @at CellCenter TracerVarianceDissipationRate(model, :b)/(2params.N2_inf)
 
-κₑ = diffusivity(model.closure, model.diffusivity_fields, Val(:b))
-κₑ = κₑ isa Tuple ? sum(κₑ) : κₑ
+ν = viscosity(model)
+κ = diffusivity(model, Val(:b))
+κ = κ isa Tuple ? sum(κ) : κ
 
 Ri = @at CellCenter RichardsonNumber(model, u, v, w, b)
 Ro = @at CellCenter RossbyNumber(model)
 PV = @at CellCenter ErtelPotentialVorticity(model, u, v, w, b, model.coriolis)
 
-outputs_dissip = Dict(pairs((; εₖ, εₚ, κₑ)))
+outputs_dissip = Dict(pairs((; εₖ, εₚ, κ)))
 
 outputs_misc = Dict(pairs((; dbdx, dbdy, dbdz, ω_y,
                              Ri, Ro, PV,)))
+
+outputs_diff = Dict(pairs((; ν, κ)))
 #---
 
 #+++ Define covariances
@@ -119,7 +126,7 @@ outputs_vol_averages = Dict{Symbol, Any}(:∭⁵εₖdV => Integral(εₖ; mask 
 
 #+++ Assemble the "full" outputs tuple
 @info "Assemble diagnostics quantities"
-outputs_full = merge(outputs_state_vars, outputs_dissip, outputs_misc, outputs_covs, outputs_grads, outputs_budget,)
+outputs_full = merge(outputs_state_vars, outputs_dissip, outputs_misc, outputs_covs, outputs_grads, outputs_budget, outputs_diff)
 #---
 #---
 
@@ -214,7 +221,7 @@ function construct_outputs(simulation;
     #+++ iyz (low def) SNAPSHOTS
     if write_iyz
         @info "Setting up iyz writer"
-        indices = (ceil(Int, grid.Nx/2), :, :)
+        indices = (grid.Nx÷2, :, :)
         simulation.output_writers[:nc_iyz] = ow = NetCDFOutputWriter(model, outputs_full;
                                                                      filename = "$rundir/data/iyz.$(simname).nc",
                                                                      schedule = TimeInterval(interval_2d),
@@ -283,4 +290,3 @@ function construct_outputs(simulation;
     #---
 end
 #---
-

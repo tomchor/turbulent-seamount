@@ -307,7 +307,7 @@ progress(simulation) = @info (PercentageProgress(with_prefix=false, with_units=f
                               + "step dur = " * walltime_per_timestep)(simulation)
 simulation.callbacks[:progress] = Callback(progress, IterationInterval(40))
 
-conjure_time_step_wizard!(simulation, IterationInterval(1), max_change=1.1, cfl=0.95, min_Δt=1e-4, max_Δt=1/√params.N²∞)
+conjure_time_step_wizard!(simulation, IterationInterval(1), max_change=1.05, cfl=0.95, min_Δt=1e-4, max_Δt=1/√params.N²∞)
 
 function cfl_changer(sim)
     if sim.model.clock.time > 0
@@ -315,7 +315,7 @@ function cfl_changer(sim)
         simulation.callbacks[:time_step_wizard].func.cfl = cfl
     end
 end
-add_callback!(simulation, cfl_changer, SpecifiedTimes([10*params.T_advective]); name=:cfl_changer)
+add_callback!(simulation, cfl_changer, SpecifiedTimes([12*params.T_advective]); name=:cfl_changer)
 
 @info "" simulation
 #---

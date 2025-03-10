@@ -1,5 +1,5 @@
 #!/bin/bash -l
-#PBS -A UMCP0020
+#PBS -A UMCP0028
 #PBS -N postproc
 #PBS -o logs/postproc.log
 #PBS -e logs/postproc.log

@@ -37,5 +37,5 @@ for config in configs:
     simnames = [ "tokara_" + aggregate_parameters(params, sep="_", prefix="") + "_" + config_suffix for params in paramspace ]
     check_simulation_completion(simnames, slice_name="tti", path=path)
 
-print(Back.LIGHTWHITE_EX + Fore.BLUE + "\nStarting 01 post-processing of results using `configs`", configs, Style.RESET_ALL)
+print(Back.LIGHTWHITE_EX + Fore.BLUE + "\nStarting 01 post-processing of results using `configs`", Style.RESET_ALL, configs)
 exec(open("01_energy_transfers.py").read())

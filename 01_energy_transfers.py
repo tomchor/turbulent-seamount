@@ -22,7 +22,7 @@ if basename(__file__) != "00_run_postproc.py":
     Froude_numbers = cycler(Fr_h = [0.6])
 
     resolutions = cycler(res = [8, 4, 2,])
-    closures       = cycler(closure = ["AMD", "CSM"])
+    closures       = cycler(closure = ["AMD", "CSM", "DSM", "NON"])
     bcs            = cycler(bounded = [0])
 
     paramspace = slopes * Rossby_numbers * Froude_numbers
@@ -239,6 +239,13 @@ for j, config in enumerate(runs):
     bulk["∭⁵ε̄ₖdV"]    = tafields["∭⁵ε̄ₖdV"]
     bulk["∭⁵ε̄ₚdV"]    = tafields["∭⁵ε̄ₚdV"]
     bulk["⟨∭⁵wbdV⟩ₜ"] = tafields["⟨∭⁵wbdV⟩ₜ"]
+
+    bulk["⟨∬Ek′dxdy⟩ₜ"] = tafields["⟨Ek′⟩ₜ"].pnintegrate(("x", "y"))
+    bulk["⟨∬Πdxdy⟩ₜ"]   = tafields["SPR"].sum("j").pnintegrate(("x", "y"))
+
+    altitude = xyz.altitude.pnsel(z=tti.zC, method="nearest")
+    bulk["⟨∬⁵Ek′dxdy⟩ₜ"] = tafields["⟨Ek′⟩ₜ"].where(altitude > 5, other=0).pnintegrate(("x", "y"))
+    bulk["⟨∬⁵Πdxdy⟩ₜ"]   = tafields["SPR"].sum("j").where(altitude > 5, other=0).pnintegrate(("x", "y"))
 
     bulk["Slope_Bu"] = bulk.Slope_Bu
     bulk["Ro_h"] = bulk.Ro_h

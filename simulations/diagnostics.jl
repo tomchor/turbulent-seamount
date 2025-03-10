@@ -67,12 +67,20 @@ dbdz = @at CellCenter ∂z(b)
 
 ω_y = @at CellCenter (∂z(u) - ∂x(w))
 
-εₖ = @at CellCenter KineticEnergyDissipationRate(model)
-εₚ = @at CellCenter TracerVarianceDissipationRate(model, :b)/(2params.N2_inf)
+if model.closure isa Nothing
+    εₖ = @at CellCenter CenterField(grid)
+    εₚ = @at CellCenter CenterField(grid)
 
-ν = viscosity(model)
-κ = diffusivity(model, Val(:b))
-κ = κ isa Tuple ? sum(κ) : κ
+    ν = CenterField(grid)
+    κ = CenterField(grid)
+
+else
+    εₖ = @at CellCenter KineticEnergyDissipationRate(model)
+    εₚ = @at CellCenter TracerVarianceDissipationRate(model, :b)/(2params.N2_inf)
+
+    ν = viscosity(model)
+    κ = diffusivity(model, Val(:b))
+end
 
 Ri = @at CellCenter RichardsonNumber(model, u, v, w, b)
 Ro = @at CellCenter RossbyNumber(model)

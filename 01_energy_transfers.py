@@ -35,8 +35,8 @@ if basename(__file__) != "00_run_postproc.py":
 indices = [1, 2, 3]
 #---
 
-for j, modifiers in enumerate(runs):
-    simname = f"{simname_base}_" + aggregate_parameters(modifiers, sep="_", prefix="")
+for j, config in enumerate(runs):
+    simname = f"{simname_base}_" + aggregate_parameters(config, sep="_", prefix="")
 
     #+++ Open datasets
     print(f"\nOpening {simname} xyz")
@@ -156,7 +156,6 @@ for j, modifiers in enumerate(runs):
                                 "wb"     : "⟨wb⟩ₜ",
                                 "εₖ"     : "ε̄ₖ",
                                 "εₚ"     : "ε̄ₚ",
-                                "κₑ"     : "κ̄ₑ",
                                 "Ek"     : "⟨Ek⟩ₜ",
                                 "PV"     : "q̄",
                                 "∭⁵εₖdV" : "∭⁵ε̄ₖdV",

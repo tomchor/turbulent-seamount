@@ -13,7 +13,7 @@ from aux02_plotting import letterize, create_mc, mscatter
 path = "simulations/data/"
 simname_base = "seamount"
 
-slopes = cycler(α = [0.05, 0.2,])
+slopes         = cycler(α = [0.05, 0.2])
 Rossby_numbers = cycler(Ro_h = [1.4])
 Froude_numbers = cycler(Fr_h = [0.6])
 
@@ -51,8 +51,8 @@ for sim_number, simname in enumerate(simnames_filtered):
     ds["f₀"] = ds.f_0
     ds["N²∞"] = ds.N2_inf
     ds = ds.expand_dims(("α", "Δz", "closure")).assign_coords(α=[ds.α],
-                                                               Δz=[np.round(ds.Δz_min, decimals=4)],
-                                                               closure=[ds.closure])
+                                                              Δz=[np.round(ds.Δz_min, decimals=4)],
+                                                              closure=[ds.closure])
     dslist.append(ds)
     #---
 
@@ -63,16 +63,31 @@ bulk["Δz"].attrs = dict(units="m")
 bulk["γ⁵"] = bulk["∭⁵ε̄ₚdV"] / (bulk["∭⁵ε̄ₚdV"] + bulk["∭⁵ε̄ₖdV"])
 
 bulk["H"]  = bulk.α * bulk.L
+
+bulk["𝒦"] = bulk["⟨∬⁵Ek′dxdy⟩ₜ"]
+bulk["𝒫"] = bulk["⟨∬⁵Πdxdy⟩ₜ"]
+
 bulk["ℰₖ"] = bulk["∭⁵ε̄ₖdV"] / (bulk.attrs["V∞"]**3 * bulk.L * bulk.H)
 bulk["ℰₚ"] = bulk["∭⁵ε̄ₚdV"] / (bulk.attrs["V∞"]**3 * bulk.L * bulk.H)
 #---
 
+#+++ Make it legible
+bulk["𝒦"].attrs = dict(long_name=r"Norm TKE $\mathcal{K}$")
+bulk["𝒫"].attrs = dict(long_name=r"Norm shear prod rate $\mathcal{P}$")
+
+#---
 figs = []
 
-bulk["ℰₖ"].plot(col="α", x="Δz", hue="closure", marker="o", linestyle="", yscale="log", ylim=(5e-2, 1.5))
+bulk["𝒦"].plot(col="α", x="Δz", hue="closure", marker="o", linestyle="", sharey=False)
 figs.append(plt.gcf())
 
-bulk["ℰₚ"].plot(col="α", x="Δz", hue="closure", marker="o", linestyle="", yscale="log", ylim=(5e-2, 1.5))
+bulk["𝒫"].plot(col="α", x="Δz", hue="closure", marker="o", linestyle="", sharey=False)
+figs.append(plt.gcf())
+
+bulk["ℰₖ"].plot(col="α", x="Δz", hue="closure", marker="o", linestyle="", yscale="log", ylim=(5e-2, 3))
+figs.append(plt.gcf())
+
+bulk["ℰₚ"].plot(col="α", x="Δz", hue="closure", marker="o", linestyle="", yscale="log", ylim=(5e-2, 3))
 figs.append(plt.gcf())
 
 bulk["γ⁵"].plot(col="α", x="Δz", hue="closure", marker="o", linestyle="", ylim=(0, None))

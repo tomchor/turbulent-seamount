@@ -11,7 +11,7 @@ from aux02_plotting import letterize, create_mc, mscatter
 
 #+++ Define directory and simulation name
 path = "simulations/data/"
-simname_base = "tokara"
+simname_base = "seamount"
 
 slopes         = cycler(α = [0.05, 0.2])
 Rossby_numbers = cycler(Ro_h = [1.4])

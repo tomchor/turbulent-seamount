@@ -5,9 +5,9 @@ sys.path.append("..")
 from aux00_utils import aggregate_parameters
 
 #+++ Define run options
-simname_base = "tokara"
+simname_base = "seamount"
 
-slopes = cycler(α = [0.05, 0.2])
+slopes         = cycler(α = [0.05, 0.2])
 Rossby_numbers = cycler(Ro_h = [1.4])
 Froude_numbers = cycler(Fr_h = [0.6])
 

@@ -15,13 +15,13 @@ print("Starting energy transfer script")
 #+++ Define directory and simulation name
 if basename(__file__) != "00_run_postproc.py":
     path = "simulations/data/"
-    simname_base = "tokara"
+    simname_base = "seamount"
 
     slopes = cycler(α = [0.05, 0.2])
-    Rossby_numbers = cycler(Ro_h = [1.4])
-    Froude_numbers = cycler(Fr_h = [0.6])
+    Rossby_numbers = cycler(Ro_h = [0.5])
+    Froude_numbers = cycler(Fr_h = [0.2])
 
-    resolutions = cycler(res = [8, 4, 2,])
+    resolutions    = cycler(res = [8, 4, 2])
     closures       = cycler(closure = ["AMD", "CSM", "DSM", "NON"])
     bcs            = cycler(bounded = [0])
 
@@ -156,6 +156,8 @@ for j, config in enumerate(runs):
                                 "wb"     : "⟨wb⟩ₜ",
                                 "εₖ"     : "ε̄ₖ",
                                 "εₚ"     : "ε̄ₚ",
+                                "ν"      : "ν̄",
+                                "κ"      : "κ̄",
                                 "Ek"     : "⟨Ek⟩ₜ",
                                 "PV"     : "q̄",
                                 "∭⁵εₖdV" : "∭⁵ε̄ₖdV",

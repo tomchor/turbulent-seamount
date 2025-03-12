@@ -44,6 +44,7 @@ ScratchedField(op::AbstractOperation{Center, Center, Center}) = Field(op, data=c
 
 ScratchedField(f::Field) = f
 ScratchedField(d::Dict) = Dict( k => ScratchedField(v) for (k, v) in d )
+ScratchedField(n::Number) = ScratchedField(n * CenterField(grid))
 #---
 
 #+++ Unpack model variables

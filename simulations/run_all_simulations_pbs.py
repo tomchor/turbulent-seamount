@@ -5,14 +5,14 @@ sys.path.append("..")
 from aux00_utils import aggregate_parameters
 
 #+++ Define run options
-simname_base = "tokara"
+simname_base = "seamount"
 
 slopes = cycler(α = [0.05, 0.2])
-Rossby_numbers = cycler(Ro_h = [1.4])
-Froude_numbers = cycler(Fr_h = [0.6])
+Rossby_numbers = cycler(Ro_h = [0.5])
+Froude_numbers = cycler(Fr_h = [0.2])
 
 resolutions    = cycler(res = [8, 4, 2, 1])
-closures       = cycler(closure = ["AMD", "CSM", "DSM"])
+closures       = cycler(closure = ["AMD", "CSM", "DSM", "NON"])
 bcs            = cycler(bounded = [0])
 
 paramspace = slopes * Rossby_numbers * Froude_numbers

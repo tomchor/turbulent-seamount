@@ -69,7 +69,7 @@ function parse_command_line_arguments()
             arg_type = Float64
 
         "--Lz_ratio"
-            default = 1.2 # Lz / L
+            default = 1.2 # Lz / H
             arg_type = Float64
 
         "--Rz"
@@ -81,7 +81,7 @@ function parse_command_line_arguments()
             arg_type = String
 
         "--runway_length_fraction_L"
-            default = 4 # y_offset / L (how far from the inflow is the headland)
+            default = 4 # y_offset / L (how far from the inflow the headland is)
             arg_type = Float64
 
         "--bounded"
@@ -307,7 +307,8 @@ progress(simulation) = @info (PercentageProgress(with_prefix=false, with_units=f
                               + "step dur = " * walltime_per_timestep)(simulation)
 simulation.callbacks[:progress] = Callback(progress, IterationInterval(40))
 
-conjure_time_step_wizard!(simulation, IterationInterval(1), max_change=1.05, cfl=0.95, min_Δt=1e-4, max_Δt=1/√params.N²∞)
+initial_cfl = params.res > 4 ? 0.8 : 0.9
+conjure_time_step_wizard!(simulation, IterationInterval(1), max_change=1.05, cfl=initial_cfl, min_Δt=1e-4, max_Δt=1/√params.N²∞)
 
 function cfl_changer(sim)
     if sim.model.clock.time > 0

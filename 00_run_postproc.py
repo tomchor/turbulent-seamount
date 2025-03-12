@@ -13,15 +13,14 @@ from dask.diagnostics import ProgressBar
 print("Starting h00 script")
 
 #+++ Define run options
-simname_base = "tokara"
+simname_base = "seamount"
 
-slopes         = cycler(α = [0.05])
-Rossby_numbers = cycler(Ro_h = [1.4])
-Froude_numbers = cycler(Fr_h = [0.6])
+slopes         = cycler(α = [0.05, 0.2])
+Rossby_numbers = cycler(Ro_h = [0.5])
+Froude_numbers = cycler(Fr_h = [0.2])
 
-resolutions    = cycler(res = [8, 4, 2, 1])
 resolutions    = cycler(res = [8, 4, 2])
-closures       = cycler(closure = ["AMD"])
+closures       = cycler(closure = ["AMD", "CSM", "DSM", "NON"])
 bcs            = cycler(bounded = [0])
 
 paramspace = slopes * Rossby_numbers * Froude_numbers
@@ -33,6 +32,6 @@ runs = paramspace * configs
 for config in configs:
     print(config)
     config_suffix = aggregate_parameters(config, sep="_", prefix="")
-    simnames = [ "tokara_" + aggregate_parameters(params, sep="_", prefix="") + "_" + config_suffix for params in paramspace ]
+    simnames = [ simname_base + "_" + aggregate_parameters(params, sep="_", prefix="") + "_" + config_suffix for params in paramspace ]
+    print(simnames)
     check_simulation_completion(simnames, slice_name="tti", path="simulations/data/")
-

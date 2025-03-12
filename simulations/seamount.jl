@@ -69,7 +69,7 @@ function parse_command_line_arguments()
             arg_type = Float64
 
         "--Lz_ratio"
-            default = 1.2 # Lz / L
+            default = 1.2 # Lz / H
             arg_type = Float64
 
         "--Rz"
@@ -81,7 +81,7 @@ function parse_command_line_arguments()
             arg_type = String
 
         "--runway_length_fraction_L"
-            default = 4 # y_offset / L (how far from the inflow is the headland)
+            default = 4 # y_offset / L (how far from the inflow the headland is)
             arg_type = Float64
 
         "--bounded"
@@ -255,11 +255,17 @@ Fᵤ = Forcing(geostrophy, parameters = (; params.f₀, params.V∞))
 
 #+++ Turbulence closure
 if params.closure == "CSM"
+    cfl = 0.9
     closure = SmagorinskyLilly(C=0.13, Pr=1)
 elseif params.closure == "DSM"
     closure = Smagorinsky(coefficient=DynamicCoefficient(averaging=LagrangianAveraging(), schedule=IterationInterval(5)))
+    cfl = 0.6
 elseif params.closure == "AMD"
+    cfl = 0.9
     closure = AnisotropicMinimumDissipation()
+elseif params.closure == "NON"
+    cfl = 0.9
+    closure = nothing
 else
     throw(ArgumentError("Check options for `closure`"))
 end
@@ -297,12 +303,20 @@ walltime_per_timestep = StepDuration(with_prefix=false) # This needs to instanti
 walltime = Walltime()
 progress(simulation) = @info (PercentageProgress(with_prefix=false, with_units=false)
                               + "$(round(time(simulation)/params.T_advective; digits=2)) adv periods" + walltime
-                              + TimeStep() + "CFL = "*AdvectiveCFLNumber(with_prefix=false)
-                              + "step dur = "*walltime_per_timestep)(simulation)
+                              + TimeStep() + "CFL = " * AdvectiveCFLNumber(with_prefix=false)
+                              + "step dur = " * walltime_per_timestep)(simulation)
 simulation.callbacks[:progress] = Callback(progress, IterationInterval(40))
 
-wizard = TimeStepWizard(max_change=1.05, min_change=0.2, cfl=0.95, min_Δt=1e-4, max_Δt=1/√params.N²∞)
-simulation.callbacks[:wizard] = Callback(wizard, IterationInterval(4))
+initial_cfl = params.res > 4 ? 0.8 : 0.9
+conjure_time_step_wizard!(simulation, IterationInterval(1), max_change=1.05, cfl=initial_cfl, min_Δt=1e-4, max_Δt=1/√params.N²∞)
+
+function cfl_changer(sim)
+    if sim.model.clock.time > 0
+        @warn "Changing target cfl to $cfl"
+        simulation.callbacks[:time_step_wizard].func.cfl = cfl
+    end
+end
+add_callback!(simulation, cfl_changer, SpecifiedTimes([12*params.T_advective]); name=:cfl_changer)
 
 @info "" simulation
 #---

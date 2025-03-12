@@ -22,7 +22,7 @@ if basename(__file__) != "00_run_postproc.py":
     Froude_numbers = cycler(Fr_h = [0.6])
 
     resolutions = cycler(res = [8, 4, 2,])
-    closures       = cycler(closure = ["AMD", "CSM"])
+    closures       = cycler(closure = ["AMD", "CSM", "DSM", "NON"])
     bcs            = cycler(bounded = [0])
 
     paramspace = slopes * Rossby_numbers * Froude_numbers
@@ -35,8 +35,8 @@ if basename(__file__) != "00_run_postproc.py":
 indices = [1, 2, 3]
 #---
 
-for j, modifiers in enumerate(runs):
-    simname = f"{simname_base}_" + aggregate_parameters(modifiers, sep="_", prefix="")
+for j, config in enumerate(runs):
+    simname = f"{simname_base}_" + aggregate_parameters(config, sep="_", prefix="")
 
     #+++ Open datasets
     print(f"\nOpening {simname} xyz")
@@ -156,7 +156,6 @@ for j, modifiers in enumerate(runs):
                                 "wb"     : "⟨wb⟩ₜ",
                                 "εₖ"     : "ε̄ₖ",
                                 "εₚ"     : "ε̄ₚ",
-                                "κₑ"     : "κ̄ₑ",
                                 "Ek"     : "⟨Ek⟩ₜ",
                                 "PV"     : "q̄",
                                 "∭⁵εₖdV" : "∭⁵ε̄ₖdV",
@@ -240,6 +239,13 @@ for j, modifiers in enumerate(runs):
     bulk["∭⁵ε̄ₖdV"]    = tafields["∭⁵ε̄ₖdV"]
     bulk["∭⁵ε̄ₚdV"]    = tafields["∭⁵ε̄ₚdV"]
     bulk["⟨∭⁵wbdV⟩ₜ"] = tafields["⟨∭⁵wbdV⟩ₜ"]
+
+    bulk["⟨∬Ek′dxdy⟩ₜ"] = tafields["⟨Ek′⟩ₜ"].pnintegrate(("x", "y"))
+    bulk["⟨∬Πdxdy⟩ₜ"]   = tafields["SPR"].sum("j").pnintegrate(("x", "y"))
+
+    altitude = xyz.altitude.pnsel(z=tti.zC, method="nearest")
+    bulk["⟨∬⁵Ek′dxdy⟩ₜ"] = tafields["⟨Ek′⟩ₜ"].where(altitude > 5, other=0).pnintegrate(("x", "y"))
+    bulk["⟨∬⁵Πdxdy⟩ₜ"]   = tafields["SPR"].sum("j").where(altitude > 5, other=0).pnintegrate(("x", "y"))
 
     bulk["Slope_Bu"] = bulk.Slope_Bu
     bulk["Ro_h"] = bulk.Ro_h

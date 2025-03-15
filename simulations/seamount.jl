@@ -77,7 +77,7 @@ function parse_command_line_arguments()
             arg_type = Float64
 
         "--closure"
-            default = "AMD" # or CSM or DSM
+            default = "AMD"
             arg_type = String
 
         "--runway_length_fraction_L"
@@ -254,7 +254,6 @@ Fᵤ = Forcing(geostrophy, parameters = (; params.f₀, params.V∞))
 #---
 
 #+++ Turbulence closure
-include("AMD.jl")
 
 if params.closure == "CSM"
     cfl = 0.9
@@ -263,6 +262,10 @@ elseif params.closure == "DSM"
     closure = Smagorinsky(coefficient=DynamicCoefficient(averaging=LagrangianAveraging(), schedule=IterationInterval(5)))
     cfl = 0.6
 elseif params.closure == "AMD"
+    cfl = 0.9
+    closure = AnisotropicMinimumDissipation()
+elseif params.closure == "AMC"
+    include("AMD.jl")
     cfl = 0.9
     closure = AnisotropicMinimumDissipation()
 elseif params.closure == "NON"

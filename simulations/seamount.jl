@@ -259,7 +259,7 @@ if params.closure == "CSM"
     closure = SmagorinskyLilly(C=0.13, Pr=1)
 elseif params.closure == "DSM"
     closure = Smagorinsky(coefficient=DynamicCoefficient(averaging=LagrangianAveraging(), schedule=IterationInterval(5)))
-    cfl = 0.6
+    cfl = params.res >= 4 ? 0.5 : 0.65
 elseif params.closure == "AMD"
     cfl = 0.9
     closure = AnisotropicMinimumDissipation()

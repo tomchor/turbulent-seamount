@@ -254,7 +254,6 @@ Fᵤ = Forcing(geostrophy, parameters = (; params.f₀, params.V∞))
 #---
 
 #+++ Turbulence closure
-
 if params.closure == "CSM"
     cfl = 0.9
     closure = SmagorinskyLilly(C=0.13, Pr=1)

@@ -11,14 +11,12 @@ slopes         = cycler(α = [0.05, 0.2])
 Rossby_numbers = cycler(Ro_h = [0.2, 1.25])
 Froude_numbers = cycler(Fr_h = [0.2, 1.25])
 
-resolutions    = cycler(res = [8, 4, 2, 1])
-resolutions    = cycler(res = [8, 4, 2,])
+resolutions    = cycler(dz = [8, 4, 2, 1])
 closures       = cycler(closure = ["AMD", "AMC", "CSM", "DSM", "NON"])
 closures       = cycler(closure = ["AMD", "DSM"])
-bcs            = cycler(bounded = [0])
 
 paramspace = slopes * Rossby_numbers * Froude_numbers
-configs    = resolutions * closures * bcs
+configs    = resolutions * closures
 
 runs = paramspace * configs
 #---
@@ -83,14 +81,14 @@ for modifiers in runs:
     options1 = dict(select=1, ncpus=1, ngpus=1)
     options2 = dict()
 
-    res_divider = modifiers["res"] if "res" in modifiers.keys() else None
+    res_divider = modifiers["dz"] if "dz" in modifiers.keys() else None
     if res_divider >= 8:
         options2 = options2 | dict(gpu_type = "v100")
         cmd1 = f"qsub {aux_filename}"
     elif res_divider >= 2:
         options2 = options2 | dict(gpu_type = "a100")
         cmd1 = f"qsub {aux_filename}"
-    elif res_divider == 1:
+    else:
         options1 = options1 | dict(cpu_type = "milan")
         options2 = options2 | dict(gpu_type = "a100")
 
@@ -98,8 +96,6 @@ for modifiers in runs:
             cmd1 = f"qsub {aux_filename}"
         else:
             cmd1 = f"JID1=`qsub {aux_filename}`; JID2=`qsub -W depend=afterok:$JID1 {aux_filename}`; qrls $JID1"
-    else:
-        raise(ValueError("`res_divider` has an unexpected value"))
 
     options_string1 = ":".join([ f"{key}={val}" for key, val in options1.items() ])
     options_string2 = ":".join([ f"{key}={val}" for key, val in options2.items() ])

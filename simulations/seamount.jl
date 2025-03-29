@@ -129,8 +129,12 @@ let
 
     #+++ Simulation size
     Nx = max(ceil(Int, Lx / (params.aspect * params.dz)), 5)
-    Ny = ceil(Int, Ly / (params.aspect * params.dz))
+    Ny = max(ceil(Int, Ly / (params.aspect * params.dz)), 5)
     Nz = max(ceil(Int, Lz / params.dz), 2)
+
+    Nx = closest_factor_number((2, 3, 5), Nx)
+    Ny = closest_factor_number((2, 3, 5), Ny)
+    Nz = closest_factor_number((2, 3, 5), Nz)
     N_total = Nx * Ny * Nz
     #---
 
@@ -353,7 +357,7 @@ checkpointer = construct_outputs(simulation;
                                  write_xyz = true,
                                  write_xiz = false,
                                  write_xyi = true,
-                                 write_iyz = true,
+                                 write_iyz = false,
                                  write_ttt = true,
                                  write_tti = true,
                                  write_chk,

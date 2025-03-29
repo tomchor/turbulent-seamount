@@ -13,6 +13,7 @@ from dask.diagnostics import ProgressBar
 print("Starting h00 script")
 
 #+++ Define run options
+path = "simulations/data/"
 simname_base = "seamount"
 
 slopes         = cycler(α = [0.05, 0.2])

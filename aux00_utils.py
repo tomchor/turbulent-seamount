@@ -74,6 +74,37 @@ def condense(ds, vlist, varname, dimname="α", indices=None):
     return ds
 #---
 
+#+++ Condense datasets into one
+def merge_datasets(runs, base_name = "seamount", dirpath="data_post", add_min_spacings=True, add_simulation_info=True, verbose=False):
+    simnames_filtered = list(map(lambda run: form_run_names(base_name, run, sep="_", prefix=""), runs))
+    dslist = []
+    for sim_number, simname in enumerate(simnames_filtered):
+        #+++ Open volume-integrated output
+        fname = f"{simname}.nc"
+        if verbose: print(f"\nOpening {fname}")
+        ds = xr.open_dataset(f"{dirpath}/{fname}", chunks=dict(time="auto", L="auto"))
+        #---
+
+        #+++ Create auxiliary variables and organize them into a Dataset
+        if add_min_spacings: # Calculate resolutions before they get thrown out
+            if "Δx_min" not in ds.keys(): ds["Δx_min"] = ds["Δxᶜᶜᶜ"].where(ds["Δxᶜᶜᶜ"] > 0).min().values
+            if "Δy_min" not in ds.keys(): ds["Δy_min"] = ds["Δyᶜᶜᶜ"].where(ds["Δyᶜᶜᶜ"] > 0).min().values
+            if "Δz_min" not in ds.keys(): ds["Δz_min"] = ds["Δzᶜᶜᶜ"].where(ds["Δzᶜᶜᶜ"] > 0).min().values
+
+        if add_simulation_info:
+            ds["simulation"] = simname
+            ds["sim_number"] = sim_number
+
+        for dim in runs.keys: # Let's make each variable in `runs` an xarray `coord`
+            if dim not in ds.variables: # if `dim` is not a variable, make it one
+                ds = ds.expand_dims((dim,))
+            ds = ds.assign_coords({dim : [ds.attrs[dim]]})
+        dslist.append(ds)
+        #---
+
+    return xr.combine_by_coords(dslist, combine_attrs="drop_conflicts")
+#---
+
 #+++ Time adjustment
 def adjust_times(ds, round_times=True, decimals=4):
     import numpy as np

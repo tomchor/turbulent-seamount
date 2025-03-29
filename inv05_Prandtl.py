@@ -18,5 +18,3 @@ tt0 = tti.isel(time=-1)
 #(tt0.ν / tt0.κ).plot(vmin=0.4, vmax=0.8)
 #tt0.ν.plot.contour(levels=[5e-4, 1e-3], colors="k", linewidths=0.5)
 tt0["εₖ"].plot.contour(colors="k", linewidths=0.5, levels=[5e-8, 1e-7, 2e-7])
-
-

@@ -8,8 +8,8 @@ from aux00_utils import aggregate_parameters
 simname_base = "seamount"
 
 slopes         = cycler(α = [0.05, 0.2])
-Rossby_numbers = cycler(Ro_h = [1.4])
-Froude_numbers = cycler(Fr_h = [0.6])
+Rossby_numbers = cycler(Ro_h = [0.2, 1.25])
+Froude_numbers = cycler(Fr_h = [0.2, 1.25])
 
 resolutions    = cycler(res = [8, 4, 2, 1])
 closures       = cycler(closure = ["AMD", "CSM", "DSM", "NON"])

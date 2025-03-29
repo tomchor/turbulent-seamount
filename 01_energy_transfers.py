@@ -17,7 +17,7 @@ if basename(__file__) != "00_run_postproc.py":
     path = "simulations/data/"
     simname_base = "seamount"
 
-    slopes = cycler(α = [0.05, 0.2])
+    slopes         = cycler(α = [0.05, 0.2])
     Rossby_numbers = cycler(Ro_h = [0.5])
     Froude_numbers = cycler(Fr_h = [0.2])
 

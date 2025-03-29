@@ -77,7 +77,7 @@ function parse_command_line_arguments()
             arg_type = Float64
 
         "--closure"
-            default = "AMD" # or CSM or DSM
+            default = "AMD"
             arg_type = String
 
         "--runway_length_fraction_L"
@@ -261,6 +261,10 @@ elseif params.closure == "DSM"
     closure = Smagorinsky(coefficient=DynamicCoefficient(averaging=LagrangianAveraging(), schedule=IterationInterval(5)))
     cfl = params.res >= 4 ? 0.5 : 0.65
 elseif params.closure == "AMD"
+    cfl = 0.9
+    closure = AnisotropicMinimumDissipation()
+elseif params.closure == "AMC"
+    include("AMD.jl")
     cfl = 0.9
     closure = AnisotropicMinimumDissipation()
 elseif params.closure == "NON"

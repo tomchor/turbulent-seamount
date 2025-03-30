@@ -53,3 +53,19 @@ function closest_factor_number(primes::NTuple{2, Int}, target::Int)
     end
     return closest_number
 end
+
+function closest_factor_number(primes::NTuple{1, Int}, target::Int)
+    closest_number = 1
+    min_difference = abs(target - closest_number)
+    # We will iterate over different combinations of powers of primes
+    for i in 0:15 # You can adjust this loop depth
+        # Generate the product of primes with different powers
+        product = primes[1]^i
+        diff = abs(target - product)
+        if diff < min_difference
+            min_difference = diff
+            closest_number = product
+        end
+    end
+    return closest_number
+end

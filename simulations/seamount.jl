@@ -66,7 +66,7 @@ function parse_command_line_arguments()
             arg_type = Float64
 
         "--Ly_ratio"
-            default = 10 # Ly / FWMH
+            default = 9 # Ly / FWMH
             arg_type = Float64
 
         "--Lz_ratio"

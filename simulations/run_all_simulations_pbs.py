@@ -13,7 +13,7 @@ Froude_numbers = cycler(Fr_h = [0.2, 1.25])
 
 resolutions    = cycler(dz = [8, 4, 2, 1])
 closures       = cycler(closure = ["AMD", "AMC", "CSM", "DSM", "NON"])
-closures       = cycler(closure = ["AMD", "DSM"])
+closures       = cycler(closure = ["AMD", "CSM", "DSM"])
 
 paramspace = slopes * Rossby_numbers * Froude_numbers
 configs    = resolutions * closures
@@ -81,21 +81,24 @@ for modifiers in runs:
     options1 = dict(select=1, ncpus=1, ngpus=1)
     options2 = dict()
 
-    res_divider = modifiers["dz"] if "dz" in modifiers.keys() else None
-    if res_divider >= 8:
+    Δz = modifiers["dz"] if "dz" in modifiers.keys() else np.inf
+    if Δz >= 8:
         options2 = options2 | dict(gpu_type = "v100")
         cmd1 = f"qsub {aux_filename}"
-    elif res_divider >= 2:
+    elif Δz >= 2:
         options2 = options2 | dict(gpu_type = "a100")
         cmd1 = f"qsub {aux_filename}"
     else:
         options1 = options1 | dict(cpu_type = "milan")
         options2 = options2 | dict(gpu_type = "a100")
 
-        if only_one_job:
+        if modifiers["α"] > 0.1:
             cmd1 = f"qsub {aux_filename}"
         else:
-            cmd1 = f"JID1=`qsub {aux_filename}`; JID2=`qsub -W depend=afterok:$JID1 {aux_filename}`; qrls $JID1"
+            if only_one_job:
+                cmd1 = f"qsub {aux_filename}"
+            else:
+                cmd1 = f"JID1=`qsub {aux_filename}`; JID2=`qsub -W depend=afterok:$JID1 {aux_filename}`; qrls $JID1"
 
     options_string1 = ":".join([ f"{key}={val}" for key, val in options1.items() ])
     options_string2 = ":".join([ f"{key}={val}" for key, val in options2.items() ])

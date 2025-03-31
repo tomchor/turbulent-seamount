@@ -32,6 +32,7 @@ aux_filename = "aux_pbs.sh"
 julia_script = "seamount.jl"
 #---
 
+#+++ PBS script template
 pbs_script = \
 """#!/bin/bash -l
 #PBS -A UMCP0028
@@ -63,6 +64,7 @@ time julia --project --pkgimages=no {julia_script} {run_options} --simname={simn
 qstat -f $PBS_JOBID >> logs/{simname_ascii}.log
 qstat -f $PBS_JOBID >> logs/{simname_ascii}.out
 """
+#---
 
 for modifiers in runs:
     run_options = aggregate_parameters(modifiers)

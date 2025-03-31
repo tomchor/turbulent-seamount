@@ -5,7 +5,7 @@ versioninfo()
 using ArgParse
 using Oceananigans
 using Oceananigans.Units
-using Oceananigans.TurbulenceClosures: Smagorinsky, DynamicCoefficient, LagrangianAveraging
+using Oceananigans.TurbulenceClosures: Smagorinsky, DynamicCoefficient, LagrangianAveraging, DynamicSmagorinsky
 using PrettyPrinting
 using TickTock
 
@@ -257,23 +257,26 @@ Fᵤ = Forcing(geostrophy, parameters = (; params.f₀, params.V∞))
 
 #+++ Turbulence closure
 if params.closure == "CSM"
-    cfl = 0.9
     closure = SmagorinskyLilly(C=0.13, Pr=1)
 elseif params.closure == "DSM"
-    closure = Smagorinsky(coefficient=DynamicCoefficient(averaging=LagrangianAveraging(), schedule=IterationInterval(5)))
-    cfl = params.dz >= 4 ? 0.5 : 0.65
+    closure = Smagorinsky(coefficient=DynamicCoefficient(averaging=LagrangianAveraging(), schedule=IterationInterval(5)), Pr=1)
 elseif params.closure == "AMD"
-    cfl = 0.9
     closure = AnisotropicMinimumDissipation()
 elseif params.closure == "AMC"
     include("AMD.jl")
-    cfl = 0.9
     closure = AnisotropicMinimumDissipation()
 elseif params.closure == "NON"
-    cfl = 0.9
     closure = nothing
 else
     throw(ArgumentError("Check options for `closure`"))
+end
+
+if closure isa DynamicSmagorinsky
+    cfl = params.dz >= 4 ? 0.5 : 0.65
+    t_switch = 8 * params.T_advective
+else
+    cfl = 0.9
+    t_switch = 12 * params.T_advective
 end
 #---
 
@@ -322,7 +325,7 @@ function cfl_changer(sim)
         simulation.callbacks[:time_step_wizard].func.cfl = cfl
     end
 end
-add_callback!(simulation, cfl_changer, SpecifiedTimes([12*params.T_advective]); name=:cfl_changer)
+add_callback!(simulation, cfl_changer, SpecifiedTimes([t_switch]); name=:cfl_changer)
 
 @info "" simulation
 #---

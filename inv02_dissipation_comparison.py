@@ -18,7 +18,7 @@ plt.rcParams["font.size"] = 9
 path = "simulations/data/"
 simname_base = "tokara"
 
-resolutions = cycler(res = [4, 2])
+resolutions = cycler(dz = [4, 2])
 slopes = cycler(α = [0.1,])
 Rossby_numbers = cycler(Ro_h = [1.4])
 Froude_numbers = cycler(Fr_h = [0.6])

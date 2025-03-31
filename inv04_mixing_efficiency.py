@@ -17,13 +17,12 @@ slopes         = cycler(α = [0.05, 0.2])
 Rossby_numbers = cycler(Ro_h = [0.2, 1.25])
 Froude_numbers = cycler(Fr_h = [0.2, 1.25])
 
-resolutions    = cycler(res = [8, 4, 2,])
+resolutions    = cycler(dz = [8, 4, 2,])
 closures       = cycler(closure = ["AMD", "CSM", "DSM", "NON"])
 closures       = cycler(closure = ["AMD", "DSM"])
-bcs            = cycler(bounded = [0])
 
 paramspace = slopes * Rossby_numbers * Froude_numbers
-configs    = resolutions * closures * bcs
+configs    = resolutions * closures
 
 runs = paramspace * configs
 #---

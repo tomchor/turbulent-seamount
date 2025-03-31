@@ -16,13 +16,14 @@ def open_simulation(fname,
                     verbose=False,
                     get_grid = True,
                     topology="PPN", **kwargs):
-    if verbose: print(sname, "\n")
     
     #+++ Open dataset and create grid before squeezing
+    if verbose: print(f"\nOpening {fname}... ", end="")
     if load:
         ds = xr.load_dataset(fname, decode_times=False, **open_dataset_kwargs)
     else:
         ds = xr.open_dataset(fname, decode_times=False, **open_dataset_kwargs)
+    if verbose: print("Done")
     #---
 
     #+++ Get grid
@@ -109,20 +110,21 @@ def merge_datasets(runs, base_name = "seamount", dirpath="data_post", add_min_sp
 def adjust_times(ds, round_times=True, decimals=4):
     import numpy as np
     from statistics import mode
-    Δt = np.round(mode(ds.time.diff("time").values), decimals=5)
-    ds = ds.sel(time=np.arange(ds.time[0], ds.time[-1]+Δt/2, Δt), method="nearest")
+    if len(ds.time) > 1:
+        Δt = np.round(mode(ds.time.diff("time").values), decimals=5)
+        ds = ds.sel(time=np.arange(ds.time[0], ds.time[-1]+Δt/2, Δt), method="nearest")
 
-    if round_times:
-        ds = ds.assign_coords(time = list( map(lambda x: np.round(x, decimals=decimals), ds.time.values) ))
+        if round_times:
+            ds = ds.assign_coords(time = list( map(lambda x: np.round(x, decimals=decimals), ds.time.values) ))
     return ds
 #---
 
 #+++ Check if all simulations are complete
-def check_simulation_completion(simnames, slice_name="ttt", path="./headland_simulations/data/"):
+def check_simulation_completion(simnames, slice_name="ttt", path="./headland_simulations/data/", verbose=True):
     from colorama import Fore, Back, Style
     times = []
     for simname in simnames:
-        with open_simulation(path+f"{slice_name}.{simname}.nc", use_advective_periods = True, get_grid = False) as ds:
+        with open_simulation(path+f"{slice_name}.{simname}.nc", use_advective_periods = True, get_grid = False, verbose=verbose, squeeze=False) as ds:
             ds = adjust_times(ds, round_times=True)
             times.append(ds.time.values)
             print(simname, ds.time.values)

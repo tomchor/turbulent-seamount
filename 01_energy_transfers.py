@@ -9,6 +9,7 @@ from aux00_utils import open_simulation, condense, adjust_times, aggregate_param
 from colorama import Fore, Back, Style
 from dask.diagnostics import ProgressBar
 xr.set_options(display_width=140, display_max_rows=30)
+π = 2*np.pi
 
 print("Starting energy transfer script")
 
@@ -21,8 +22,9 @@ if basename(__file__) != "00_run_postproc.py":
     Rossby_numbers = cycler(Ro_h = [0.2, 1.25])
     Froude_numbers = cycler(Fr_h = [0.2, 1.25])
 
-    resolutions    = cycler(dz = [8, 4, 2])
+    resolutions    = cycler(dz = [8,])
     closures       = cycler(closure = ["AMD", "AMC", "CSM", "DSM", "NON"])
+    closures       = cycler(closure = ["AMD", "CSM", "DSM"])
 
     paramspace = slopes * Rossby_numbers * Froude_numbers
     configs    = resolutions * closures
@@ -56,15 +58,15 @@ for j, config in enumerate(runs):
                                     get_grid = False,
                                     open_dataset_kwargs = dict(chunks="auto"),
                                     )
-#    print(f"Opening {simname} ttt")
-#    ttt = open_simulation(path+f"ttt.{simname}.nc",
-#                                    use_advective_periods = True,
-#                                    topology = simname[:3],
-#                                    squeeze = True,
-#                                    load = False,
-#                                    get_grid = False,
-#                                    open_dataset_kwargs = dict(chunks="auto"),
-#                                    )
+    print(f"Opening {simname} ttt")
+    ttt = open_simulation(path+f"ttt.{simname}.nc",
+                                    use_advective_periods = True,
+                                    topology = simname[:3],
+                                    squeeze = True,
+                                    load = False,
+                                    get_grid = False,
+                                    open_dataset_kwargs = dict(chunks="auto"),
+                                    )
     print(f"Opening {simname} tti")
     tti = open_simulation(path+f"tti.{simname}.nc",
                                     use_advective_periods = True,
@@ -79,10 +81,10 @@ for j, config in enumerate(runs):
     #+++ Get rid of slight misalignment in times
     xyz = adjust_times(xyz, round_times=True)
     xyi = adjust_times(xyi, round_times=True)
-    #ttt = adjust_times(ttt, round_times=True)
+    ttt = adjust_times(ttt, round_times=True)
     tti = adjust_times(tti, round_times=True)
 
-    #ttt = ttt.assign_coords(xC=tti.xC.values, yC=tti.yC.values) # This is needed just as long as ttt is float32 and tti is float64
+    ttt = ttt.assign_coords(xC=tti.xC.values, yC=tti.yC.values) # This is needed just as long as ttt is float32 and tti is float64
     #---
 
     #+++ Preliminary definitions and checks
@@ -110,7 +112,7 @@ for j, config in enumerate(runs):
 
     xyz = xyz.sel(time=t_slice_inclusive, xC=x_slice, xF=x_slice, yC=y_slice, yF=y_slice)
     xyi = xyi.sel(time=t_slice_inclusive, xC=x_slice, xF=x_slice, yC=y_slice, yF=y_slice)
-    #ttt = ttt.sel(time=t_slice_exclusive, xC=x_slice, xF=x_slice, yC=y_slice, yF=y_slice)
+    ttt = ttt.sel(time=t_slice_exclusive, xC=x_slice, xF=x_slice, yC=y_slice, yF=y_slice)
     tti = tti.sel(time=t_slice_exclusive, xC=x_slice, xF=x_slice, yC=y_slice, yF=y_slice)
     #---
 
@@ -185,12 +187,12 @@ for j, config in enumerate(runs):
     #---
 
     #+++ Volume-average/integrate results so far
-    #tafields["ΔxΔyΔz"] = tafields["Δxᶜᶜᶜ"] * tafields["Δyᶜᶜᶜ"] * tafields["Δzᶜᶜᶜ"]
-    #tafields["ΔxΔz"]   = tafields["Δxᶜᶜᶜ"] * tafields["Δzᶜᶜᶜ"]
-    #def integrate(da, dV=tafields["ΔxΔyΔz"], dims=("x", "y", "z")):
-    #    return (da*dV).pnsum(dims)
+    tafields["ΔxΔyΔz"] = tafields["Δxᶜᶜᶜ"] * tafields["Δyᶜᶜᶜ"] * tafields["Δzᶜᶜᶜ"]
+    tafields["ΔxΔy"]   = tafields["Δxᶜᶜᶜ"] * tafields["Δyᶜᶜᶜ"]
+    def integrate(da, dV=tafields["ΔxΔyΔz"], dims=("x", "y", "z")):
+        return (da*dV).pnsum(dims)
 
-    #tafields["1"] = xr.ones_like(tafields["Δxᶜᶜᶜ"])
+    tafields["1"] = xr.ones_like(tafields["Δxᶜᶜᶜ"])
     #buffer = 5 # meters
 
     #distance_mask = tafields.altitude > buffer
@@ -204,14 +206,14 @@ for j, config in enumerate(runs):
     #for var in ["ε̄ₖ", "ε̄ₚ", "SPR", "⟨w′b′⟩ₜ", "⟨Ek′⟩ₜ", "1"]:
     #    int_all = f"∫∫⁰{var}dxdz"
     #    int_buf = f"∫∫⁵{var}dxdz"
-    #    tafields[int_all] = integrate(tafields[var], dV=tafields.ΔxΔz, dims=("x", "z"))
-    #    tafields[int_buf] = integrate(tafields[var], dV=tafields.ΔxΔz.where(distance_mask), dims=("x", "z"))
+    #    tafields[int_all] = integrate(tafields[var], dV=tafields.ΔxΔy, dims=("x", "z"))
+    #    tafields[int_buf] = integrate(tafields[var], dV=tafields.ΔxΔy.where(distance_mask), dims=("x", "z"))
     #    tafields = condense(tafields, [int_all, int_buf], f"∫∫ᵇ{var}dxdz", dimname="buffer", indices=[0, buffer])
 
-    #tafields["average_turbulence_mask"] = tafields["ε̄ₖ"] > 1e-10
-    #for var in ["ε̄ₖ", "ε̄ₚ", "SPR", "⟨wb⟩ₜ", "1"]:
-    #    int_turb = f"∫∫∫ᵋ{var}dxdydz"
-    #    tafields[int_turb] = integrate(tafields[var], dV=tafields.ΔxΔyΔz.where(tafields.average_turbulence_mask))
+    tafields["average_turbulence_mask"] = tafields["ε̄ₖ"] > 1e-8
+    for var in ["ε̄ₖ", "ε̄ₚ", "SPR", "⟨wb⟩ₜ", "1"]:
+        int_turb = f"∬ᵋ{var}dxdy"
+        tafields[int_turb] = integrate(tafields[var], dV=tafields.ΔxΔy.where(tafields.average_turbulence_mask), dims=("x", "y"))
     #---
 
     #+++ Get CSI mask and CSI-integral
@@ -230,7 +232,7 @@ for j, config in enumerate(runs):
         print(f"Saving results to {outname}...")
         tafields.to_netcdf(outname)
         print("Done!\n")
-    xyi.close(); xyz.close(); tti.close(); #ttt.close()
+    xyi.close(); xyz.close(); tti.close(); ttt.close()
     #---
 
     #+++ Create bulk dataset
@@ -247,6 +249,12 @@ for j, config in enumerate(runs):
     altitude = xyz.altitude.pnsel(z=tti.zC, method="nearest")
     bulk["⟨∬⁵Ek′dxdy⟩ₜ"] = tafields["⟨Ek′⟩ₜ"].where(altitude > 5, other=0).pnintegrate(("x", "y"))
     bulk["⟨∬⁵Πdxdy⟩ₜ"]   = tafields["SPR"].sum("j").where(altitude > 5, other=0).pnintegrate(("x", "y"))
+
+    bulk["∬ᵋε̄ₖdxdy"] = tafields["∬ᵋε̄ₖdxdy"]
+    bulk["⟨ε̄ₖ⟩ᵋ"]    = bulk["∬ᵋε̄ₖdxdy"] / tafields["∬ᵋ1dxdy"]
+    bulk["Loᵋ"]      = 2*π * np.sqrt(bulk["⟨ε̄ₖ⟩ᵋ"] / bulk.N2_inf**(3/2))
+
+    bulk["Δz̃"] = bulk.Δz_min / bulk["Loᵋ"]
 
     bulk["Slope_Bu"] = bulk.Slope_Bu
     bulk["Ro_h"] = bulk.Ro_h

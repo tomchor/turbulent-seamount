@@ -75,7 +75,7 @@ def condense(ds, vlist, varname, dimname="α", indices=None):
     return ds
 #---
 
-#+++ Condense datasets into one
+#+++ Merge datasets into one
 def merge_datasets(runs, base_name = "seamount", dirpath="data_post", add_min_spacings=True, add_simulation_info=True, verbose=False):
     simnames_filtered = list(map(lambda run: form_run_names(base_name, run, sep="_", prefix=""), runs))
     dslist = []

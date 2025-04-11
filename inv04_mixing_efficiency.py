@@ -19,7 +19,7 @@ Froude_numbers = cycler(Fr_h = [0.2, 1.25])
 
 resolutions    = cycler(dz = [8, 4, 2,])
 closures       = cycler(closure = ["AMD", "CSM", "DSM", "NON"])
-closures       = cycler(closure = ["AMD", "DSM"])
+closures       = cycler(closure = ["AMD", "CSM", "DSM"])
 
 paramspace = slopes * Rossby_numbers * Froude_numbers
 configs    = resolutions * closures
@@ -30,6 +30,7 @@ runs = paramspace * configs
 bulk = merge_datasets(runs, base_name=f"bulkstats_{simname_base}", verbose=True)
 bulk = bulk.rename(Δz_min = "Δz")
 bulk["Δz"].attrs = dict(units="m")
+bulk = bulk.reindex(Ro_h = list(reversed(bulk.Ro_h)))
 
 #+++ Define new variables
 bulk["γ⁵"] = bulk["∭⁵ε̄ₚdV"] / (bulk["∭⁵ε̄ₚdV"] + bulk["∭⁵ε̄ₖdV"])
@@ -52,6 +53,7 @@ figs = []
 
 bulk["𝒦"].plot(col="α", x="Δz", hue="closure", marker="o", linestyle="", sharey=False)
 figs.append(plt.gcf())
+pause
 
 bulk["𝒫"].plot(col="α", x="Δz", hue="closure", marker="o", linestyle="", sharey=False)
 figs.append(plt.gcf())

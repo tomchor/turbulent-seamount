@@ -51,7 +51,7 @@ pbs_script = \
 module li
 module --force purge
 module load ncarenv/23.10
-module load julia/1.10.2 cuda
+module load cuda
 module li
 
 #/glade/u/apps/ch/opt/usr/bin/dumpenv # Dumps environment (for debugging with CISL support)
@@ -59,7 +59,7 @@ module li
 export JULIA_DEPOT_PATH="/glade/work/tomasc/.julia"
 echo $CUDA_VISIBLE_DEVICES
 
-time julia --project --pkgimages=no {julia_script} {run_options} --simname={simname} 2>&1 | tee logs/{simname_ascii}.out
+time /glade/u/home/tomasc/bin/julia-1.10.9/bin/julia --project --pkgimages=no {julia_script} {run_options} --simname={simname} 2>&1 | tee logs/{simname_ascii}.out
 
 qstat -f $PBS_JOBID >> logs/{simname_ascii}.log
 qstat -f $PBS_JOBID >> logs/{simname_ascii}.out

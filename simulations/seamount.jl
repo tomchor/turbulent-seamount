@@ -199,7 +199,7 @@ if false
 end
 #---
 
-PCB = PartialCellBottom(seamount)
+PCB = GridFittedBottom(seamount)
 
 grid = ImmersedBoundaryGrid(grid_base, PCB)
 @info grid

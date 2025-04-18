@@ -127,9 +127,9 @@ outputs_budget = Dict{Symbol, Any}(:wb => wb,
 
 #+++
 @info "Defining volume averages"
-outputs_vol_averages = Dict{Symbol, Any}(:∭⁵εₖdV => Integral(εₖ; mask = far_from_seamount),
-                                         :∭⁵εₚdV => Integral(εₚ; mask = far_from_seamount),
-                                         :∭⁵wbdV => Integral(wb; mask = far_from_seamount),
+outputs_vol_averages = Dict{Symbol, Any}(:∭⁵εₖdV => Integral(εₖ; condition = far_from_seamount_ccc),
+                                         :∭⁵εₚdV => Integral(εₚ; condition = far_from_seamount_ccc),
+                                         :∭⁵wbdV => Integral(wb; condition = far_from_seamount_ccc),
                                          )
 #---
 
@@ -139,7 +139,6 @@ outputs_full = merge(outputs_state_vars, outputs_dissip, outputs_misc, outputs_c
 #---
 #---
 
-pause
 #+++ Construct outputs into simulation
 function construct_outputs(simulation; 
                            simname = "TEST",

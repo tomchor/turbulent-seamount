@@ -29,7 +29,6 @@ Adapt.adapt_structure(to, dc::DistanceCondition) = DistanceCondition(adapt(to, d
                                                                      adapt(to, dc.distance))
 
 (dc::DistanceCondition)(i, j, k, grid, co) = z_distance_from_seamount_boundary_ccc(i, j, k, grid, dc.parameters) > dc.distance
-far_from_seamount_ccc = DistanceCondition(params_geometry, 5)
 #---
 
 xC = KernelFunctionOperation{Center, Center, Center}(xnode, grid_base, Center(), Center(), Center())

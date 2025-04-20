@@ -40,7 +40,7 @@ ds_xyi = RasterStack(fpath_xyi, lazy=true, name=broad_variables)
 #+++ Get rid of extra time steps from picking up simulations
 using StatsBase
 times_orig = dims(ds_xyi, :Ti)
-Δt = mode(times_orig[2:end] .- times_orig[1:end-1])
+Δt = mode(diff(Array(times_orig)))
 times_fixed = 0:Δt:times_orig[end]
 ds_xyi = ds_xyi
 #---
@@ -59,14 +59,15 @@ end
 slicelist = []
 for (i, (ds, slice)) in enumerate(dslist)
     dim_index = if slice == "xy"
-                    :zC
+                    :z_aac
                 elseif slice == "xz"
-                    :yC
+                    :y_aca
                 elseif slice == "yz"
-                    :xC
+                    :x_caa
                 elseif slice == "xyz"
                     nothing
                 end
+    @show  dims(ds, dim_index)
     dim_value = dims(ds, dim_index)[1]
     push!(slicelist, (slice, string(first(string(dim_index))), dim_value))
 end
@@ -135,7 +136,7 @@ title = @lift "α = $(@sprintf "%.2g" params.α),     Frₕ = $(@sprintf "%.2g" 
               "$(@sprintf "%.3g" times[$n]/params.T_inertial) Inertial periods"
 fig[1, 1:length(variables)] = Label(fig, title, fontsize=18, tellwidth=false, height=title_height)
 
-dimnames_tup = (:xF, :xC, :yF, :yC, :zF, :zC)
+dimnames_tup = (:xF, :x_caa, :yF, :y_aca, :zF, :z_aac)
 #---
 
 #+++ Create axes and populate them
@@ -172,12 +173,12 @@ for (i, variable) in enumerate(variables)
 
         #+++ Plot contours if possible
         try
-            b = permutedims(ds[:b], (:xC, :zC, :Ti))
+            b = permutedims(ds[:b], (:x_caa, :z_aac, :Ti))
             bₙ = @lift b[:,:,$n]
             contour!(ax, bₙ; levels=10, color=:white, linestyle=:dash, linewidth=0.5)
         catch e
             try
-                b = permutedims(ds[:b], (:yC, :zC, :Ti))
+                b = permutedims(ds[:b], (:y_aca, :z_aac, :Ti))
                 bₙ = @lift b[:,:,$n]
                 contour!(ax, bₙ; levels=10, color=:white, linestyle=:dash, linewidth=0.5)
             catch e

@@ -42,7 +42,7 @@ for j, modifiers in enumerate(runs):
                           topology = "PNN",
                           squeeze = True,
                           load = False,
-                          open_dataset_kwargs = dict(chunks=dict(yC="auto", time="auto")),
+                          open_dataset_kwargs = dict(chunks=dict(y_aca="auto", time="auto")),
                           get_grid = False,
                           )
     xyz = adjust_times(xyz, round_times=True)
@@ -52,14 +52,14 @@ for j, modifiers in enumerate(runs):
     opts = dict(norm=LogNorm(clip=True), vmin=1e-10, vmax=1e-7, cmap="inferno")
 
     #+++ Take vertical average
-    xyz["ε̄ₖ"]  = (xyz["εₖ"]  * xyz["Δzᶜᶜᶜ"]).pnsum("z") / xyz["Δzᶜᶜᶜ"].pnsum("z")
-    xyz["ε̄ₚ"]  = (xyz["εₚ"]  * xyz["Δzᶜᶜᶜ"]).pnsum("z") / xyz["Δzᶜᶜᶜ"].pnsum("z")
+    xyz["ε̄ₖ"]  = (xyz["εₖ"]  * xyz["Δz_aac"]).pnsum("z") / xyz["Δz_aac"].pnsum("z")
+    xyz["ε̄ₚ"]  = (xyz["εₚ"]  * xyz["Δz_aac"]).pnsum("z") / xyz["Δz_aac"].pnsum("z")
 
     xyz["ℱεₖ"] = xyz["εₖ"].where(xyz.altitude > 4)
     xyz["ℱεₚ"] = xyz["εₚ"].where(xyz.altitude > 4)
 
-    xyz["ℱε̄ₖ"] = (xyz["ℱεₖ"] * xyz["Δzᶜᶜᶜ"]).pnsum("z") / xyz["Δzᶜᶜᶜ"].pnsum("z")
-    xyz["ℱε̄ₚ"] = (xyz["ℱεₚ"] * xyz["Δzᶜᶜᶜ"]).pnsum("z") / xyz["Δzᶜᶜᶜ"].pnsum("z")
+    xyz["ℱε̄ₖ"] = (xyz["ℱεₖ"] * xyz["Δz_aac"]).pnsum("z") / xyz["Δz_aac"].pnsum("z")
+    xyz["ℱε̄ₚ"] = (xyz["ℱεₚ"] * xyz["Δz_aac"]).pnsum("z") / xyz["Δz_aac"].pnsum("z")
 
     xyz["γ"] = xyz["ℱε̄ₚ"] / (xyz["ℱε̄ₚ"] + xyz["ℱε̄ₖ"])
     #---
@@ -80,7 +80,7 @@ for j, modifiers in enumerate(runs):
     for i, offset in enumerate(normalized_offsets):
         print(f"Plotting {j}-th run = {simname}, {i}-th offset = {offset}")
         color = plt.rcParams["axes.prop_cycle"].by_key()["color"][i]
-        xyz_line = xyz.sel(xC=offset*xyz.FWMH, method="nearest")
+        xyz_line = xyz.sel(x_caa=offset*xyz.FWMH, method="nearest")
 
         label = f"Filtered Vert avg εₖ @ {offset:.1f} FWMH" if j==0 else ""
         xyz_line["ℱε̄ₖ_upscaled"].plot(ax=axes[0], label=label, color=color, alpha=alpha)

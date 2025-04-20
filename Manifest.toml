@@ -962,20 +962,20 @@ version = "0.6.9"
 
 [[deps.Krylov]]
 deps = ["LinearAlgebra", "Printf", "SparseArrays"]
-git-tree-sha1 = "b29d37ce30fa401a4563b18880ab91f979a29734"
+git-tree-sha1 = "efadd12a94e5e73b7652479c2693cd394d684f95"
 uuid = "ba0b0d4f-ebba-5204-a429-3ac8c609bfb7"
-version = "0.9.10"
+version = "0.10.0"
 
 [[deps.KrylovPreconditioners]]
 deps = ["Adapt", "KernelAbstractions", "LightGraphs", "LinearAlgebra", "Metis", "SparseArrays"]
-git-tree-sha1 = "517b267073c44f494357507e37650d8516adf100"
+git-tree-sha1 = "52a7429514ca1504df7ef527126d94ccac476852"
 uuid = "45d422c2-293f-44ce-8315-2cb988662dec"
-version = "0.3.1"
+version = "0.3.2"
 
     [deps.KrylovPreconditioners.extensions]
     KrylovPreconditionersAMDGPUExt = "AMDGPU"
     KrylovPreconditionersCUDAExt = "CUDA"
-    KrylovPreconditionersoneAPIExt = "oneAPI"
+    KrylovPreconditionersOneAPIExt = "oneAPI"
 
     [deps.KrylovPreconditioners.weakdeps]
     AMDGPU = "21141c5a-9bdb-4563-92ae-f87d6854732e"
@@ -1091,9 +1091,9 @@ version = "3.2.2+2"
 
 [[deps.Libglvnd_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Xorg_libX11_jll", "Xorg_libXext_jll"]
-git-tree-sha1 = "ff3b4b9d35de638936a525ecd36e86a8bb919d11"
+git-tree-sha1 = "d36c21b9e7c172a44a10484125024495e2625ac0"
 uuid = "7e76a0d4-f3c7-5321-8279-8d96eeed0f29"
-version = "1.7.0+0"
+version = "1.7.1+1"
 
 [[deps.Libiconv_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]
@@ -1341,9 +1341,9 @@ version = "0.5.5"
 
 [[deps.Oceananigans]]
 deps = ["Adapt", "CUDA", "Crayons", "CubedSphere", "Dates", "Distances", "DocStringExtensions", "FFTW", "GPUArrays", "Glob", "InteractiveUtils", "IterativeSolvers", "JLD2", "KernelAbstractions", "Krylov", "KrylovPreconditioners", "LinearAlgebra", "Logging", "MPI", "OffsetArrays", "OrderedCollections", "Pkg", "Printf", "Random", "ReactantCore", "Rotations", "SeawaterPolynomials", "SparseArrays", "StaticArrays", "Statistics", "StructArrays", "TimesDates"]
-git-tree-sha1 = "d9dcc5b960a962f57e04a31fa3acb884d589c242"
+git-tree-sha1 = "fd2fd3b6436abefabe7afa6b300b1a62ceacad13"
 uuid = "9e8cae18-63c1-5223-a75c-80ca9d6e9a09"
-version = "0.96.20"
+version = "0.96.21"
 
     [deps.Oceananigans.extensions]
     OceananigansAMDGPUExt = "AMDGPU"
@@ -2117,9 +2117,9 @@ version = "1.3.7+0"
 
 [[deps.Xorg_libXfixes_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Xorg_libX11_jll"]
-git-tree-sha1 = "6fcc21d5aea1a0b7cce6cab3e62246abd1949b86"
+git-tree-sha1 = "9caba99d38404b285db8801d5c45ef4f4f425a6d"
 uuid = "d091e8ba-531a-589c-9de9-94069b037ed8"
-version = "6.0.0+0"
+version = "6.0.1+0"
 
 [[deps.Xorg_libXi_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Xorg_libXext_jll", "Xorg_libXfixes_jll"]
@@ -2129,15 +2129,15 @@ version = "1.8.2+0"
 
 [[deps.Xorg_libXinerama_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Xorg_libXext_jll"]
-git-tree-sha1 = "a1a7eaf6c3b5b05cb903e35e8372049b107ac729"
+git-tree-sha1 = "a5bc75478d323358a90dc36766f3c99ba7feb024"
 uuid = "d1454406-59df-5ea1-beac-c340f2130bc3"
-version = "1.1.5+0"
+version = "1.1.6+0"
 
 [[deps.Xorg_libXrandr_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Xorg_libXext_jll", "Xorg_libXrender_jll"]
-git-tree-sha1 = "b6f664b7b2f6a39689d822a6300b14df4668f0f4"
+git-tree-sha1 = "aff463c82a773cb86061bce8d53a0d976854923e"
 uuid = "ec84b674-ba8e-5d96-8ba1-2a689ba10484"
-version = "1.5.4+0"
+version = "1.5.5+0"
 
 [[deps.Xorg_libXrender_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Xorg_libX11_jll"]
@@ -2153,15 +2153,15 @@ version = "1.17.1+0"
 
 [[deps.Xorg_libxkbfile_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Xorg_libX11_jll"]
-git-tree-sha1 = "dbc53e4cf7701c6c7047c51e17d6e64df55dca94"
+git-tree-sha1 = "e3150c7400c41e207012b41659591f083f3ef795"
 uuid = "cc61e674-0454-545c-8b26-ed2c68acab7a"
-version = "1.1.2+1"
+version = "1.1.3+0"
 
 [[deps.Xorg_xkbcomp_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Xorg_libxkbfile_jll"]
-git-tree-sha1 = "ab2221d309eda71020cdda67a973aa582aa85d69"
+git-tree-sha1 = "801a858fc9fb90c11ffddee1801bb06a738bda9b"
 uuid = "35661453-b289-5fab-8a00-3d9160c6a3a4"
-version = "1.4.6+1"
+version = "1.4.7+0"
 
 [[deps.Xorg_xkeyboard_config_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Xorg_xkbcomp_jll"]

@@ -149,21 +149,24 @@ for j, config in enumerate(runs):
     #+++ Time average
     # Here ū and ⟨u⟩ₜ are interchangeable
     tafields = tti.mean("time")
-    tafields = tafields.rename({"uᵢ"     : "ūᵢ",
-                                "∂ⱼuᵢ"   : "∂ⱼūᵢ",
-                                "uⱼuᵢ"   : "⟨uⱼuᵢ⟩ₜ",
-                                "b"      : "b̄",
-                                "∂ⱼb"    : "∂ⱼb̄",
-                                "wb"     : "⟨wb⟩ₜ",
-                                "εₖ"     : "ε̄ₖ",
-                                "εₚ"     : "ε̄ₚ",
-                                "ν"      : "ν̄",
-                                "κ"      : "κ̄",
-                                "Ek"     : "⟨Ek⟩ₜ",
-                                "PV"     : "q̄",
-                                "∭⁵εₖdV" : "∭⁵ε̄ₖdV",
-                                "∭⁵εₚdV" : "∭⁵ε̄ₚdV",
-                                "∭⁵wbdV" : "⟨∭⁵wbdV⟩ₜ",
+    tafields = tafields.rename({"uᵢ"      : "ūᵢ",
+                                "∂ⱼuᵢ"    : "∂ⱼūᵢ",
+                                "uⱼuᵢ"    : "⟨uⱼuᵢ⟩ₜ",
+                                "b"       : "b̄",
+                                "∂ⱼb"     : "∂ⱼb̄",
+                                "wb"      : "⟨wb⟩ₜ",
+                                "εₖ"      : "ε̄ₖ",
+                                "εₚ"      : "ε̄ₚ",
+                                "ν"       : "ν̄",
+                                "κ"       : "κ̄",
+                                "Ek"      : "⟨Ek⟩ₜ",
+                                "PV"      : "q̄",
+                                "∭⁵εₖdV"  : "∭⁵ε̄ₖdV",
+                                "∭⁵εₚdV"  : "∭⁵ε̄ₚdV",
+                                "∭⁵wbdV"  : "⟨∭⁵wbdV⟩ₜ",
+                                "∭¹⁰εₖdV" : "∭¹⁰ε̄ₖdV",
+                                "∭¹⁰εₚdV" : "∭¹⁰ε̄ₚdV",
+                                "∭¹⁰wbdV" : "⟨∭¹⁰wbdV⟩ₜ",
                                 })
     tafields.attrs = tti.attrs
     #---
@@ -243,12 +246,18 @@ for j, config in enumerate(runs):
     bulk["∭⁵ε̄ₚdV"]    = tafields["∭⁵ε̄ₚdV"]
     bulk["⟨∭⁵wbdV⟩ₜ"] = tafields["⟨∭⁵wbdV⟩ₜ"]
 
+    bulk["∭¹⁰ε̄ₖdV"]    = tafields["∭¹⁰ε̄ₖdV"]
+    bulk["∭¹⁰ε̄ₚdV"]    = tafields["∭¹⁰ε̄ₚdV"]
+    bulk["⟨∭¹⁰wbdV⟩ₜ"] = tafields["⟨∭¹⁰wbdV⟩ₜ"]
+
     bulk["⟨∬Ek′dxdy⟩ₜ"] = tafields["⟨Ek′⟩ₜ"].pnintegrate(("x", "y"))
     bulk["⟨∬Πdxdy⟩ₜ"]   = tafields["SPR"].sum("j").pnintegrate(("x", "y"))
 
     altitude = xyz.altitude.pnsel(z=tti.z_aac, method="nearest")
     bulk["⟨∬⁵Ek′dxdy⟩ₜ"] = tafields["⟨Ek′⟩ₜ"].where(altitude > 5, other=0).pnintegrate(("x", "y"))
     bulk["⟨∬⁵Πdxdy⟩ₜ"]   = tafields["SPR"].sum("j").where(altitude > 5, other=0).pnintegrate(("x", "y"))
+    bulk["⟨∬¹⁰Ek′dxdy⟩ₜ"] = tafields["⟨Ek′⟩ₜ"].where(altitude > 5, other=0).pnintegrate(("x", "y"))
+    bulk["⟨∬¹⁰Πdxdy⟩ₜ"]   = tafields["SPR"].sum("j").where(altitude > 5, other=0).pnintegrate(("x", "y"))
 
     bulk["∬ᵋε̄ₖdxdy"] = tafields["∬ᵋε̄ₖdxdy"]
     bulk["⟨ε̄ₖ⟩ᵋ"]    = bulk["∬ᵋε̄ₖdxdy"] / tafields["∬ᵋ1dxdy"]

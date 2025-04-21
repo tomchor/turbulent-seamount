@@ -34,38 +34,41 @@ bulk = bulk.reindex(Ro_h = list(reversed(bulk.Ro_h)))
 
 #+++ Define new variables
 bulk["γ⁵"] = bulk["∭⁵ε̄ₚdV"] / (bulk["∭⁵ε̄ₚdV"] + bulk["∭⁵ε̄ₖdV"])
+bulk["γ¹⁰"] = bulk["∭¹⁰ε̄ₚdV"] / (bulk["∭¹⁰ε̄ₚdV"] + bulk["∭¹⁰ε̄ₖdV"])
 
 bulk["H"]  = bulk.α * bulk.L
+bulk["RoFr"] = bulk.Ro_h * bulk.Fr_h
 
-bulk["𝒦"] = bulk["⟨∬⁵Ek′dxdy⟩ₜ"]
+bulk["𝒦ℰ"] = bulk["⟨∬⁵Ek′dxdy⟩ₜ"]
 bulk["𝒫"] = bulk["⟨∬⁵Πdxdy⟩ₜ"]
 
 bulk["ℰₖ"] = bulk["∭⁵ε̄ₖdV"] / (bulk.attrs["V∞"]**3 * bulk.L * bulk.H)
 bulk["ℰₚ"] = bulk["∭⁵ε̄ₚdV"] / (bulk.attrs["V∞"]**3 * bulk.L * bulk.H)
+
+bulk["𝒦⁵"] = (bulk["∭⁵ε̄ₚdV"] / bulk["N²∞"]) / (bulk["V∞"] * bulk.L**2 * bulk.H**2)
 #---
 
 #+++ Make it legible
-bulk["𝒦"].attrs = dict(long_name=r"Norm TKE $\mathcal{K}$")
+bulk["𝒦ℰ"].attrs = dict(long_name=r"Norm TKE $\mathcal{KE}$")
+bulk["𝒦⁵"].attrs = dict(long_name=r"Norm buoyancy diffusivity $\mathcal{K}$")
+#bulk["𝒦¹⁰"].attrs = dict(long_name=r"Norm buoyancy diffusivity $\mathcal{K}$")
 bulk["𝒫"].attrs = dict(long_name=r"Norm shear prod rate $\mathcal{P}$")
 #---
 
 figs = []
 
-bulk["𝒦"].plot(col="α", x="Δz", hue="closure", marker="o", linestyle="", sharey=False)
-figs.append(plt.gcf())
-pause
-
-bulk["𝒫"].plot(col="α", x="Δz", hue="closure", marker="o", linestyle="", sharey=False)
+bulk.plot.scatter(x="Slope_Bu", y="γ⁵", hue="α", col="dz", row="closure", xscale="log", yscale="log", cmap="bwr")
 figs.append(plt.gcf())
 
-bulk["ℰₖ"].plot(col="α", x="Δz", hue="closure", marker="o", linestyle="", yscale="log", ylim=(5e-2, 3))
+bulk.plot.scatter(x="RoFr", y="𝒦⁵", hue="α", col="dz", row="closure", xscale="log", yscale="log", cmap="bwr")
 figs.append(plt.gcf())
 
-bulk["ℰₚ"].plot(col="α", x="Δz", hue="closure", marker="o", linestyle="", yscale="log", ylim=(5e-2, 3))
+bulk.plot.scatter(x="Slope_Bu", y="𝒫", hue="α", col="dz", row="closure", xscale="log", yscale="log", cmap="bwr")
 figs.append(plt.gcf())
 
-bulk["γ⁵"].plot(col="α", x="Δz", hue="closure", marker="o", linestyle="", ylim=(0, None))
+bulk.plot.scatter(x="Slope_Bu", y="ℰₖ", hue="α", col="dz", row="closure", xscale="log", yscale="log", cmap="bwr")
 figs.append(plt.gcf())
+
 for fig in figs:
     for ax in fig.axes:
         ax.grid(True)

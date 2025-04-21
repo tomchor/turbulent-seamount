@@ -12,12 +12,12 @@ diffusivity(model, tracer) = diffusivity(model.closure, model.diffusivity_fields
 
 
 #+++ Methods/functions definitions
-include("$(@__DIR__)/grid_metrics.jl")
+#include("$(@__DIR__)/grid_metrics.jl")
 #---
 
 #+++ Write to NCDataset
 import NCDatasets as NCD
-function write_to_ds(dsname, varname, data; coords=("xC", "yC", "zC"), dtype=Float64)
+function write_to_ds(dsname, varname, data; coords=("x_caa", "y_aca", "z_aac"), dtype=Float64)
     ds = NCD.NCDataset(dsname, "a")
     if varname ∉ keys(ds)
         newvar = NCD.defVar(ds, varname, dtype, coords)
@@ -127,9 +127,12 @@ outputs_budget = Dict{Symbol, Any}(:wb => wb,
 
 #+++
 @info "Defining volume averages"
-outputs_vol_averages = Dict{Symbol, Any}(:∭⁵εₖdV => Integral(εₖ; mask = far_from_seamount),
-                                         :∭⁵εₚdV => Integral(εₚ; mask = far_from_seamount),
-                                         :∭⁵wbdV => Integral(wb; mask = far_from_seamount),
+outputs_vol_averages = Dict{Symbol, Any}(:∭⁵εₖdV => Integral(εₖ; condition = DistanceCondition(params_geometry, 5)),
+                                         :∭⁵εₚdV => Integral(εₚ; condition = DistanceCondition(params_geometry, 5)),
+                                         :∭⁵wbdV => Integral(wb; condition = DistanceCondition(params_geometry, 5)),
+                                         :∭¹⁰εₖdV => Integral(εₖ; condition = DistanceCondition(params_geometry, 10)),
+                                         :∭¹⁰εₚdV => Integral(εₚ; condition = DistanceCondition(params_geometry, 10)),
+                                         :∭¹⁰wbdV => Integral(wb; condition = DistanceCondition(params_geometry, 10)),
                                          )
 #---
 
@@ -170,19 +173,19 @@ function construct_outputs(simulation;
     #+++ xyz SNAPSHOTS
     if write_xyz
         @info "Setting up xyz writer"
-        simulation.output_writers[:nc_xyz] = ow = NetCDFOutputWriter(model, ScratchedField(outputs_full);
-                                                                     filename = "$rundir/data/xyz.$(simname).nc",
-                                                                     schedule = TimeInterval(interval_3d),
-                                                                     array_type = Array{Float64},
-                                                                     verbose = debug,
-                                                                     kwargs...
-                                                                     )
+        simulation.output_writers[:nc_xyz] = ow = NetCDFWriter(model, ScratchedField(outputs_full);
+                                                               filename = "$rundir/data/xyz.$(simname).nc",
+                                                               schedule = TimeInterval(interval_3d),
+                                                               array_type = Array{Float64},
+                                                               verbose = debug,
+                                                               kwargs...
+                                                               )
         @info "Starting to write grid metrics and deltas to xyz"
         laptimer()
-        add_grid_metrics_to!(ow)
-        write_to_ds(ow.filepath, "altitude", interior(compute!(Field(altitude))), coords = ("xC", "yC", "zC"))
-        write_to_ds(ow.filepath, "ΔxΔz", interior(compute!(Field(ΔxΔz))), coords = ("xC", "yC", "zC"))
-        write_to_ds(ow.filepath, "bottom_height", Array(interior(maximum(compute!(Field(bottom_height)), dims=3)))[:,:,1], coords = ("xC", "yC",))
+        #add_grid_metrics_to!(ow)
+        write_to_ds(ow.filepath, "altitude", interior(compute!(Field(altitude))), coords = ("x_caa", "y_aca", "z_aac"))
+        write_to_ds(ow.filepath, "ΔxΔz", interior(compute!(Field(ΔxΔz))), coords = ("x_caa", "y_aca", "z_aac"))
+        write_to_ds(ow.filepath, "bottom_height", Array(interior(maximum(compute!(Field(bottom_height)), dims=3)))[:,:,1], coords = ("x_caa", "y_aca",))
         @info "Finished writing grid metrics and deltas to xyz"
         laptimer()
     end
@@ -198,15 +201,15 @@ function construct_outputs(simulation;
             outputs_xyi = merge(outputs_xyi, outputs_budget_integrated)
         end
 
-        simulation.output_writers[:nc_xyi] = ow = NetCDFOutputWriter(model, outputs_full;
-                                                                     filename = "$rundir/data/xyi.$(simname).nc",
-                                                                     schedule = TimeInterval(interval_2d),
-                                                                     array_type = Array{Float64},
-                                                                     indices = indices,
-                                                                     verbose = debug,
-                                                                     kwargs...
-                                                                     )
-        add_grid_metrics_to!(ow, user_indices=indices)
+        simulation.output_writers[:nc_xyi] = ow = NetCDFWriter(model, outputs_full;
+                                                               filename = "$rundir/data/xyi.$(simname).nc",
+                                                               schedule = TimeInterval(interval_2d),
+                                                               array_type = Array{Float64},
+                                                               indices = indices,
+                                                               verbose = debug,
+                                                               kwargs...
+                                                               )
+        #add_grid_metrics_to!(ow, user_indices=indices)
     end
     #---
 
@@ -214,16 +217,16 @@ function construct_outputs(simulation;
     if write_xiz
         @info "Setting up xiz writer"
         indices = (:, grid.Ny÷2, :)
-        simulation.output_writers[:nc_xiz] = ow = NetCDFOutputWriter(model, outputs_full;
-                                                                     filename = "$rundir/data/xiz.$(simname).nc",
-                                                                     schedule = TimeInterval(interval_2d),
-                                                                     array_type = Array{Float32},
-                                                                     indices = indices,
-                                                                     verbose = debug,
-                                                                     kwargs...
-                                                                     )
+        simulation.output_writers[:nc_xiz] = ow = NetCDFWriter(model, outputs_full;
+                                                               filename = "$rundir/data/xiz.$(simname).nc",
+                                                               schedule = TimeInterval(interval_2d),
+                                                               array_type = Array{Float32},
+                                                               indices = indices,
+                                                               verbose = debug,
+                                                               kwargs...
+                                                               )
 
-        add_grid_metrics_to!(ow; user_indices=indices)
+        #add_grid_metrics_to!(ow; user_indices=indices)
     end
     #---
 
@@ -231,15 +234,15 @@ function construct_outputs(simulation;
     if write_iyz
         @info "Setting up iyz writer"
         indices = (grid.Nx÷2, :, :)
-        simulation.output_writers[:nc_iyz] = ow = NetCDFOutputWriter(model, outputs_full;
-                                                                     filename = "$rundir/data/iyz.$(simname).nc",
-                                                                     schedule = TimeInterval(interval_2d),
-                                                                     array_type = Array{Float32},
-                                                                     indices = indices,
-                                                                     verbose = debug,
-                                                                     kwargs...
-                                                                     )
-        add_grid_metrics_to!(ow, user_indices=indices)
+        simulation.output_writers[:nc_iyz] = ow = NetCDFWriter(model, outputs_full;
+                                                               filename = "$rundir/data/iyz.$(simname).nc",
+                                                               schedule = TimeInterval(interval_2d),
+                                                               array_type = Array{Float32},
+                                                               indices = indices,
+                                                               verbose = debug,
+                                                               kwargs...
+                                                               )
+        #add_grid_metrics_to!(ow, user_indices=indices)
     end
     #---
 
@@ -248,18 +251,18 @@ function construct_outputs(simulation;
         @info "Setting up ttt writer"
         outputs_ttt = merge(outputs_state_vars, outputs_dissip,)
         indices = (:, :, :)
-        simulation.output_writers[:nc_ttt] = ow = NetCDFOutputWriter(model, outputs_ttt;
-                                                                     filename = "$rundir/data/ttt.$(simname).nc",
-                                                                     schedule = AveragedTimeInterval(interval_time_avg, stride=10),
-                                                                     array_type = Array{Float64},
-                                                                     with_halos = false,
-                                                                     indices = indices,
-                                                                     verbose = true,
-                                                                     kwargs...
-                                                                     )
-        add_grid_metrics_to!(ow, user_indices=indices)
-        write_to_ds(ow.filepath, "altitude", interior(compute!(Field(altitude, indices=indices))), coords = ("xC", "yC", "zC"))
-        write_to_ds(ow.filepath, "bottom_height", Array(interior(maximum(compute!(Field(bottom_height)), dims=3)))[:,:,1], coords = ("xC", "yC",))
+        simulation.output_writers[:nc_ttt] = ow = NetCDFWriter(model, outputs_ttt;
+                                                               filename = "$rundir/data/ttt.$(simname).nc",
+                                                               schedule = AveragedTimeInterval(interval_time_avg, stride=10),
+                                                               array_type = Array{Float64},
+                                                               with_halos = false,
+                                                               indices = indices,
+                                                               verbose = true,
+                                                               kwargs...
+                                                               )
+        #add_grid_metrics_to!(ow, user_indices=indices)
+        write_to_ds(ow.filepath, "altitude", interior(compute!(Field(altitude, indices=indices))), coords = ("x_caa", "y_aca", "z_aac"))
+        write_to_ds(ow.filepath, "bottom_height", Array(interior(maximum(compute!(Field(bottom_height)), dims=3)))[:,:,1], coords = ("x_caa", "y_aca",))
     end
     #---
 
@@ -268,16 +271,16 @@ function construct_outputs(simulation;
         @info "Setting up tti writer"
         outputs_tti = merge(outputs_full, outputs_vol_averages)
         indices = (:, :, k_half)
-        simulation.output_writers[:nc_tti] = ow = NetCDFOutputWriter(model, outputs_tti;
-                                                                     filename = "$rundir/data/tti.$(simname).nc",
-                                                                     schedule = AveragedTimeInterval(interval_time_avg, stride=10),
-                                                                     array_type = Array{Float64},
-                                                                     with_halos = false,
-                                                                     indices = indices,
-                                                                     verbose = debug,
-                                                                     kwargs...
-                                                                     )
-        add_grid_metrics_to!(ow, user_indices=indices)
+        simulation.output_writers[:nc_tti] = ow = NetCDFWriter(model, outputs_tti;
+                                                               filename = "$rundir/data/tti.$(simname).nc",
+                                                               schedule = AveragedTimeInterval(interval_time_avg, stride=10),
+                                                               array_type = Array{Float64},
+                                                               with_halos = false,
+                                                               indices = indices,
+                                                               verbose = debug,
+                                                               kwargs...
+                                                               )
+        #add_grid_metrics_to!(ow, user_indices=indices)
     end
     #---
 

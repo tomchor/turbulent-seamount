@@ -14,17 +14,17 @@ flat = xr.open_dataset(path + f"tafields_{simname_base}_α=0.05_Ro_h=0.5_Fr_h=0.
 steep = xr.open_dataset(path + f"tafields_{simname_base}_α=0.2_Ro_h=0.5_Fr_h=0.2_res=2_closure=AMD_bounded=0.nc")
 
 flat  = flat.expand_dims(("α", "f")).assign_coords(α = [0.05],
-                                                   xC = flat.xC / flat.FWMH,
-                                                   yC = flat.yC / flat.FWMH)
+                                                   x_caa = flat.x_caa / flat.FWMH,
+                                                   y_aca = flat.y_aca / flat.FWMH)
 steep = steep.expand_dims(("α", "f")).assign_coords(α = [0.2],
-                                                    xC = steep.xC / steep.FWMH,
-                                                    yC = steep.yC / steep.FWMH)
+                                                    x_caa = steep.x_caa / steep.FWMH,
+                                                    y_aca = steep.y_aca / steep.FWMH)
 
 
 flat["q̄_norm"]  = flat.q̄ / (flat.N2_inf * flat.f_0)
 steep["q̄_norm"] = steep.q̄ / (steep.N2_inf * steep.f_0)
 
-intflat = flat.interp(xC=steep.xC, yC=steep.yC)
+intflat = flat.interp(x_caa=steep.x_caa, y_aca=steep.y_aca)
 tafields = xr.combine_by_coords([intflat, steep], combine_attrs="drop_conflicts")
 
 tafields["Π"] = tafields.SPR.sum("j")

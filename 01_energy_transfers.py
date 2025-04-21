@@ -84,7 +84,7 @@ for j, config in enumerate(runs):
     ttt = adjust_times(ttt, round_times=True)
     tti = adjust_times(tti, round_times=True)
 
-    ttt = ttt.assign_coords(xC=tti.xC.values, yC=tti.yC.values) # This is needed just as long as ttt is float32 and tti is float64
+    ttt = ttt.assign_coords(x_caa=tti.x_caa.values, y_aca=tti.y_aca.values) # This is needed just as long as ttt is float32 and tti is float64
     #---
 
     #+++ Preliminary definitions and checks
@@ -107,13 +107,13 @@ for j, config in enumerate(runs):
     #+++ Trimming domain
     t_slice_inclusive = slice(tti.T_advective_spinup, np.inf) # For snapshots, we want to include t=T_advective_spinup
     t_slice_exclusive = slice(tti.T_advective_spinup + 0.01, np.inf) # For time-averaged outputs, we want to exclude t=T_advective_spinup
-    x_slice = slice(xyz.xF[0], np.inf)
+    x_slice = slice(xyz.x_faa[0], np.inf)
     y_slice = slice(None, np.inf)
 
-    xyz = xyz.sel(time=t_slice_inclusive, xC=x_slice, xF=x_slice, yC=y_slice, yF=y_slice)
-    xyi = xyi.sel(time=t_slice_inclusive, xC=x_slice, xF=x_slice, yC=y_slice, yF=y_slice)
-    ttt = ttt.sel(time=t_slice_exclusive, xC=x_slice, xF=x_slice, yC=y_slice, yF=y_slice)
-    tti = tti.sel(time=t_slice_exclusive, xC=x_slice, xF=x_slice, yC=y_slice, yF=y_slice)
+    xyz = xyz.sel(time=t_slice_inclusive, x_caa=x_slice, x_faa=x_slice, y_aca=y_slice, y_afa=y_slice)
+    xyi = xyi.sel(time=t_slice_inclusive, x_caa=x_slice, x_faa=x_slice, y_aca=y_slice, y_afa=y_slice)
+    ttt = ttt.sel(time=t_slice_exclusive, x_caa=x_slice, x_faa=x_slice, y_aca=y_slice, y_afa=y_slice)
+    tti = tti.sel(time=t_slice_exclusive, x_caa=x_slice, x_faa=x_slice, y_aca=y_slice, y_afa=y_slice)
     #---
 
     #+++ Condense tensors
@@ -187,12 +187,12 @@ for j, config in enumerate(runs):
     #---
 
     #+++ Volume-average/integrate results so far
-    tafields["ΔxΔyΔz"] = tafields["Δxᶜᶜᶜ"] * tafields["Δyᶜᶜᶜ"] * tafields["Δzᶜᶜᶜ"]
-    tafields["ΔxΔy"]   = tafields["Δxᶜᶜᶜ"] * tafields["Δyᶜᶜᶜ"]
+    tafields["ΔxΔyΔz"] = tafields["Δx_caa"] * tafields["Δy_aca"] * tafields["Δz_aac"]
+    tafields["ΔxΔy"]   = tafields["Δx_caa"] * tafields["Δy_aca"]
     def integrate(da, dV=tafields["ΔxΔyΔz"], dims=("x", "y", "z")):
         return (da*dV).pnsum(dims)
 
-    tafields["1"] = xr.ones_like(tafields["Δxᶜᶜᶜ"])
+    tafields["1"] = xr.ones_like(tafields["Δx_caa"])
     #buffer = 5 # meters
 
     #distance_mask = tafields.altitude > buffer
@@ -223,7 +223,7 @@ for j, config in enumerate(runs):
 
     #+++ Drop unnecessary vars
     tafields = tafields.drop_vars(["ūⱼūᵢ", "⟨uⱼuᵢ⟩ₜ", "⟨u′ⱼu′ᵢ⟩ₜ",])
-    tafields = tafields.drop_dims(("xF", "yF",))
+    tafields = tafields.drop_dims(("x_faa", "y_afa",))
     #---
 
     #+++ Save tafields
@@ -246,7 +246,7 @@ for j, config in enumerate(runs):
     bulk["⟨∬Ek′dxdy⟩ₜ"] = tafields["⟨Ek′⟩ₜ"].pnintegrate(("x", "y"))
     bulk["⟨∬Πdxdy⟩ₜ"]   = tafields["SPR"].sum("j").pnintegrate(("x", "y"))
 
-    altitude = xyz.altitude.pnsel(z=tti.zC, method="nearest")
+    altitude = xyz.altitude.pnsel(z=tti.z_aac, method="nearest")
     bulk["⟨∬⁵Ek′dxdy⟩ₜ"] = tafields["⟨Ek′⟩ₜ"].where(altitude > 5, other=0).pnintegrate(("x", "y"))
     bulk["⟨∬⁵Πdxdy⟩ₜ"]   = tafields["SPR"].sum("j").where(altitude > 5, other=0).pnintegrate(("x", "y"))
 
@@ -269,9 +269,9 @@ for j, config in enumerate(runs):
     bulk["N²∞"] = bulk.attrs["N²∞"]
     bulk["V∞"]  = bulk.attrs["V∞"]
     bulk["L"]   = bulk.L
-    bulk["Δx_min"] = tafields["Δxᶜᶜᶜ"].where(tafields["Δxᶜᶜᶜ"] > 0).min().values
-    bulk["Δy_min"] = tafields["Δyᶜᶜᶜ"].where(tafields["Δyᶜᶜᶜ"] > 0).min().values
-    bulk["Δz_min"] = tafields["Δzᶜᶜᶜ"].where(tafields["Δzᶜᶜᶜ"] > 0).min().values
+    bulk["Δx_min"] = tafields["Δx_caa"].where(tafields["Δx_caa"] > 0).min().values
+    bulk["Δy_min"] = tafields["Δy_aca"].where(tafields["Δy_aca"] > 0).min().values
+    bulk["Δz_min"] = tafields["Δz_aac"].where(tafields["Δz_aac"] > 0).min().values
 
     bulk["RoFr"] = bulk.Ro_h * bulk.Fr_h
     bulk["V∞³÷L"] = bulk.attrs["V∞"]**3 / bulk.L

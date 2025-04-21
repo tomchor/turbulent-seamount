@@ -34,4 +34,4 @@ tafields = tafields.rename(Δz_min = "Δz")
 tafields["Δz"].attrs = dict(units="m")
 tafields = tafields.reindex(Ro_h = list(reversed(tafields.Ro_h)))
 
-tafields["ε̄ₖ"].sel(closure="AMD").plot(x="xC", y="yC", col="Fr_h", row="Ro_h", norm=LogNorm(clip=True), vmin=1e-10, vmax=1e-6)
+tafields["ε̄ₖ"].sel(closure="AMD").plot(x="x_caa", y="y_aca", col="Fr_h", row="Ro_h", norm=LogNorm(clip=True), vmin=1e-10, vmax=1e-6)

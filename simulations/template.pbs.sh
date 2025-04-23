@@ -1,0 +1,29 @@
+#!/bin/bash -l
+#PBS -A UMCP0028
+#PBS -N {simname_ascii}
+#PBS -o logs/{simname_ascii}.log
+#PBS -e logs/{simname_ascii}.log
+#PBS -l walltime=23:59:00
+#PBS -q casper
+#PBS -l {options_string1}
+#PBS -l {options_string2}
+#PBS -M tchor@umd.edu
+#PBS -m ae
+#PBS -r n
+
+# Clear the environment from any previously loaded modules
+module li
+module --force purge
+module load ncarenv/23.10
+module load cuda
+module li
+
+#/glade/u/apps/ch/opt/usr/bin/dumpenv # Dumps environment (for debugging with CISL support)
+
+export JULIA_DEPOT_PATH="/glade/work/tomasc/.julia"
+echo $CUDA_VISIBLE_DEVICES
+
+time /glade/u/home/tomasc/bin/julia-1.10.9/bin/julia --project --pkgimages=no {julia_script} {run_options} --simname={simname} 2>&1 | tee logs/{simname_ascii}.out
+
+qstat -f $PBS_JOBID >> logs/{simname_ascii}.log
+qstat -f $PBS_JOBID >> logs/{simname_ascii}.out

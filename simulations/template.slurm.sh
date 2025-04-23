@@ -5,15 +5,17 @@
 #SBATCH --error=logs/{simname_ascii}.log
 #SBATCH --time=48:00:00
 #SBATCH --qos=shared
-#SBATCH --constraint=gpu
 #SBATCH --mem=48GB
-#SBATCH --ntasks=1
-#SBATCH --cpus-per-task=32
-#SBATCH --gpus-per-task=1
 #SBATCH --mail-type=end,fail
 #SBATCH --mail-user=tchor@umd.edu
+{options_string}
 
 export SLURM_CPU_BIND="cores"
 
+echo $CUDA_VISIBLE_DEVICES
+
 cd $SCRATCH/tokara-strait/simulations/
-srun julia --project seamount.jl
+time julia --project --pkgimages=no {julia_script} {run_options} --simname={simname} 2>&1 | tee logs/{simname_ascii}.out
+
+scontrol show job $PBS_JOBID >> logs/{simname_ascii}.log
+scontrol show job $PBS_JOBID >> logs/{simname_ascii}.out

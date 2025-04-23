@@ -28,15 +28,74 @@ dry_run = False
 omit_topology = True
 
 verbose = 1
-aux_filename = "aux_pbs.sh"
+aux_filename = "aux_submission_script.sh"
 julia_script = "seamount.jl"
 
-scheduler = "slurm"
-options_small_runs = dict()
+scheduler = "pbs"
 #---
 
-#+++ Open submission script template
+#+++ Open submission script template and define options
 template = open(f"template.{scheduler}.sh", "r").read()
+
+def very_small_submission_options(scheduler):
+    if scheduler == "pbs":
+        options = ["select=1:ncpus=1:ngpus=1",
+                   "gpu_type=v100"]
+        options_string = "\n".join([ "#PBS -l " + option for option in options ])
+
+    elif scheduler == "slurm":
+        options = ["--ntasks=1",
+                   "--constraint=gpu",
+                   "--cpus-per-task=32",
+                   "--gpus-per-task=1"]
+        options_string = "\n".join([ "#SBATCH " + option for option in options ])
+    return options_string
+
+def small_submission_options(scheduler):
+    if scheduler == "pbs":
+        options = ["select=1:ncpus=1:ngpus=1",
+                   "gpu_type=a100"]
+        options_string = "\n".join([ "#PBS -l " + option for option in options ])
+
+    elif scheduler == "slurm":
+        options = ["--ntasks=1",
+                   "--constraint=gpu",
+                   "--cpus-per-task=32",
+                   "--gpus-per-task=1"]
+        options_string = "\n".join([ "#SBATCH " + option for option in options ])
+    return options_string
+
+def big_submission_options(scheduler):
+    if scheduler == "pbs":
+        options = ["select=1:ncpus=1:ngpus=1",
+                   "cpu_type=milan",
+                   "gpu_type=a100"]
+        options_string = "\n".join([ "#PBS -l " + option for option in options ])
+
+    elif scheduler == "slurm":
+        options = ["--ntasks=1",
+                   "--constraint=gpu&hbm80g",
+                   "--cpus-per-task=32",
+                   "--gpus-per-task=1"]
+        options_string = "\n".join([ "#SBATCH " + option for option in options ])
+    return options_string
+
+def very_small_submission_command(scheduler):
+    if scheduler == "pbs":
+        cmd1 = f"qsub {aux_filename}"
+    elif scheduler == "slurm":
+        cmd1 = f"sbatch {aux_filename}"
+    return cmd1
+
+def small_submission_command(scheduler):
+    return very_small_submission_command(scheduler)
+
+def big_submission_command(scheduler):
+    if scheduler == "pbs":
+        cmd1 = f"JID1=`qsub {aux_filename}`; JID2=`qsub -W depend=afterok:$JID1 {aux_filename}`; qrls $JID1"
+    elif scheduler == "slurm":
+        cmd1 = small_submission_command(scheduler)
+    return cmd1
 #---
 
 for modifiers in runs:
@@ -53,45 +112,37 @@ for modifiers in runs:
     #---
 
     #+++ Fill pbs script and define command
-    options1 = dict(select=1, ncpus=1, ngpus=1)
-    options2 = dict()
-
     Δz = modifiers["dz"] if "dz" in modifiers.keys() else np.inf
     if Δz >= 8:
-        options2 = options2 | dict(gpu_type = "v100")
-        cmd1 = f"qsub {aux_filename}"
+        options_string = very_small_submission_options(scheduler)
+        cmd1           = very_small_submission_command(scheduler)
     elif Δz >= 2:
-        options2 = options2 | dict(gpu_type = "a100")
-        cmd1 = f"qsub {aux_filename}"
+        options_string = small_submission_options(scheduler)
+        cmd1           = small_submission_command(scheduler) 
     else:
-        options1 = options1 | dict(cpu_type = "milan")
-        options2 = options2 | dict(gpu_type = "a100")
+        options_string = big_submission_options(scheduler)
 
-        if modifiers["α"] > 0.1:
-            cmd1 = f"qsub {aux_filename}"
+        if only_one_job:
+            cmd1 = small_submission_command(scheduler)
         else:
-            if only_one_job:
-                cmd1 = f"qsub {aux_filename}"
+            if modifiers["α"] > 0.1:
+                cmd1 = small_submission_command(scheduler)
             else:
-                cmd1 = f"JID1=`qsub {aux_filename}`; JID2=`qsub -W depend=afterok:$JID1 {aux_filename}`; qrls $JID1"
+                cmd1 = big_submission_command(scheduler)
 
-    options_string1 = ":".join([ f"{key}={val}" for key, val in options1.items() ])
-    options_string2 = ":".join([ f"{key}={val}" for key, val in options2.items() ])
-
-    pbs_script_filled = template.format(simname_ascii = simname_ascii,
-                                          simname = simname,
-                                          julia_script = julia_script,
-                                          run_options = run_options,
-                                          options_string1 = options_string1,
-                                          options_string2 = options_string2)
-    if verbose>1: print(pbs_script_filled)
+    submission_script = template.format(simname_ascii = simname_ascii,
+                                        simname = simname,
+                                        julia_script = julia_script,
+                                        run_options = run_options,
+                                        options_string = options_string,)
+    if verbose>1: print(submission_script)
     if verbose>0: print(cmd1)
     #---
 
     #+++ Run command
     if not dry_run:
         with open(aux_filename, "w") as f:
-            f.write(pbs_script_filled)
+            f.write(submission_script)
         system(cmd1)
     #---
 

@@ -1,4 +1,5 @@
-if ("PBS_JOBID" in keys(ENV))  @info "Job ID" ENV["PBS_JOBID"] end # Print job ID if this is a PBS simulation
+if ("PBS_JOBID" in keys(ENV))  @info "Job ID" ENV["PBS_JOBID"] end # Print job ID if this is a PBS job
+if ("SLURM_JOBID" in keys(ENV))  @info "Job ID" ENV["SLURM_JOBID"] end # Print job ID if this is a SLURM job
 #using Pkg; Pkg.instantiate()
 using InteractiveUtils
 versioninfo()

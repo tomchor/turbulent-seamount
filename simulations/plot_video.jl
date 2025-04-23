@@ -2,7 +2,8 @@
 
 #+++ Figure out if we have a screen or not (https://github.com/JuliaPlots/Plots.jl/issues/4368)
 if ("GITHUB_ENV" ∈ keys(ENV)) || # Is it a github CI?
-    ("PBS_JOBID" ∈ keys(ENV)) # Is it a PBS job?
+    ("PBS_JOBID" ∈ keys(ENV)) || # Is it a PBS job?
+    ("SLURM_JOBID" ∈ keys(ENV)) # Is it a SLURM job?
     @info "Headless server! (probably NCAR or github CI). Loading CairoMakie"
     using CairoMakie
     Mk = CairoMakie

@@ -47,7 +47,9 @@ def very_small_submission_options(scheduler):
         options = ["--ntasks=1",
                    "--constraint=gpu",
                    "--cpus-per-task=32",
-                   "--gpus-per-task=1"]
+                   "--gpus-per-task=1",
+                   "--time=2:00:00",
+                   ]
         options_string = "\n".join([ "#SBATCH " + option for option in options ])
     return options_string
 
@@ -61,7 +63,9 @@ def small_submission_options(scheduler):
         options = ["--ntasks=1",
                    "--constraint=gpu",
                    "--cpus-per-task=32",
-                   "--gpus-per-task=1"]
+                   "--gpus-per-task=1",
+                   "--time=20:00:00",
+                   ]
         options_string = "\n".join([ "#SBATCH " + option for option in options ])
     return options_string
 
@@ -76,7 +80,9 @@ def big_submission_options(scheduler):
         options = ["--ntasks=1",
                    "--constraint=gpu&hbm80g",
                    "--cpus-per-task=32",
-                   "--gpus-per-task=1"]
+                   "--gpus-per-task=1",
+                   "--time=48:00:00",
+                   ]
         options_string = "\n".join([ "#SBATCH " + option for option in options ])
     return options_string
 

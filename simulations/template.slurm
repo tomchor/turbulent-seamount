@@ -3,7 +3,6 @@
 #SBATCH --job-name={simname_ascii}
 #SBATCH --output=logs/{simname_ascii}.log
 #SBATCH --error=logs/{simname_ascii}.log
-#SBATCH --time=48:00:00
 #SBATCH --qos=regular
 #SBATCH --mem=48GB
 #SBATCH --mail-type=end,fail

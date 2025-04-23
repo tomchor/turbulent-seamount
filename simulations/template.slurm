@@ -4,7 +4,7 @@
 #SBATCH --output=logs/{simname_ascii}.log
 #SBATCH --error=logs/{simname_ascii}.log
 #SBATCH --time=48:00:00
-#SBATCH --qos=shared
+#SBATCH --qos=regular
 #SBATCH --mem=48GB
 #SBATCH --mail-type=end,fail
 #SBATCH --mail-user=tchor@umd.edu
@@ -17,5 +17,5 @@ echo $CUDA_VISIBLE_DEVICES
 cd $SCRATCH/tokara-strait/simulations/
 time julia --project --pkgimages=no {julia_script} {run_options} --simname={simname} 2>&1 | tee logs/{simname_ascii}.out
 
-scontrol show job $PBS_JOBID >> logs/{simname_ascii}.log
-scontrol show job $PBS_JOBID >> logs/{simname_ascii}.out
+#scontrol show job $PBS_JOBID >> logs/{simname_ascii}.log
+#scontrol show job $PBS_JOBID >> logs/{simname_ascii}.out

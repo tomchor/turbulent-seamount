@@ -16,6 +16,7 @@ slurm-*.out
 output.out
 __pycache__/*
 aux_pbs*.sh
+aux_submission*.sh
 .ipynb_checkpoints/
 simulations/data
 figures_check/*.png

@@ -35,7 +35,7 @@ scheduler = "pbs"
 #---
 
 #+++ Open submission script template and define options
-template = open(f"template.{scheduler}.sh", "r").read()
+template = open(f"template.{scheduler}", "r").read()
 
 def very_small_submission_options(scheduler):
     if scheduler == "pbs":

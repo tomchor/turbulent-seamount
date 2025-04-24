@@ -192,8 +192,13 @@ for j, config in enumerate(runs):
     #+++ Volume-average/integrate results so far
     tafields["ΔxΔyΔz"] = tafields["Δx_caa"] * tafields["Δy_aca"] * tafields["Δz_aac"]
     tafields["ΔxΔy"]   = tafields["Δx_caa"] * tafields["Δy_aca"]
-    def integrate(da, dV=tafields["ΔxΔyΔz"], dims=("x", "y", "z")):
-        return (da*dV).pnsum(dims)
+    def integrate(da, dV = None, dims=("x", "y", "z")):
+        if dV is None:
+            if dims == ("x", "y", "z"):
+                dV = tafields["ΔxΔyΔz"]
+            elif dims == ("x", "y"):
+                dV =  tafields["ΔxΔy"]
+        return (da * dV).pnsum(dims)
 
     tafields["1"] = xr.ones_like(tafields["Δx_caa"])
     #buffer = 5 # meters
@@ -214,7 +219,7 @@ for j, config in enumerate(runs):
     #    tafields = condense(tafields, [int_all, int_buf], f"∫∫ᵇ{var}dxdz", dimname="buffer", indices=[0, buffer])
 
     tafields["average_turbulence_mask"] = tafields["ε̄ₖ"] > 1e-8
-    for var in ["ε̄ₖ", "ε̄ₚ", "SPR", "⟨wb⟩ₜ", "1"]:
+    for var in ["ε̄ₖ", "ε̄ₚ", "SPR", "⟨w′b′⟩ₜ", "1"]:
         int_turb = f"∬ᵋ{var}dxdy"
         tafields[int_turb] = integrate(tafields[var], dV=tafields.ΔxΔy.where(tafields.average_turbulence_mask), dims=("x", "y"))
     #---
@@ -250,14 +255,21 @@ for j, config in enumerate(runs):
     bulk["∭¹⁰ε̄ₚdV"]    = tafields["∭¹⁰ε̄ₚdV"]
     bulk["⟨∭¹⁰wbdV⟩ₜ"] = tafields["⟨∭¹⁰wbdV⟩ₜ"]
 
-    bulk["⟨∬Ek′dxdy⟩ₜ"] = tafields["⟨Ek′⟩ₜ"].pnintegrate(("x", "y"))
-    bulk["⟨∬Πdxdy⟩ₜ"]   = tafields["SPR"].sum("j").pnintegrate(("x", "y"))
+    bulk["⟨∬w′b′dxdy⟩ₜ"] = integrate(tafields["⟨w′b′⟩ₜ"], dims = ("x", "y"))
+    bulk["⟨∬Ek′dxdy⟩ₜ"]  = integrate(tafields["⟨Ek′⟩ₜ"], dims = ("x", "y"))
+    bulk["⟨∬SPRdxdy⟩ₜ"]  = integrate(tafields["SPR"], dims = ("x", "y"))
+    bulk["⟨∬Πdxdy⟩ₜ"]    = bulk["⟨∬SPRdxdy⟩ₜ"].sum("j")
 
     altitude = xyz.altitude.pnsel(z=tti.z_aac, method="nearest")
-    bulk["⟨∬⁵Ek′dxdy⟩ₜ"] = tafields["⟨Ek′⟩ₜ"].where(altitude > 5, other=0).pnintegrate(("x", "y"))
-    bulk["⟨∬⁵Πdxdy⟩ₜ"]   = tafields["SPR"].sum("j").where(altitude > 5, other=0).pnintegrate(("x", "y"))
-    bulk["⟨∬¹⁰Ek′dxdy⟩ₜ"] = tafields["⟨Ek′⟩ₜ"].where(altitude > 5, other=0).pnintegrate(("x", "y"))
-    bulk["⟨∬¹⁰Πdxdy⟩ₜ"]   = tafields["SPR"].sum("j").where(altitude > 5, other=0).pnintegrate(("x", "y"))
+    bulk["⟨∬⁵w′b′dxdy⟩ₜ"] = integrate(tafields["⟨w′b′⟩ₜ"].where(altitude > 5, other=0), dims = ("x", "y"))
+    bulk["⟨∬⁵Ek′dxdy⟩ₜ"]  = integrate(tafields["⟨Ek′⟩ₜ"].where(altitude > 5, other=0), dims = ("x", "y"))
+    bulk["⟨∬⁵SPRdxdy⟩ₜ"]  = integrate(tafields["SPR"].where(altitude > 5, other=0), dims = ("x", "y"))
+    bulk["⟨∬⁵Πdxdy⟩ₜ"]    = bulk["⟨∬⁵SPRdxdy⟩ₜ"].sum("j")
+
+    bulk["⟨∬¹⁰w′b′dxdy⟩ₜ"] = integrate(tafields["⟨w′b′⟩ₜ"].where(altitude > 10, other=0), dims = ("x", "y"))
+    bulk["⟨∬¹⁰Ek′dxdy⟩ₜ"]  = integrate(tafields["⟨Ek′⟩ₜ"].where(altitude > 10, other=0), dims = ("x", "y"))
+    bulk["⟨∬¹⁰SPRdxdy⟩ₜ"]  = integrate(tafields["SPR"].where(altitude > 10, other=0), dims = ("x", "y"))
+    bulk["⟨∬¹⁰Πdxdy⟩ₜ"]    = bulk["⟨∬¹⁰SPRdxdy⟩ₜ"].sum("j")
 
     bulk["∬ᵋε̄ₖdxdy"] = tafields["∬ᵋε̄ₖdxdy"]
     bulk["⟨ε̄ₖ⟩ᵋ"]    = bulk["∬ᵋε̄ₖdxdy"] / tafields["∬ᵋ1dxdy"]

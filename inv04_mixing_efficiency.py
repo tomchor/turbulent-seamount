@@ -41,6 +41,7 @@ bulk["RoFr"] = bulk.Ro_h * bulk.Fr_h
 
 bulk["𝒦ℰ"] = bulk["⟨∬⁵Ek′dxdy⟩ₜ"]
 bulk["𝒫"] = bulk["⟨∬⁵Πdxdy⟩ₜ"]
+bulk["ℬ"] = bulk["⟨∬⁵w′b′dxdy⟩ₜ"]
 
 bulk["ℰₖ"] = bulk["∭⁵ε̄ₖdV"] / (bulk.attrs["V∞"]**3 * bulk.L * bulk.H)
 bulk["ℰₚ"] = bulk["∭⁵ε̄ₚdV"] / (bulk.attrs["V∞"]**3 * bulk.L * bulk.H)
@@ -57,17 +58,26 @@ bulk["𝒫"].attrs = dict(long_name=r"Norm shear prod rate $\mathcal{P}$")
 
 figs = []
 
-bulk.plot.scatter(x="Slope_Bu", y="γ⁵", hue="α", col="dz", row="closure", xscale="log", yscale="log", cmap="bwr")
+#bulk.plot.scatter(x="Slope_Bu", y="γ⁵", hue="α", col="dz", row="closure", xscale="log", yscale="log", cmap="bwr")
+#figs.append(plt.gcf())
+
+bulk.plot.scatter(x="Slope_Bu", y="ℬ", hue="α", col="dz", row="closure", xscale="log", yscale="symlog", cmap="bwr")
+for ax in plt.gcf().axes:
+    ax.set_yscale('symlog', linthresh=1e-3)
 figs.append(plt.gcf())
 
-bulk.plot.scatter(x="RoFr", y="𝒦⁵", hue="α", col="dz", row="closure", xscale="log", yscale="log", cmap="bwr")
+
+#bulk.plot.scatter(x="RoFr", y="𝒦⁵", hue="α", col="dz", row="closure", xscale="log", yscale="log", cmap="bwr")
+#figs.append(plt.gcf())
+
+bulk.plot.scatter(x="Slope_Bu", y="𝒦ℰ", hue="α", col="dz", row="closure", xscale="log", yscale="log", cmap="bwr")
 figs.append(plt.gcf())
 
 bulk.plot.scatter(x="Slope_Bu", y="𝒫", hue="α", col="dz", row="closure", xscale="log", yscale="log", cmap="bwr")
 figs.append(plt.gcf())
 
-bulk.plot.scatter(x="Slope_Bu", y="ℰₖ", hue="α", col="dz", row="closure", xscale="log", yscale="log", cmap="bwr")
-figs.append(plt.gcf())
+#bulk.plot.scatter(x="Slope_Bu", y="ℰₖ", hue="α", col="dz", row="closure", xscale="log", yscale="log", cmap="bwr")
+#figs.append(plt.gcf())
 
 for fig in figs:
     for ax in fig.axes:

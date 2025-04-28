@@ -13,18 +13,19 @@ from dask.diagnostics import ProgressBar
 print("Starting h00 script")
 
 #+++ Define run options
+path = "simulations/data/"
 simname_base = "seamount"
 
 slopes         = cycler(α = [0.05, 0.2])
-Rossby_numbers = cycler(Ro_h = [0.5])
-Froude_numbers = cycler(Fr_h = [0.2])
+Rossby_numbers = cycler(Ro_h = [0.2, 1.25])
+Froude_numbers = cycler(Fr_h = [0.2, 1.25])
 
-resolutions    = cycler(res = [8, 4, 2])
-closures       = cycler(closure = ["AMD", "CSM", "DSM", "NON"])
-bcs            = cycler(bounded = [0])
+resolutions    = cycler(dz = [8, 4, 2])
+closures       = cycler(closure = ["AMD", "AMC", "CSM", "DSM", "NON"])
+closures       = cycler(closure = ["AMD", "CSM", "DSM"])
 
 paramspace = slopes * Rossby_numbers * Froude_numbers
-configs    = resolutions * closures * bcs
+configs    = resolutions * closures
 
 runs = paramspace * configs
 #---
@@ -34,7 +35,7 @@ for config in configs:
     config_suffix = aggregate_parameters(config, sep="_", prefix="")
     simnames = [ simname_base + "_" + aggregate_parameters(params, sep="_", prefix="") + "_" + config_suffix for params in paramspace ]
     print(simnames)
-    check_simulation_completion(simnames, slice_name="tti", path="simulations/data/")
+    check_simulation_completion(simnames, slice_name="tti", path="simulations/data/", verbose=False)
     print()
 
 print(Back.LIGHTWHITE_EX + Fore.BLUE + "\nStarting 01 post-processing of results using `configs`", Style.RESET_ALL, configs)

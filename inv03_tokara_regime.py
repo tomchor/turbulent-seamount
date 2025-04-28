@@ -14,7 +14,7 @@ path = "simulations/data/"
 #                      topology = "PNN",
 #                      squeeze = True,
 #                      load = False,
-#                      open_dataset_kwargs = dict(chunks=dict(yC="auto", time="auto")),
+#                      open_dataset_kwargs = dict(chunks=dict(y_aca="auto", time="auto")),
 #                      get_grid = False,
 #                      )
 #iyz.v.sel(time=[3, 3.5, 4], method="nearest").pnplot(y="z", row="time", robust=True)
@@ -25,7 +25,7 @@ tokara = open_simulation(path + "xyz.tokara_res=2_α=0.2_Ro_h=1.4_Fr_h=0.6.nc",
                          topology = "PNN",
                          squeeze = True,
                          load = False,
-                         open_dataset_kwargs = dict(chunks=dict(yC="auto", time="auto")),
+                         open_dataset_kwargs = dict(chunks=dict(y_aca="auto", time="auto")),
                          get_grid = False,
                          )
 depths = np.linspace(0.1, 0.9, 5) * tokara.H 
@@ -35,10 +35,10 @@ coupled = open_simulation(path + "xyz.tokara_res=2_α=0.2_Ro_h=0.08_Fr_h=1.25_cl
                           topology = "PNN",
                           squeeze = True,
                           load = False,
-                          open_dataset_kwargs = dict(chunks=dict(yC="auto", time="auto")),
+                          open_dataset_kwargs = dict(chunks=dict(y_aca="auto", time="auto")),
                           get_grid = False,
                           )
 
-tokara.PV.sel(zC=depths, time=np.inf, method="nearest").pnplot(y="x", row="z", robust=True)
-coupled.PV.sel(zC=depths, time=np.inf, method="nearest").pnplot(y="x", row="z", robust=True)
+tokara.PV.sel(z_aac=depths, time=np.inf, method="nearest").pnplot(y="x", row="z", robust=True)
+coupled.PV.sel(z_aac=depths, time=np.inf, method="nearest").pnplot(y="x", row="z", robust=True)
 

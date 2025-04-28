@@ -5,7 +5,7 @@ versioninfo()
 using ArgParse
 using Oceananigans
 using Oceananigans.Units
-using Oceananigans.TurbulenceClosures: Smagorinsky, DynamicCoefficient, LagrangianAveraging
+using Oceananigans.TurbulenceClosures: Smagorinsky, DynamicCoefficient, LagrangianAveraging, DynamicSmagorinsky
 using PrettyPrinting
 using TickTock
 
@@ -31,11 +31,12 @@ function parse_command_line_arguments()
             default = 0
             arg_type = Number
 
-        "--N_max"
-            default = 180e6
+        "--aspect"
+            help = "Desired cell aspect ratio; Δx/Δz = Δy/Δz"
+            default = 3
             arg_type = Number
 
-        "--res"
+        "--dz"
             default = 64
             arg_type = Int
 
@@ -49,7 +50,7 @@ function parse_command_line_arguments()
 
         "--α"
             help = "H / FWMH"
-            default = 0.05
+            default = 0.2
             arg_type = Float64
 
         "--Ro_h"
@@ -65,7 +66,7 @@ function parse_command_line_arguments()
             arg_type = Float64
 
         "--Ly_ratio"
-            default = 10 # Ly / FWMH
+            default = 9 # Ly / FWMH
             arg_type = Float64
 
         "--Lz_ratio"
@@ -77,16 +78,12 @@ function parse_command_line_arguments()
             arg_type = Float64
 
         "--closure"
-            default = "AMD" # or CSM or DSM
+            default = "AMD"
             arg_type = String
 
         "--runway_length_fraction_L"
             default = 4 # y_offset / L (how far from the inflow the headland is)
             arg_type = Float64
-
-        "--bounded"
-            default = 1 # Is the x-direction bounded?
-            arg_type = Int
 
         "--T_advective_spinup"
             default = 20 # Should be a multiple of interval_time_avg
@@ -110,7 +107,7 @@ if has_cuda_gpu()
 else
     arch = CPU()
 end
-@info "Starting simulation $(params.simname) with a dividing factor of $(params.res) and a $arch architecture\n"
+@info "Starting simulation $(params.simname) with a dividing factor of $(params.dz) and a $arch architecture\n"
 #---
 
 #+++ Get primary simulation parameters
@@ -131,7 +128,13 @@ let
     #---
 
     #+++ Simulation size
-    Nx, Ny, Nz = get_sizes(params.N_max ÷ (params.res^3); Lx, Ly, Lz, aspect_ratio_x=3.2, aspect_ratio_y=3.2)
+    Nx = max(ceil(Int, Lx / (params.aspect * params.dz)), 5)
+    Ny = max(ceil(Int, Ly / (params.aspect * params.dz)), 5)
+    Nz = max(ceil(Int, Lz / params.dz), 2)
+
+    Nx = closest_factor_number((2, 3, 5), Nx)
+    Ny = closest_factor_number((2, 3, 5), Ny)
+    Nz = closest_factor_number((2, 3, 5), Nz)
     N_total = Nx * Ny * Nz
     #---
 
@@ -164,13 +167,12 @@ pprintln(params)
 #---
 
 #+++ Base grid
-topology = Bool(params.bounded) ? (Bounded, Bounded, Bounded) : (Periodic, Bounded, Bounded)
-grid_base = RectilinearGrid(arch; topology,
+grid_base = RectilinearGrid(arch; topology = (Periodic, Bounded, Bounded),
                             size = (params.Nx, params.Ny, params.Nz),
                             x = (-params.Lx/2, +params.Lx/2),
                             y = (-params.y_offset, params.Ly - params.y_offset),
                             z = (0, params.Lz),
-                            halo = (4,4,4),
+                            halo = (4, 4, 4),
                             )
 @info grid_base
 params = (; params..., Δz_min = minimum_zspacing(grid_base))
@@ -255,19 +257,26 @@ Fᵤ = Forcing(geostrophy, parameters = (; params.f₀, params.V∞))
 
 #+++ Turbulence closure
 if params.closure == "CSM"
-    cfl = 0.9
     closure = SmagorinskyLilly(C=0.13, Pr=1)
 elseif params.closure == "DSM"
-    closure = Smagorinsky(coefficient=DynamicCoefficient(averaging=LagrangianAveraging(), schedule=IterationInterval(5)))
-    cfl = 0.6
+    closure = Smagorinsky(coefficient=DynamicCoefficient(averaging=LagrangianAveraging(), schedule=IterationInterval(5)), Pr=1)
 elseif params.closure == "AMD"
-    cfl = 0.9
+    closure = AnisotropicMinimumDissipation()
+elseif params.closure == "AMC"
+    include("AMD.jl")
     closure = AnisotropicMinimumDissipation()
 elseif params.closure == "NON"
-    cfl = 0.9
     closure = nothing
 else
     throw(ArgumentError("Check options for `closure`"))
+end
+
+if closure isa DynamicSmagorinsky
+    cfl = params.dz >= 4 ? 0.5 : 0.65
+    t_switch = 8 * params.T_advective
+else
+    cfl = 0.9
+    t_switch = 12 * params.T_advective
 end
 #---
 
@@ -307,7 +316,7 @@ progress(simulation) = @info (PercentageProgress(with_prefix=false, with_units=f
                               + "step dur = " * walltime_per_timestep)(simulation)
 simulation.callbacks[:progress] = Callback(progress, IterationInterval(40))
 
-initial_cfl = params.res > 4 ? 0.8 : 0.9
+initial_cfl = params.dz > 4 ? 0.8 : 0.9
 conjure_time_step_wizard!(simulation, IterationInterval(1), max_change=1.05, cfl=initial_cfl, min_Δt=1e-4, max_Δt=1/√params.N²∞)
 
 function cfl_changer(sim)
@@ -316,14 +325,14 @@ function cfl_changer(sim)
         simulation.callbacks[:time_step_wizard].func.cfl = cfl
     end
 end
-add_callback!(simulation, cfl_changer, SpecifiedTimes([12*params.T_advective]); name=:cfl_changer)
+add_callback!(simulation, cfl_changer, SpecifiedTimes([t_switch]); name=:cfl_changer)
 
 @info "" simulation
 #---
 
 #+++ Diagnostics
 #+++ Define pickup characteristics
-write_chk = params.res < 2
+write_chk = params.dz < 2
 if write_chk
     if any(startswith("chk.$(params.simname)_iteration"), readdir("data"))
         @warn "Checkpoint for $(params.simname) found. Assuming this is a pick-up simulation! Setting overwrite_existing=false."
@@ -351,7 +360,7 @@ checkpointer = construct_outputs(simulation;
                                  write_xyz = true,
                                  write_xiz = false,
                                  write_xyi = true,
-                                 write_iyz = true,
+                                 write_iyz = false,
                                  write_ttt = true,
                                  write_tti = true,
                                  write_chk,

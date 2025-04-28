@@ -9,6 +9,7 @@ from aux00_utils import open_simulation, condense, adjust_times, aggregate_param
 from colorama import Fore, Back, Style
 from dask.diagnostics import ProgressBar
 xr.set_options(display_width=140, display_max_rows=30)
+π = 2*np.pi
 
 print("Starting energy transfer script")
 
@@ -17,16 +18,16 @@ if basename(__file__) != "00_run_postproc.py":
     path = "simulations/data/"
     simname_base = "seamount"
 
-    slopes = cycler(α = [0.05, 0.2])
-    Rossby_numbers = cycler(Ro_h = [0.5])
-    Froude_numbers = cycler(Fr_h = [0.2])
+    slopes         = cycler(α = [0.05, 0.2])
+    Rossby_numbers = cycler(Ro_h = [0.2, 1.25])
+    Froude_numbers = cycler(Fr_h = [0.2, 1.25])
 
-    resolutions    = cycler(res = [8, 4, 2])
-    closures       = cycler(closure = ["AMD", "CSM", "DSM", "NON"])
-    bcs            = cycler(bounded = [0])
+    resolutions    = cycler(dz = [8,])
+    closures       = cycler(closure = ["AMD", "AMC", "CSM", "DSM", "NON"])
+    closures       = cycler(closure = ["AMD", "CSM", "DSM"])
 
     paramspace = slopes * Rossby_numbers * Froude_numbers
-    configs    = resolutions * closures * bcs
+    configs    = resolutions * closures
 
     runs = paramspace * configs
 #---
@@ -57,15 +58,15 @@ for j, config in enumerate(runs):
                                     get_grid = False,
                                     open_dataset_kwargs = dict(chunks="auto"),
                                     )
-#    print(f"Opening {simname} ttt")
-#    ttt = open_simulation(path+f"ttt.{simname}.nc",
-#                                    use_advective_periods = True,
-#                                    topology = simname[:3],
-#                                    squeeze = True,
-#                                    load = False,
-#                                    get_grid = False,
-#                                    open_dataset_kwargs = dict(chunks="auto"),
-#                                    )
+    print(f"Opening {simname} ttt")
+    ttt = open_simulation(path+f"ttt.{simname}.nc",
+                                    use_advective_periods = True,
+                                    topology = simname[:3],
+                                    squeeze = True,
+                                    load = False,
+                                    get_grid = False,
+                                    open_dataset_kwargs = dict(chunks="auto"),
+                                    )
     print(f"Opening {simname} tti")
     tti = open_simulation(path+f"tti.{simname}.nc",
                                     use_advective_periods = True,
@@ -80,10 +81,10 @@ for j, config in enumerate(runs):
     #+++ Get rid of slight misalignment in times
     xyz = adjust_times(xyz, round_times=True)
     xyi = adjust_times(xyi, round_times=True)
-    #ttt = adjust_times(ttt, round_times=True)
+    ttt = adjust_times(ttt, round_times=True)
     tti = adjust_times(tti, round_times=True)
 
-    #ttt = ttt.assign_coords(xC=tti.xC.values, yC=tti.yC.values) # This is needed just as long as ttt is float32 and tti is float64
+    ttt = ttt.assign_coords(x_caa=tti.x_caa.values, y_aca=tti.y_aca.values) # This is needed just as long as ttt is float32 and tti is float64
     #---
 
     #+++ Preliminary definitions and checks
@@ -106,13 +107,13 @@ for j, config in enumerate(runs):
     #+++ Trimming domain
     t_slice_inclusive = slice(tti.T_advective_spinup, np.inf) # For snapshots, we want to include t=T_advective_spinup
     t_slice_exclusive = slice(tti.T_advective_spinup + 0.01, np.inf) # For time-averaged outputs, we want to exclude t=T_advective_spinup
-    x_slice = slice(xyz.xF[0], np.inf)
+    x_slice = slice(xyz.x_faa[0], np.inf)
     y_slice = slice(None, np.inf)
 
-    xyz = xyz.sel(time=t_slice_inclusive, xC=x_slice, xF=x_slice, yC=y_slice, yF=y_slice)
-    xyi = xyi.sel(time=t_slice_inclusive, xC=x_slice, xF=x_slice, yC=y_slice, yF=y_slice)
-    #ttt = ttt.sel(time=t_slice_exclusive, xC=x_slice, xF=x_slice, yC=y_slice, yF=y_slice)
-    tti = tti.sel(time=t_slice_exclusive, xC=x_slice, xF=x_slice, yC=y_slice, yF=y_slice)
+    xyz = xyz.sel(time=t_slice_inclusive, x_caa=x_slice, x_faa=x_slice, y_aca=y_slice, y_afa=y_slice)
+    xyi = xyi.sel(time=t_slice_inclusive, x_caa=x_slice, x_faa=x_slice, y_aca=y_slice, y_afa=y_slice)
+    ttt = ttt.sel(time=t_slice_exclusive, x_caa=x_slice, x_faa=x_slice, y_aca=y_slice, y_afa=y_slice)
+    tti = tti.sel(time=t_slice_exclusive, x_caa=x_slice, x_faa=x_slice, y_aca=y_slice, y_afa=y_slice)
     #---
 
     #+++ Condense tensors
@@ -148,21 +149,24 @@ for j, config in enumerate(runs):
     #+++ Time average
     # Here ū and ⟨u⟩ₜ are interchangeable
     tafields = tti.mean("time")
-    tafields = tafields.rename({"uᵢ"     : "ūᵢ",
-                                "∂ⱼuᵢ"   : "∂ⱼūᵢ",
-                                "uⱼuᵢ"   : "⟨uⱼuᵢ⟩ₜ",
-                                "b"      : "b̄",
-                                "∂ⱼb"    : "∂ⱼb̄",
-                                "wb"     : "⟨wb⟩ₜ",
-                                "εₖ"     : "ε̄ₖ",
-                                "εₚ"     : "ε̄ₚ",
-                                "ν"      : "ν̄",
-                                "κ"      : "κ̄",
-                                "Ek"     : "⟨Ek⟩ₜ",
-                                "PV"     : "q̄",
-                                "∭⁵εₖdV" : "∭⁵ε̄ₖdV",
-                                "∭⁵εₚdV" : "∭⁵ε̄ₚdV",
-                                "∭⁵wbdV" : "⟨∭⁵wbdV⟩ₜ",
+    tafields = tafields.rename({"uᵢ"      : "ūᵢ",
+                                "∂ⱼuᵢ"    : "∂ⱼūᵢ",
+                                "uⱼuᵢ"    : "⟨uⱼuᵢ⟩ₜ",
+                                "b"       : "b̄",
+                                "∂ⱼb"     : "∂ⱼb̄",
+                                "wb"      : "⟨wb⟩ₜ",
+                                "εₖ"      : "ε̄ₖ",
+                                "εₚ"      : "ε̄ₚ",
+                                "ν"       : "ν̄",
+                                "κ"       : "κ̄",
+                                "Ek"      : "⟨Ek⟩ₜ",
+                                "PV"      : "q̄",
+                                "∭⁵εₖdV"  : "∭⁵ε̄ₖdV",
+                                "∭⁵εₚdV"  : "∭⁵ε̄ₚdV",
+                                "∭⁵wbdV"  : "⟨∭⁵wbdV⟩ₜ",
+                                "∭¹⁰εₖdV" : "∭¹⁰ε̄ₖdV",
+                                "∭¹⁰εₚdV" : "∭¹⁰ε̄ₚdV",
+                                "∭¹⁰wbdV" : "⟨∭¹⁰wbdV⟩ₜ",
                                 })
     tafields.attrs = tti.attrs
     #---
@@ -186,12 +190,17 @@ for j, config in enumerate(runs):
     #---
 
     #+++ Volume-average/integrate results so far
-    #tafields["ΔxΔyΔz"] = tafields["Δxᶜᶜᶜ"] * tafields["Δyᶜᶜᶜ"] * tafields["Δzᶜᶜᶜ"]
-    #tafields["ΔxΔz"]   = tafields["Δxᶜᶜᶜ"] * tafields["Δzᶜᶜᶜ"]
-    #def integrate(da, dV=tafields["ΔxΔyΔz"], dims=("x", "y", "z")):
-    #    return (da*dV).pnsum(dims)
+    tafields["ΔxΔyΔz"] = tafields["Δx_caa"] * tafields["Δy_aca"] * tafields["Δz_aac"]
+    tafields["ΔxΔy"]   = tafields["Δx_caa"] * tafields["Δy_aca"]
+    def integrate(da, dV = None, dims=("x", "y", "z")):
+        if dV is None:
+            if dims == ("x", "y", "z"):
+                dV = tafields["ΔxΔyΔz"]
+            elif dims == ("x", "y"):
+                dV =  tafields["ΔxΔy"]
+        return (da * dV).pnsum(dims)
 
-    #tafields["1"] = xr.ones_like(tafields["Δxᶜᶜᶜ"])
+    tafields["1"] = xr.ones_like(tafields["Δx_caa"])
     #buffer = 5 # meters
 
     #distance_mask = tafields.altitude > buffer
@@ -205,14 +214,14 @@ for j, config in enumerate(runs):
     #for var in ["ε̄ₖ", "ε̄ₚ", "SPR", "⟨w′b′⟩ₜ", "⟨Ek′⟩ₜ", "1"]:
     #    int_all = f"∫∫⁰{var}dxdz"
     #    int_buf = f"∫∫⁵{var}dxdz"
-    #    tafields[int_all] = integrate(tafields[var], dV=tafields.ΔxΔz, dims=("x", "z"))
-    #    tafields[int_buf] = integrate(tafields[var], dV=tafields.ΔxΔz.where(distance_mask), dims=("x", "z"))
+    #    tafields[int_all] = integrate(tafields[var], dV=tafields.ΔxΔy, dims=("x", "z"))
+    #    tafields[int_buf] = integrate(tafields[var], dV=tafields.ΔxΔy.where(distance_mask), dims=("x", "z"))
     #    tafields = condense(tafields, [int_all, int_buf], f"∫∫ᵇ{var}dxdz", dimname="buffer", indices=[0, buffer])
 
-    #tafields["average_turbulence_mask"] = tafields["ε̄ₖ"] > 1e-10
-    #for var in ["ε̄ₖ", "ε̄ₚ", "SPR", "⟨wb⟩ₜ", "1"]:
-    #    int_turb = f"∫∫∫ᵋ{var}dxdydz"
-    #    tafields[int_turb] = integrate(tafields[var], dV=tafields.ΔxΔyΔz.where(tafields.average_turbulence_mask))
+    tafields["average_turbulence_mask"] = tafields["ε̄ₖ"] > 1e-8
+    for var in ["ε̄ₖ", "ε̄ₚ", "SPR", "⟨w′b′⟩ₜ", "1"]:
+        int_turb = f"∬ᵋ{var}dxdy"
+        tafields[int_turb] = integrate(tafields[var], dV=tafields.ΔxΔy.where(tafields.average_turbulence_mask), dims=("x", "y"))
     #---
 
     #+++ Get CSI mask and CSI-integral
@@ -222,7 +231,7 @@ for j, config in enumerate(runs):
 
     #+++ Drop unnecessary vars
     tafields = tafields.drop_vars(["ūⱼūᵢ", "⟨uⱼuᵢ⟩ₜ", "⟨u′ⱼu′ᵢ⟩ₜ",])
-    tafields = tafields.drop_dims(("xF", "yF",))
+    tafields = tafields.drop_dims(("x_faa", "y_afa",))
     #---
 
     #+++ Save tafields
@@ -231,7 +240,7 @@ for j, config in enumerate(runs):
         print(f"Saving results to {outname}...")
         tafields.to_netcdf(outname)
         print("Done!\n")
-    xyi.close(); xyz.close(); tti.close(); #ttt.close()
+    xyi.close(); xyz.close(); tti.close(); ttt.close()
     #---
 
     #+++ Create bulk dataset
@@ -242,12 +251,31 @@ for j, config in enumerate(runs):
     bulk["∭⁵ε̄ₚdV"]    = tafields["∭⁵ε̄ₚdV"]
     bulk["⟨∭⁵wbdV⟩ₜ"] = tafields["⟨∭⁵wbdV⟩ₜ"]
 
-    bulk["⟨∬Ek′dxdy⟩ₜ"] = tafields["⟨Ek′⟩ₜ"].pnintegrate(("x", "y"))
-    bulk["⟨∬Πdxdy⟩ₜ"]   = tafields["SPR"].sum("j").pnintegrate(("x", "y"))
+    bulk["∭¹⁰ε̄ₖdV"]    = tafields["∭¹⁰ε̄ₖdV"]
+    bulk["∭¹⁰ε̄ₚdV"]    = tafields["∭¹⁰ε̄ₚdV"]
+    bulk["⟨∭¹⁰wbdV⟩ₜ"] = tafields["⟨∭¹⁰wbdV⟩ₜ"]
 
-    altitude = xyz.altitude.pnsel(z=tti.zC, method="nearest")
-    bulk["⟨∬⁵Ek′dxdy⟩ₜ"] = tafields["⟨Ek′⟩ₜ"].where(altitude > 5, other=0).pnintegrate(("x", "y"))
-    bulk["⟨∬⁵Πdxdy⟩ₜ"]   = tafields["SPR"].sum("j").where(altitude > 5, other=0).pnintegrate(("x", "y"))
+    bulk["⟨∬w′b′dxdy⟩ₜ"] = integrate(tafields["⟨w′b′⟩ₜ"], dims = ("x", "y"))
+    bulk["⟨∬Ek′dxdy⟩ₜ"]  = integrate(tafields["⟨Ek′⟩ₜ"], dims = ("x", "y"))
+    bulk["⟨∬SPRdxdy⟩ₜ"]  = integrate(tafields["SPR"], dims = ("x", "y"))
+    bulk["⟨∬Πdxdy⟩ₜ"]    = bulk["⟨∬SPRdxdy⟩ₜ"].sum("j")
+
+    altitude = xyz.altitude.pnsel(z=tti.z_aac, method="nearest")
+    bulk["⟨∬⁵w′b′dxdy⟩ₜ"] = integrate(tafields["⟨w′b′⟩ₜ"].where(altitude > 5, other=0), dims = ("x", "y"))
+    bulk["⟨∬⁵Ek′dxdy⟩ₜ"]  = integrate(tafields["⟨Ek′⟩ₜ"].where(altitude > 5, other=0), dims = ("x", "y"))
+    bulk["⟨∬⁵SPRdxdy⟩ₜ"]  = integrate(tafields["SPR"].where(altitude > 5, other=0), dims = ("x", "y"))
+    bulk["⟨∬⁵Πdxdy⟩ₜ"]    = bulk["⟨∬⁵SPRdxdy⟩ₜ"].sum("j")
+
+    bulk["⟨∬¹⁰w′b′dxdy⟩ₜ"] = integrate(tafields["⟨w′b′⟩ₜ"].where(altitude > 10, other=0), dims = ("x", "y"))
+    bulk["⟨∬¹⁰Ek′dxdy⟩ₜ"]  = integrate(tafields["⟨Ek′⟩ₜ"].where(altitude > 10, other=0), dims = ("x", "y"))
+    bulk["⟨∬¹⁰SPRdxdy⟩ₜ"]  = integrate(tafields["SPR"].where(altitude > 10, other=0), dims = ("x", "y"))
+    bulk["⟨∬¹⁰Πdxdy⟩ₜ"]    = bulk["⟨∬¹⁰SPRdxdy⟩ₜ"].sum("j")
+
+    bulk["∬ᵋε̄ₖdxdy"] = tafields["∬ᵋε̄ₖdxdy"]
+    bulk["⟨ε̄ₖ⟩ᵋ"]    = bulk["∬ᵋε̄ₖdxdy"] / tafields["∬ᵋ1dxdy"]
+    bulk["Loᵋ"]      = 2*π * np.sqrt(bulk["⟨ε̄ₖ⟩ᵋ"] / bulk.N2_inf**(3/2))
+
+    bulk["Δz̃"] = bulk.Δz_min / bulk["Loᵋ"]
 
     bulk["Slope_Bu"] = bulk.Slope_Bu
     bulk["Ro_h"] = bulk.Ro_h
@@ -262,9 +290,9 @@ for j, config in enumerate(runs):
     bulk["N²∞"] = bulk.attrs["N²∞"]
     bulk["V∞"]  = bulk.attrs["V∞"]
     bulk["L"]   = bulk.L
-    bulk["Δx_min"] = tafields["Δxᶜᶜᶜ"].where(tafields["Δxᶜᶜᶜ"] > 0).min().values
-    bulk["Δy_min"] = tafields["Δyᶜᶜᶜ"].where(tafields["Δyᶜᶜᶜ"] > 0).min().values
-    bulk["Δz_min"] = tafields["Δzᶜᶜᶜ"].where(tafields["Δzᶜᶜᶜ"] > 0).min().values
+    bulk["Δx_min"] = tafields["Δx_caa"].where(tafields["Δx_caa"] > 0).min().values
+    bulk["Δy_min"] = tafields["Δy_aca"].where(tafields["Δy_aca"] > 0).min().values
+    bulk["Δz_min"] = tafields["Δz_aac"].where(tafields["Δz_aac"] > 0).min().values
 
     bulk["RoFr"] = bulk.Ro_h * bulk.Fr_h
     bulk["V∞³÷L"] = bulk.attrs["V∞"]**3 / bulk.L

@@ -92,11 +92,11 @@ def manual_facetgrid(da, fig, tt=None,
 #+++ Get proper orientation for plotting
 def get_orientation(ds):
     opts_orientation = dict()
-    if "xC" in ds.coords: # has an x dimension
+    if "x_caa" in ds.coords: # has an x dimension
         opts_orientation = opts_orientation | dict(x="x")
-    if "yC" in ds.coords: # has a y dimension
+    if "y_aca" in ds.coords: # has a y dimension
         opts_orientation = opts_orientation | dict(y="y")
-    if "zC" in ds.coords: # has a z dimension
+    if "z_aac" in ds.coords: # has a z dimension
         opts_orientation = opts_orientation | dict(y="z")
     return opts_orientation
 #---
@@ -104,7 +104,7 @@ def get_orientation(ds):
 #+++ Define seamount-plotting function
 def fill_seamount_yz(ax, ds, color="silver"):
     from aux01_physfuncs import seamount_curve
-    ax.fill_between(ds.yC, seamount_curve(ds.xC, ds.yC, ds), color=color)
+    ax.fill_between(ds.y_aca, seamount_curve(ds.x_caa, ds.y_aca, ds), color=color)
     return
 
 def fill_seamount_xy(ax, ds, radius, color="silver"):

@@ -1,5 +1,5 @@
 #!/bin/bash -l
-#PBS -A UMCP0020
+#PBS -A UMCP0028
 #PBS -N postproc
 #PBS -o logs/postproc.log
 #PBS -e logs/postproc.log
@@ -17,6 +17,6 @@ module li
 
 #/glade/u/apps/ch/opt/usr/bin/dumpenv # Dumps environment (for debugging with CISL support)
 
-time ~/miniconda3/envs/py310/bin/python 01_energy_transfers.py 2>&1 | tee logs/postproc.out
+time ~/miniconda3/envs/py310/bin/python 00_run_postproc.py 2>&1 | tee logs/postproc.out
 
 qstat -f $PBS_JOBID >> logs/postproc.out

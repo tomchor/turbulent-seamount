@@ -18,12 +18,11 @@ if basename(__file__) != "00_run_postproc.py":
     Rossby_numbers = cycler(Ro_h = [0.08, 0.2, 0.5, 1.25])
     Froude_numbers = cycler(Fr_h = [0.08, 0.2, 0.5, 1.25])
 
-    resolutions = cycler(res = [2,])
+    resolutions = cycler(dz = [2,])
     closures       = cycler(closure = ["CSM"])
-    bcs            = cycler(bounded = [0, 1])
 
     paramspace = slopes * Rossby_numbers * Froude_numbers
-    configs    = resolutions * closures * bcs
+    configs    = resolutions * closures
 
     runs = paramspace * configs
 #---

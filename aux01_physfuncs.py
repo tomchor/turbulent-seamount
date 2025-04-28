@@ -4,7 +4,7 @@ import xarray as xr
 
 
 #+++ Define filtering functions
-def filter_1d(da, filter_size, dim="xC", kernel="gaussian", spacing=None, min_distance=0,
+def filter_1d(da, filter_size, dim="x_caa", kernel="gaussian", spacing=None, min_distance=0,
               optimize=True, verbose=False, keep_dim_attrs=True):
     x2 = da[dim].rename({ dim : "x2"}).chunk()
 
@@ -35,7 +35,7 @@ def filter_1d(da, filter_size, dim="xC", kernel="gaussian", spacing=None, min_di
 
     return da_f
 
-def coarsen(da, filter_size, dims=["xC", "yC"], kernel="gaussian",
+def coarsen(da, filter_size, dims=["x_caa", "y_aca"], kernel="gaussian",
             spacings=[None, None], min_distance=0, optimize=True, verbose=False):
     result = da
     for dim, spacing in zip(dims, spacings):
@@ -53,8 +53,8 @@ def calculate_filtered_PV(ds, scale_meters = 5, condense_tensors=False, indices 
         ds = condense(ds, ["∂₁uᵢ", "∂₂uᵢ", "∂₃uᵢ"], "∂ⱼuᵢ", dimname="j", indices=indices)
         ds = condense(ds, ["dbdx", "dbdy", "dbdz"], "∂ⱼb",  dimname="j", indices=indices)
 
-    ds["∂ⱼũᵢ"] = coarsen(ds["∂ⱼuᵢ"], scale_meters, dims=["xC", "yC"], spacings=[ds["Δxᶜᶜᶜ"], ds["Δyᶜᶜᶜ"]], optimize=True)
-    ds["∂ⱼb̃"]  = coarsen(ds["∂ⱼb"],  scale_meters, dims=["xC", "yC"], spacings=[ds["Δxᶜᶜᶜ"], ds["Δyᶜᶜᶜ"]], optimize=True)
+    ds["∂ⱼũᵢ"] = coarsen(ds["∂ⱼuᵢ"], scale_meters, dims=["x_caa", "y_aca"], spacings=[ds["Δx_caa"], ds["Δy_aca"]], optimize=True)
+    ds["∂ⱼb̃"]  = coarsen(ds["∂ⱼb"],  scale_meters, dims=["x_caa", "y_aca"], spacings=[ds["Δx_caa"], ds["Δy_aca"]], optimize=True)
 
     ω_x = ds["∂ⱼũᵢ"].sel(i=3, j=2) - ds["∂ⱼũᵢ"].sel(i=2, j=3)
     ω_y = ds["∂ⱼũᵢ"].sel(i=1, j=3) - ds["∂ⱼũᵢ"].sel(i=3, j=1)
@@ -77,30 +77,30 @@ def get_topography_masks(ds, buffers_in_meters=[0, 5, 10, 30], get_buffered_volu
     """ Get some important masks for the headland set-up"""
 
     #+++ Easy stuff first
-    ds["land_mask"]  = (ds["Δxᶜᶜᶜ"] == 0)
+    ds["land_mask"]  = (ds["Δx_caa"] == 0)
     ds["water_mask"] = np.logical_not(ds.land_mask)
     #---
 
     #+++ Get the distances from topography
     squared_distances = []
 
-    if "xC" in ds.reset_coords().coords.keys():
-        x_boundary_locations = ds.xC.where(ds.land_mask.astype(float).diff("xC")).max("xC")
+    if "x_caa" in ds.reset_coords().coords.keys():
+        x_boundary_locations = ds.x_caa.where(ds.land_mask.astype(float).diff("x_caa")).max("x_caa")
         x_boundary_locations = x_boundary_locations.where(np.isfinite(x_boundary_locations), other=400)
-        x_squared_distances = (ds.xC - x_boundary_locations)**2
+        x_squared_distances = (ds.x_caa - x_boundary_locations)**2
         squared_distances.append(x_squared_distances)
 
-    if "yC" in ds.reset_coords().coords.keys():
-        y_boundary_locations_north = ds.yC.where(ds.land_mask.astype(float).diff("yC")).max("yC")
+    if "y_aca" in ds.reset_coords().coords.keys():
+        y_boundary_locations_north = ds.y_aca.where(ds.land_mask.astype(float).diff("y_aca")).max("y_aca")
         y_boundary_locations_north = y_boundary_locations_north.where(np.isfinite(y_boundary_locations_north), other=0)
 
-        y_boundary_locations_south = ds.yC.where(ds.land_mask.astype(float).diff("yC")).min("yC")
+        y_boundary_locations_south = ds.y_aca.where(ds.land_mask.astype(float).diff("y_aca")).min("y_aca")
         y_boundary_locations_south = y_boundary_locations_south.where(np.isfinite(y_boundary_locations_south), other=0)
 
-        y_squared_distances = np.sqrt(xr.concat([(ds.yC - y_boundary_locations_south)**2, (ds.yC - y_boundary_locations_north)**2], dim="aux").min("aux"))
+        y_squared_distances = np.sqrt(xr.concat([(ds.y_aca - y_boundary_locations_south)**2, (ds.y_aca - y_boundary_locations_north)**2], dim="aux").min("aux"))
         squared_distances.append(y_squared_distances)
 
-    if "zC" in ds.reset_coords().coords.keys():
+    if "z_aac" in ds.reset_coords().coords.keys():
         pass
         #raise(ValueError("z direction not yet implemented"))
 
@@ -114,7 +114,7 @@ def get_topography_masks(ds, buffers_in_meters=[0, 5, 10, 30], get_buffered_volu
     ds["water_mask_buffered"] = (ds.distance_from_boundary > filter_scales)
 
     if get_buffered_volumes:
-        dV = ds["Δxᶜᶜᶜ"] * ds["Δyᶜᶜᶜ"] * ds["Δzᶜᶜᶜ"]
+        dV = ds["Δx_caa"] * ds["Δy_aca"] * ds["Δz_aac"]
         ds["dV_water_mask_buffered"] = dV.where(ds.water_mask_buffered, other=0.0)
     #---
 

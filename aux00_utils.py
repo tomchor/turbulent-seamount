@@ -16,13 +16,14 @@ def open_simulation(fname,
                     verbose=False,
                     get_grid = True,
                     topology="PPN", **kwargs):
-    if verbose: print(sname, "\n")
     
     #+++ Open dataset and create grid before squeezing
+    if verbose: print(f"\nOpening {fname}... ", end="")
     if load:
         ds = xr.load_dataset(fname, decode_times=False, **open_dataset_kwargs)
     else:
         ds = xr.open_dataset(fname, decode_times=False, **open_dataset_kwargs)
+    if verbose: print("Done")
     #---
 
     #+++ Get grid
@@ -74,24 +75,56 @@ def condense(ds, vlist, varname, dimname="α", indices=None):
     return ds
 #---
 
+#+++ Merge datasets into one
+def merge_datasets(runs, base_name = "seamount", dirpath="data_post", add_min_spacings=True, add_simulation_info=True, verbose=False):
+    simnames_filtered = list(map(lambda run: form_run_names(base_name, run, sep="_", prefix=""), runs))
+    dslist = []
+    for sim_number, simname in enumerate(simnames_filtered):
+        #+++ Open volume-integrated output
+        fname = f"{simname}.nc"
+        if verbose: print(f"\nOpening {fname}")
+        ds = xr.open_dataset(f"{dirpath}/{fname}", chunks=dict(time="auto", L="auto"))
+        #---
+
+        #+++ Create auxiliary variables and organize them into a Dataset
+        if add_min_spacings: # Calculate resolutions before they get thrown out
+            if "Δx_min" not in ds.keys(): ds["Δx_min"] = ds["Δx_caa"].where(ds["Δx_caa"] > 0).min().values
+            if "Δy_min" not in ds.keys(): ds["Δy_min"] = ds["Δy_aca"].where(ds["Δy_aca"] > 0).min().values
+            if "Δz_min" not in ds.keys(): ds["Δz_min"] = ds["Δz_aac"].where(ds["Δz_aac"] > 0).min().values
+
+        if add_simulation_info:
+            ds["simulation"] = simname
+            ds["sim_number"] = sim_number
+
+        for dim in runs.keys: # Let's make each variable in `runs` an xarray `coord`
+            if dim not in ds.variables: # if `dim` is not a variable, make it one
+                ds = ds.expand_dims((dim,))
+            ds = ds.assign_coords({dim : [ds.attrs[dim]]})
+        dslist.append(ds)
+        #---
+
+    return xr.combine_by_coords(dslist, combine_attrs="drop_conflicts")
+#---
+
 #+++ Time adjustment
 def adjust_times(ds, round_times=True, decimals=4):
     import numpy as np
     from statistics import mode
-    Δt = np.round(mode(ds.time.diff("time").values), decimals=5)
-    ds = ds.sel(time=np.arange(ds.time[0], ds.time[-1]+Δt/2, Δt), method="nearest")
+    if len(ds.time) > 1:
+        Δt = np.round(mode(ds.time.diff("time").values), decimals=5)
+        ds = ds.sel(time=np.arange(ds.time[0], ds.time[-1]+Δt/2, Δt), method="nearest")
 
-    if round_times:
-        ds = ds.assign_coords(time = list( map(lambda x: np.round(x, decimals=decimals), ds.time.values) ))
+        if round_times:
+            ds = ds.assign_coords(time = list( map(lambda x: np.round(x, decimals=decimals), ds.time.values) ))
     return ds
 #---
 
 #+++ Check if all simulations are complete
-def check_simulation_completion(simnames, slice_name="ttt", path="./headland_simulations/data/"):
+def check_simulation_completion(simnames, slice_name="ttt", path="./headland_simulations/data/", verbose=True):
     from colorama import Fore, Back, Style
     times = []
     for simname in simnames:
-        with open_simulation(path+f"{slice_name}.{simname}.nc", use_advective_periods = True, get_grid = False) as ds:
+        with open_simulation(path+f"{slice_name}.{simname}.nc", use_advective_periods = True, get_grid = False, verbose=verbose, squeeze=False) as ds:
             ds = adjust_times(ds, round_times=True)
             times.append(ds.time.values)
             print(simname, ds.time.values)
@@ -145,11 +178,11 @@ def collect_datasets(simnames_filtered, slice_name="xyi", path="./headland_simul
                                  )
 
             if slice_name == "xyi":
-                ds = ds.drop_vars(["zC", "zF"])
+                ds = ds.drop_vars(["z_aac", "z_aaf"])
             elif slice_name == "xiz":
-                ds = ds.drop_vars(["yC", "yF"])
+                ds = ds.drop_vars(["y_aca", "y_afa"])
             elif slice_name == "iyz":
-                ds = ds.drop_vars(["xC", "xF"])
+                ds = ds.drop_vars(["x_caa", "x_faa"])
 
             #+++ Get rid of slight misalignment in times
             ds = adjust_times(ds, round_times=True)
@@ -172,9 +205,9 @@ def collect_datasets(simnames_filtered, slice_name="xyi", path="./headland_simul
         #---
 
         #+++ Calculate resolutions before they get thrown out
-        if "Δx_min" not in ds.keys(): ds["Δx_min"] = ds["Δxᶜᶜᶜ"].where(ds["Δxᶜᶜᶜ"] > 0).min().values
-        if "Δy_min" not in ds.keys(): ds["Δy_min"] = ds["Δyᶜᶜᶜ"].where(ds["Δyᶜᶜᶜ"] > 0).min().values
-        if "Δz_min" not in ds.keys(): ds["Δz_min"] = ds["Δzᶜᶜᶜ"].where(ds["Δzᶜᶜᶜ"] > 0).min().values
+        if "Δx_min" not in ds.keys(): ds["Δx_min"] = ds["Δx_caa"].where(ds["Δx_caa"] > 0).min().values
+        if "Δy_min" not in ds.keys(): ds["Δy_min"] = ds["Δy_aca"].where(ds["Δy_aca"] > 0).min().values
+        if "Δz_min" not in ds.keys(): ds["Δz_min"] = ds["Δz_aac"].where(ds["Δz_aac"] > 0).min().values
         #---
 
         #+++ Create auxiliary variables and organize them into a Dataset
@@ -193,9 +226,9 @@ def collect_datasets(simnames_filtered, slice_name="xyi", path="./headland_simul
     for i, ds in enumerate(dslist[1:]):
         try:
             if slice_name == "xyi":
-                assert np.allclose(dslist[0].yC.values, ds.yC.values), "y coordinates don't match in all datasets"
+                assert np.allclose(dslist[0].y_aca.values, ds.y_aca.values), "y coordinates don't match in all datasets"
             elif slice_name == "xiz":
-                assert np.allclose(dslist[0].zC.values, ds.zC.values), "z coordinates don't match in all datasets"
+                assert np.allclose(dslist[0].z_aac.values, ds.z_aac.values), "z coordinates don't match in all datasets"
         except AttributeError:
             if slice_name == "xyi":
                 assert np.allclose(dslist[0].y.values, ds.y.values), "y coordinates don't match in all datasets"
@@ -213,12 +246,12 @@ def collect_datasets(simnames_filtered, slice_name="xyi", path="./headland_simul
             dslist[i]["time"] = time_values # Prevent double time, e.g. [0, 0.2, 0.2, 0.4, 0.4, 0.6, 0.8] etc. (not sure why this is needed)
     dsout = xr.combine_by_coords(dslist, combine_attrs="drop_conflicts")
 
-    if "Δxᶜᶜᶜ" in ds.keys():
-        dsout["Δxᶜᶜᶜ"] = dsout["Δxᶜᶜᶜ"].isel(Ro_h=0, Fr_h=0)
-        dsout["land_mask"]  = (dsout["Δxᶜᶜᶜ"] == 0)
+    if "Δx_caa" in ds.keys():
+        dsout["Δx_caa"] = dsout["Δx_caa"].isel(Ro_h=0, Fr_h=0)
+        dsout["land_mask"]  = (dsout["Δx_caa"] == 0)
         dsout["water_mask"] = np.logical_not(dsout.land_mask)
-    if "Δyᶜᶜᶜ" in ds.keys(): dsout["Δyᶜᶜᶜ"] = dsout["Δyᶜᶜᶜ"].isel(Ro_h=0, Fr_h=0)
-    if "Δzᶜᶜᶜ" in ds.keys(): dsout["Δzᶜᶜᶜ"] = dsout["Δzᶜᶜᶜ"].isel(Ro_h=0, Fr_h=0)
+    if "Δy_aca" in ds.keys(): dsout["Δy_aca"] = dsout["Δy_aca"].isel(Ro_h=0, Fr_h=0)
+    if "Δz_aac" in ds.keys(): dsout["Δz_aac"] = dsout["Δz_aac"].isel(Ro_h=0, Fr_h=0)
     #---
 
     return dsout

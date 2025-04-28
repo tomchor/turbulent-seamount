@@ -5,7 +5,7 @@ sys.path.append("..")
 from aux00_utils import aggregate_parameters
 
 #+++ Define run options
-simname_base = "tokara"
+simname_base = "seamount"
 
 slopes         = cycler(α = [0.05, 0.1, 0.2])
 slopes         = cycler(α = [0.2,])
@@ -13,11 +13,11 @@ Rossby_numbers = cycler(Ro_h = [0.08, 0.2, 0.5, 1.25])
 Froude_numbers = cycler(Fr_h = [0.08, 0.2, 0.5, 1.25])
 
 resolutions    = cycler(res = [8, 4, 2,])
+closures       = cycler(closure = ["AMD", "AMC", "CSM", "DSM", "NON"])
 closures       = cycler(closure = ["AMD"])
-bcs            = cycler(bounded = [0])
 
 paramspace = slopes * Rossby_numbers * Froude_numbers
-configs    = resolutions * closures * bcs
+configs    = resolutions * closures
 
 runs = paramspace * configs
 #---
@@ -33,6 +33,7 @@ aux_filename = "aux_pbs.sh"
 julia_script = "seamount.jl"
 #---
 
+#+++ PBS script template
 pbs_script = \
 """#!/bin/bash -l
 #PBS -A UMCP0028
@@ -51,7 +52,7 @@ pbs_script = \
 module li
 module --force purge
 module load ncarenv/23.10
-module load julia/1.10.2 cuda
+module load cuda
 module li
 
 #/glade/u/apps/ch/opt/usr/bin/dumpenv # Dumps environment (for debugging with CISL support)
@@ -59,11 +60,12 @@ module li
 export JULIA_DEPOT_PATH="/glade/work/tomasc/.julia"
 echo $CUDA_VISIBLE_DEVICES
 
-time julia --project --pkgimages=no {julia_script} {run_options} --simname={simname} 2>&1 | tee logs/{simname_ascii}.out
+time /glade/u/home/tomasc/bin/julia-1.10.9/bin/julia --project --pkgimages=no {julia_script} {run_options} --simname={simname} 2>&1 | tee logs/{simname_ascii}.out
 
 qstat -f $PBS_JOBID >> logs/{simname_ascii}.log
 qstat -f $PBS_JOBID >> logs/{simname_ascii}.out
 """
+#---
 
 for modifiers in runs:
     run_options = aggregate_parameters(modifiers)
@@ -82,23 +84,24 @@ for modifiers in runs:
     options1 = dict(select=1, ncpus=1, ngpus=1)
     options2 = dict()
 
-    res_divider = modifiers["res"] if "res" in modifiers.keys() else None
-    if res_divider >= 8:
+    Δz = modifiers["dz"] if "dz" in modifiers.keys() else np.inf
+    if Δz >= 8:
         options2 = options2 | dict(gpu_type = "v100")
         cmd1 = f"qsub {aux_filename}"
-    elif res_divider >= 2:
+    elif Δz >= 2:
         options2 = options2 | dict(gpu_type = "a100")
         cmd1 = f"qsub {aux_filename}"
-    elif res_divider == 1:
+    else:
         options1 = options1 | dict(cpu_type = "milan")
         options2 = options2 | dict(gpu_type = "a100")
 
-        if only_one_job:
+        if modifiers["α"] > 0.1:
             cmd1 = f"qsub {aux_filename}"
         else:
-            cmd1 = f"JID1=`qsub {aux_filename}`; JID2=`qsub -W depend=afterok:$JID1 {aux_filename}`; qrls $JID1"
-    else:
-        raise(ValueError("`res_divider` has an unexpected value"))
+            if only_one_job:
+                cmd1 = f"qsub {aux_filename}"
+            else:
+                cmd1 = f"JID1=`qsub {aux_filename}`; JID2=`qsub -W depend=afterok:$JID1 {aux_filename}`; qrls $JID1"
 
     options_string1 = ":".join([ f"{key}={val}" for key, val in options1.items() ])
     options_string2 = ":".join([ f"{key}={val}" for key, val in options2.items() ])

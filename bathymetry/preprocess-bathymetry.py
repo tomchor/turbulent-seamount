@@ -22,46 +22,7 @@ def get_max_location_argmax(da):
 
     return result
 
-import xarray as xr
-import numpy as np
-from geopy.distance import geodesic
-
-def calculate_distances_geopy(da, ref_lat, ref_lon):
-    """Calculate distances from a reference point using geopy"""
-    ref_point = (ref_lat, ref_lon)
-
-    # Get coordinate values
-    lats = da.lat.values
-    lons = da.lon.values
-
-    # Initialize an array for distances
-    if lats.ndim == 1 and lons.ndim == 1:
-        # For rectilinear grids
-        distances = np.zeros((len(lats), len(lons)))
-        for i, lat in enumerate(lats):
-            for j, lon in enumerate(lons):
-                distances[i, j] = geodesic(ref_point, (lat, lon)).meters
-    else:
-        # For curvilinear grids
-        distances = np.zeros_like(lats)
-        for i in range(lats.shape[0]):
-            for j in range(lats.shape[1]):
-                distances[i, j] = geodesic(ref_point, (lats[i, j], lons[i, j])).meters
-
-    # Create a new DataArray with the same dimensions
-    distance_da = xr.DataArray(
-        distances,
-        coords=da.coords,
-        dims=da.dims,
-        name='distance_meters'
-    )
-
-    return distance_da
-
-import xarray as xr
-import numpy as np
 from scipy import linalg
-
 def detrend_elevation(da):
     """
     Remove a linear trend (slope) from 2D elevation data.
@@ -134,13 +95,10 @@ def detrend_elevation(da):
 #---
 
 ds = xr.load_dataset("balanus-gebco_2024_n39.8_s39.0_w-65.8_e-65.0.nc")
-ds["periodic_elevation"] = detrend_elevation(ds.elevation)
+ds["detrended_elevation"] = detrend_elevation(ds.elevation)
 
-maximum_point = get_max_location_argmax(ds.periodic_elevation)
+maximum_point = get_max_location_argmax(ds.detrended_elevation)
 ds = ds.assign_coords(lat = ds.lat - maximum_point["lat"], lon = ds.lon - maximum_point["lon"])
-
-# Useful to estimate full width at half maximum (FWHM)
-ds["distance_from_peak"] = calculate_distances_geopy(ds.periodic_elevation, maximum_point["lat"], maximum_point["lon"])
 
 # The resolution of the GEBCO 2024 datasets is 15 arcseconds. At 40°-ish latitude then
 Δlat = 463.8 # meters
@@ -151,6 +109,29 @@ lat2meter = 111_130 # meters
 lon2meter = 85_390 # meters
 
 ds = ds.assign_coords(lat = ds.lat * lat2meter, lon = ds.lon * lon2meter)
+ds = ds.rename(lon="x", lat="y")
+
+# Useful to estimate full width at half maximum (FWHM)
+ds["half_maximum_ring"] = ds.detrended_elevation.where(abs(ds.detrended_elevation - ds.detrended_elevation.max()/2) < 100)
+ds["distance_from_peak"] = np.sqrt(ds.x**2 + ds.y**2)
+
+ds.attrs["H"] = maximum_point["value"]
+ds.attrs["FWHM"] = ds.distance_from_peak.where(np.logical_not(np.isnan(ds.half_maximum_ring))).mean().item()
+ds.attrs["δ"] = ds.H / ds.FWHM
+
+if True:
+    plt.figure()
+    ds.distance_from_peak.plot.contourf(levels=[0, 5e3, 10e3, 15e3, 20e3])
+    ds.half_maximum_ring.plot.contour(colors="k")
+
+    plt.gca().set_title(f"Full width at half maximum is {ds.FWHM:.2f} m")
+
+if True:
+    fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
+    ax.set_box_aspect((ds.x[-1] - ds.x[0], ds.y[-1] - ds.y[0], 5*ds.H))  # aspect ratio is 1:1:1 in data space
+    X = ds.x + 0 * ds.y
+    Y = (ds.y + 0 * ds.x).T
+    surf = ax.plot_surface(X, Y, ds.detrended_elevation, cmap=plt.cm.viridis, linewidth=0, antialiased=False)
 
 encoding = { var : dict(zlib=True, complevel=9, shuffle=True) for var in ds.data_vars }
 ds.to_netcdf("balanus-bathymetry-preprocessed.nc", encoding = encoding)

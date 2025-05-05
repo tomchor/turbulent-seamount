@@ -8,12 +8,11 @@ from aux00_utils import aggregate_parameters
 simname_base = "seamount"
 
 slopes         = cycler(α = [0.05, 0.2])
-Rossby_numbers = cycler(Ro_h = [0.2, 1.25])
-Froude_numbers = cycler(Fr_h = [0.2, 1.25])
+Rossby_numbers = cycler(Ro_h = [0.08, 0.2, 0.5, 1.25])
+Froude_numbers = cycler(Fr_h = [0.08, 0.2, 0.5, 1.25])
 
 resolutions    = cycler(dz = [8, 4, 2, 1])
 closures       = cycler(closure = ["AMD", "AMC", "CSM", "DSM", "NON"])
-closures       = cycler(closure = ["AMD", "CSM", "DSM"])
 
 paramspace = slopes * Rossby_numbers * Froude_numbers
 configs    = resolutions * closures
@@ -31,7 +30,7 @@ verbose = 1
 aux_filename = "aux_submission_script.sh"
 julia_script = "seamount.jl"
 
-scheduler = "pbs"
+scheduler = "slurm"
 #---
 
 #+++ Open submission script template and define options

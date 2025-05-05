@@ -304,7 +304,7 @@ set!(model, b=(x, y, z) -> b∞(x, y, z, 0, f_params), v=params.V∞)
 params = (; params..., T_advective_max = params.T_advective_spinup + params.T_advective_statistics)
 simulation = Simulation(model, Δt = 0.2 * minimum_zspacing(grid.underlying_grid) / params.V∞,
                         stop_time = params.T_advective_max * params.T_advective,
-                        wall_time_limit = 23hours,
+                        wall_time_limit = 47hours,
                         minimum_relative_step = 1e-10,
                         )
 

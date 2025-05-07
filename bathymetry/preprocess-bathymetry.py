@@ -94,7 +94,20 @@ def detrend_elevation(da):
     return detrended_da
 #---
 
-ds = xr.load_dataset("balanus-gebco_2024_n39.8_s39.0_w-65.8_e-65.0.nc")
+ds1 = xr.load_dataset("GEBCO/balanus-gebco_2024_n39.8_s39.0_w-65.8_e-65.0.nc")
+ds2 = xr.load_dataset("GMRT/GMRTv4_3_1_20250502topo.nc")
+
+if False:
+    fig, axes = plt.subplots(ncols=2, figsize=(12, 6), sharex=True, sharey=True, layout='constrained')
+    
+    # Find global min and max across all datasets
+    vmin = min(ds1.elevation.min(), ds2.z.min())
+    vmax = max(ds1.elevation.max(), ds2.z.max())
+    
+    ds1.elevation.plot(ax=axes[0], add_colorbar=False, vmin=vmin, vmax=vmax)
+    im = ds2.z.plot(ax=axes[1], vmin=vmin, vmax=vmax)
+
+ds = ds2
 ds["detrended_elevation"] = detrend_elevation(ds.elevation)
 
 maximum_point = get_max_location_argmax(ds.detrended_elevation)

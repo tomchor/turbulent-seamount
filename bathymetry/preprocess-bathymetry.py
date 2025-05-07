@@ -94,32 +94,27 @@ def detrend_elevation(da):
     return detrended_da
 #---
 
-ds1 = xr.load_dataset("GEBCO/balanus-gebco_2024_n39.8_s39.0_w-65.8_e-65.0.nc")
-ds2 = xr.load_dataset("GMRT/GMRTv4_3_1_20250502topo.nc")
+ds = xr.load_dataset("GMRT/GMRTv4_3_1_20250502topo.nc")
+ds = ds.dropna("lat", how="all").dropna("lon", how="all")
 
-if False:
-    fig, axes = plt.subplots(ncols=2, figsize=(12, 6), sharex=True, sharey=True, layout='constrained')
-    
-    # Find global min and max across all datasets
-    vmin = min(ds1.elevation.min(), ds2.z.min())
-    vmax = max(ds1.elevation.max(), ds2.z.max())
-    
-    ds1.elevation.plot(ax=axes[0], add_colorbar=False, vmin=vmin, vmax=vmax)
-    im = ds2.z.plot(ax=axes[1], vmin=vmin, vmax=vmax)
 
-ds = ds2
-ds["detrended_elevation"] = detrend_elevation(ds.elevation)
+ds["detrended_elevation"] = detrend_elevation(ds.z)
+ds["detrended_elevation2"] = detrend_elevation(ds.detrended_elevation)
 
 maximum_point = get_max_location_argmax(ds.detrended_elevation)
 ds = ds.assign_coords(lat = ds.lat - maximum_point["lat"], lon = ds.lon - maximum_point["lon"])
 
 # The resolution of the GEBCO 2024 datasets is 15 arcseconds. At 40°-ish latitude then
-Δlat = 463.8 # meters
-Δlon = 355.3 # meters
+Δlat = ds.lat.diff("lat").mean().item()
+Δlon = ds.lon.diff("lon").mean().item()
 
 # Or better yet
-lat2meter = 111_130 # meters
-lon2meter = 85_390 # meters
+lat2meter = 111.3e3 # meters
+lon2meter = lat2meter * np.cos(np.deg2rad(maximum_point["lat"]))
+
+degrees_to_arcseconds = 60 * 60
+print(f"Dataset has spacing of {Δlat * degrees_to_arcseconds:.2f} arcseconds in latitude and {Δlon *
+      degrees_to_arcseconds:.2f} arcseconds in longitude")
 
 ds = ds.assign_coords(lat = ds.lat * lat2meter, lon = ds.lon * lon2meter)
 ds = ds.rename(lon="x", lat="y")
@@ -138,12 +133,13 @@ if True:
     ds.half_maximum_ring.plot.contour(colors="k")
 
     plt.gca().set_title(f"Full width at half maximum is {ds.FWHM:.2f} m")
+    plt.gca().set_aspect('equal')
 
 if True:
     fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
     ax.set_box_aspect((ds.x[-1] - ds.x[0], ds.y[-1] - ds.y[0], 5*ds.H))  # aspect ratio is 1:1:1 in data space
-    X = ds.x + 0 * ds.y
-    Y = (ds.y + 0 * ds.x).T
+    X = (ds.x + 0 * ds.y).T
+    Y = (ds.y + 0 * ds.x)
     surf = ax.plot_surface(X, Y, ds.detrended_elevation, cmap=plt.cm.viridis, linewidth=0, antialiased=False)
 
 encoding = { var : dict(zlib=True, complevel=9, shuffle=True) for var in ds.data_vars }

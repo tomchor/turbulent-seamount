@@ -155,20 +155,6 @@ ds.attrs["δ"] = ds.H / ds.FWHM
 ringed_periodic_elevation = ds.detrended_elevation.where(ds.distance_from_peak < 2*ds.FWHM).where(ds.distance_from_peak < 2.5*ds.FWHM, other=0)
 ds["periodic_elevation"] = interpolate_2d_scipy(ringed_periodic_elevation)
 
-if True:
-    plt.figure()
-    ds.distance_from_peak.plot.contourf(levels=[0, 5e3, 10e3, 15e3, 20e3])
-    half_maximum_ring.plot.contour(colors="k")
-
-    plt.gca().set_title(f"Full width at half maximum is {ds.FWHM:.2f} m")
-    plt.gca().set_aspect('equal')
-
-if True:
-    fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
-    ax.set_box_aspect((ds.x[-1] - ds.x[0], ds.y[-1] - ds.y[0], 5*ds.H))  # aspect ratio is 1:1:1 in data space
-    X = (ds.x + 0 * ds.y).T
-    Y = (ds.y + 0 * ds.x)
-    surf = ax.plot_surface(X, Y, ds.periodic_elevation, cmap=plt.cm.viridis, linewidth=0, antialiased=False)
-
+ds = ds.drop_vars(["detrended_elevation", "distance_from_peak"])
 encoding = { var : dict(zlib=True, complevel=9, shuffle=True) for var in ds.data_vars }
 ds.to_netcdf("balanus-bathymetry-preprocessed.nc", encoding = encoding)

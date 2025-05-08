@@ -92,14 +92,70 @@ def detrend_elevation(da):
     detrended_da.attrs["intercept"] = float(c)
 
     return detrended_da
+
+def low_pass_filter(da, filter_scale):
+    """
+    Apply a low-pass filter to 2D elevation data using xarray's rolling average.
+    Assumes periodic boundary conditions in both directions.
+    
+    Parameters:
+    -----------
+    da : xarray.DataArray
+        2D DataArray of elevation data with x and y coordinates
+    filter_scale : float
+        Scale of the filter in the same units as the coordinates
+        (e.g., meters if coordinates are in meters)
+    
+    Returns:
+    --------
+    xarray.DataArray
+        High-pass filtered elevation data with the same dimensions and coordinates
+    """
+    # Calculate window sizes in grid points
+    dx = float(da.x.diff('x').mean())
+    dy = float(da.y.diff('y').mean())
+    
+    # Convert filter scale to grid points and round to nearest odd number
+    window_x = int(2 * (filter_scale / dx) // 2) + 1
+    window_y = int(2 * (filter_scale / dy) // 2) + 1
+    
+    # Ensure minimum window size of 3
+    window_x = max(3, window_x)
+    window_y = max(3, window_y)
+    
+    # Apply rolling mean (low-pass) with periodic boundary conditions
+    # Use min_periods=1 to handle edge cases
+    low_pass = da.pad(dict(x=window_x, y=window_y), mode="wrap").rolling(
+        x=window_x,
+        y=window_y,
+        center=True,
+        min_periods=1
+    ).mean()
+    
+    # Add information about the filtering
+    low_pass.attrs["filter_scale"] = float(filter_scale)
+    low_pass.attrs["filter_type"] = "low-pass (periodic)"
+    low_pass.attrs["window_size_x"] = window_x
+    low_pass.attrs["window_size_y"] = window_y
+    
+    return low_pass
+
+def high_pass_filter(da, filter_scale):
+    high_pass = da - low_pass_filter(da, filter_scale)
+
+    # Add information about the filtering
+    high_pass.attrs["filter_scale"] = float(filter_scale)
+    high_pass.attrs["filter_type"] = "high-pass (periodic)"
+    high_pass.attrs["window_size_x"] = window_x
+    high_pass.attrs["window_size_y"] = window_y
+    
+    return high_pass
 #---
 
-ds = xr.load_dataset("GMRT/GMRTv4_3_1_20250502topo.nc")
+ds = xr.open_dataset("GMRT/GMRTv4_3_1_20250502topo.nc")
 ds = ds.dropna("lat", how="all").dropna("lon", how="all")
 
-
 ds["detrended_elevation"] = detrend_elevation(ds.z)
-ds["detrended_elevation2"] = detrend_elevation(ds.detrended_elevation)
 
 maximum_point = get_max_location_argmax(ds.detrended_elevation)
 ds = ds.assign_coords(lat = ds.lat - maximum_point["lat"], lon = ds.lon - maximum_point["lon"])
@@ -118,6 +174,19 @@ print(f"Dataset has spacing of {Δlat * degrees_to_arcseconds:.2f} arcseconds in
 
 ds = ds.assign_coords(lat = ds.lat * lat2meter, lon = ds.lon * lon2meter)
 ds = ds.rename(lon="x", lat="y")
+
+coarse_elevation = ds.z.coarsen(x=10, y=10, boundary="trim").mean()
+trend = low_pass_filter(coarse_elevation, filter_scale=40e3)
+pause
+
+ds["trend_elevation"] = low_pass_filter(ds.detrended_elevation, filter_scale=40e3)
+ds["detrended_elevation2"] = ds.detrended_elevation - ds.trend_elevation
+pause
+
+ds.detrended_elevation.isel(x=-1).plot()
+ds.detrended_elevation2.isel(x=-1).plot()
+pause
+
 
 # Useful to estimate full width at half maximum (FWHM)
 ds["half_maximum_ring"] = ds.detrended_elevation.where(abs(ds.detrended_elevation - ds.detrended_elevation.max()/2) < 100)

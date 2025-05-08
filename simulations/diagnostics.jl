@@ -184,9 +184,9 @@ function construct_outputs(simulation;
         @info "Starting to write grid metrics and deltas to xyz"
         laptimer()
         #add_grid_metrics_to!(ow)
-        write_to_ds(ow.filepath, "altitude", interior(compute!(Field(altitude))), coords = ("x_caa", "y_aca", "z_aac"))
-        write_to_ds(ow.filepath, "ΔxΔz", interior(compute!(Field(ΔxΔz))), coords = ("x_caa", "y_aca", "z_aac"))
-        write_to_ds(ow.filepath, "bottom_height", Array(interior(maximum(compute!(Field(bottom_height)), dims=3)))[:,:,1], coords = ("x_caa", "y_aca",))
+        #write_to_ds(ow.filepath, "altitude", interior(compute!(Field(altitude))), coords = ("x_caa", "y_aca", "z_aac"))
+        #write_to_ds(ow.filepath, "ΔxΔz", interior(compute!(Field(ΔxΔz))), coords = ("x_caa", "y_aca", "z_aac"))
+        #write_to_ds(ow.filepath, "bottom_height", Array(interior(maximum(compute!(Field(bottom_height)), dims=3)))[:,:,1], coords = ("x_caa", "y_aca",))
         @info "Finished writing grid metrics and deltas to xyz"
         laptimer()
     end
@@ -262,8 +262,8 @@ function construct_outputs(simulation;
                                                                kwargs...
                                                                )
         #add_grid_metrics_to!(ow, user_indices=indices)
-        write_to_ds(ow.filepath, "altitude", interior(compute!(Field(altitude, indices=indices))), coords = ("x_caa", "y_aca", "z_aac"))
-        write_to_ds(ow.filepath, "bottom_height", Array(interior(maximum(compute!(Field(bottom_height)), dims=3)))[:,:,1], coords = ("x_caa", "y_aca",))
+        #write_to_ds(ow.filepath, "altitude", interior(compute!(Field(altitude, indices=indices))), coords = ("x_caa", "y_aca", "z_aac"))
+        #write_to_ds(ow.filepath, "bottom_height", Array(interior(maximum(compute!(Field(bottom_height)), dims=3)))[:,:,1], coords = ("x_caa", "y_aca",))
     end
     #---
 

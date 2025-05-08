@@ -1,6 +1,7 @@
 import numpy as np
 import xarray as xr
 from matplotlib import pyplot as plt
+from scipy import interpolate
 from cmocean import cm
 
 #+++ Utility functions
@@ -93,63 +94,31 @@ def detrend_elevation(da):
 
     return detrended_da
 
-def low_pass_filter(da, filter_scale):
-    """
-    Apply a low-pass filter to 2D elevation data using xarray's rolling average.
-    Assumes periodic boundary conditions in both directions.
-    
-    Parameters:
-    -----------
-    da : xarray.DataArray
-        2D DataArray of elevation data with x and y coordinates
-    filter_scale : float
-        Scale of the filter in the same units as the coordinates
-        (e.g., meters if coordinates are in meters)
-    
-    Returns:
-    --------
-    xarray.DataArray
-        High-pass filtered elevation data with the same dimensions and coordinates
-    """
-    # Calculate window sizes in grid points
-    dx = float(da.x.diff('x').mean())
-    dy = float(da.y.diff('y').mean())
-    
-    # Convert filter scale to grid points and round to nearest odd number
-    window_x = int(2 * (filter_scale / dx) // 2) + 1
-    window_y = int(2 * (filter_scale / dy) // 2) + 1
-    
-    # Ensure minimum window size of 3
-    window_x = max(3, window_x)
-    window_y = max(3, window_y)
-    
-    # Apply rolling mean (low-pass) with periodic boundary conditions
-    # Use min_periods=1 to handle edge cases
-    low_pass = da.pad(dict(x=window_x, y=window_y), mode="wrap").rolling(
-        x=window_x,
-        y=window_y,
-        center=True,
-        min_periods=1
-    ).mean()
-    
-    # Add information about the filtering
-    low_pass.attrs["filter_scale"] = float(filter_scale)
-    low_pass.attrs["filter_type"] = "low-pass (periodic)"
-    low_pass.attrs["window_size_x"] = window_x
-    low_pass.attrs["window_size_y"] = window_y
-    
-    return low_pass
+def interpolate_2d_scipy(da, method='linear'):
+    """Interpolate NaN values in a 2D xarray DataArray using scipy."""
+    # Get coordinates and data values
+    y_coords, x_coords = np.meshgrid(da.y.values, da.x.values, indexing='ij')
 
-def high_pass_filter(da, filter_scale):
-    high_pass = da - low_pass_filter(da, filter_scale)
+    # Find valid data points
+    valid_mask = ~np.isnan(da.values)
+    points = np.column_stack((y_coords[valid_mask], x_coords[valid_mask]))
+    values = da.values[valid_mask]
 
-    # Add information about the filtering
-    high_pass.attrs["filter_scale"] = float(filter_scale)
-    high_pass.attrs["filter_type"] = "high-pass (periodic)"
-    high_pass.attrs["window_size_x"] = window_x
-    high_pass.attrs["window_size_y"] = window_y
-    
-    return high_pass
+    # Define target grid points (all points)
+    grid_y, grid_x = np.meshgrid(da.y.values, da.x.values, indexing='ij')
+
+    # Perform interpolation
+    filled_data = interpolate.griddata(
+        points, values, (grid_y, grid_x),
+        method=method, fill_value=np.nan
+    )
+
+    # Create new DataArray with interpolated values
+    return xr.DataArray(
+        filled_data,
+        dims=da.dims,
+        coords=da.coords
+    )
 #---
 
 ds = xr.open_dataset("GMRT/GMRTv4_3_1_20250502topo.nc")
@@ -175,31 +144,21 @@ print(f"Dataset has spacing of {Δlat * degrees_to_arcseconds:.2f} arcseconds in
 ds = ds.assign_coords(lat = ds.lat * lat2meter, lon = ds.lon * lon2meter)
 ds = ds.rename(lon="x", lat="y")
 
-coarse_elevation = ds.z.coarsen(x=10, y=10, boundary="trim").mean()
-trend = low_pass_filter(coarse_elevation, filter_scale=40e3)
-pause
-
-ds["trend_elevation"] = low_pass_filter(ds.detrended_elevation, filter_scale=40e3)
-ds["detrended_elevation2"] = ds.detrended_elevation - ds.trend_elevation
-pause
-
-ds.detrended_elevation.isel(x=-1).plot()
-ds.detrended_elevation2.isel(x=-1).plot()
-pause
-
-
 # Useful to estimate full width at half maximum (FWHM)
-ds["half_maximum_ring"] = ds.detrended_elevation.where(abs(ds.detrended_elevation - ds.detrended_elevation.max()/2) < 100)
+half_maximum_ring = ds.detrended_elevation.where(abs(ds.detrended_elevation - ds.detrended_elevation.max()/2) < 100)
 ds["distance_from_peak"] = np.sqrt(ds.x**2 + ds.y**2)
 
 ds.attrs["H"] = maximum_point["value"]
-ds.attrs["FWHM"] = ds.distance_from_peak.where(np.logical_not(np.isnan(ds.half_maximum_ring))).mean().item()
+ds.attrs["FWHM"] = ds.distance_from_peak.where(np.logical_not(np.isnan(half_maximum_ring))).mean().item()
 ds.attrs["δ"] = ds.H / ds.FWHM
+
+ringed_periodic_elevation = ds.detrended_elevation.where(ds.distance_from_peak < 2*ds.FWHM).where(ds.distance_from_peak < 2.5*ds.FWHM, other=0)
+ds["periodic_elevation"] = interpolate_2d_scipy(ringed_periodic_elevation)
 
 if True:
     plt.figure()
     ds.distance_from_peak.plot.contourf(levels=[0, 5e3, 10e3, 15e3, 20e3])
-    ds.half_maximum_ring.plot.contour(colors="k")
+    half_maximum_ring.plot.contour(colors="k")
 
     plt.gca().set_title(f"Full width at half maximum is {ds.FWHM:.2f} m")
     plt.gca().set_aspect('equal')
@@ -209,7 +168,7 @@ if True:
     ax.set_box_aspect((ds.x[-1] - ds.x[0], ds.y[-1] - ds.y[0], 5*ds.H))  # aspect ratio is 1:1:1 in data space
     X = (ds.x + 0 * ds.y).T
     Y = (ds.y + 0 * ds.x)
-    surf = ax.plot_surface(X, Y, ds.detrended_elevation, cmap=plt.cm.viridis, linewidth=0, antialiased=False)
+    surf = ax.plot_surface(X, Y, ds.periodic_elevation, cmap=plt.cm.viridis, linewidth=0, antialiased=False)
 
 encoding = { var : dict(zlib=True, complevel=9, shuffle=True) for var in ds.data_vars }
 ds.to_netcdf("balanus-bathymetry-preprocessed.nc", encoding = encoding)

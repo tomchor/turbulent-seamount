@@ -8,10 +8,11 @@ using Oceananigans.Units
 using Oceananigans.TurbulenceClosures: Smagorinsky, DynamicCoefficient, LagrangianAveraging, DynamicSmagorinsky
 using PrettyPrinting
 using TickTock
+using NCDatasets: NCDataset
+using Interpolations: LinearInterpolation, extrapolate
 
 using CUDA: @allowscalar, has_cuda_gpu
 
-#+++ Preamble
 #+++ Parse inital arguments
 "Returns a dictionary of command line arguments."
 function parse_command_line_arguments()
@@ -48,11 +49,6 @@ function parse_command_line_arguments()
             default = 50meters
             arg_type = Number
 
-        "--α"
-            help = "H / FWMH"
-            default = 0.2
-            arg_type = Float64
-
         "--Ro_h"
             default = 1.4
             arg_type = Float64
@@ -81,16 +77,16 @@ function parse_command_line_arguments()
             default = "AMD"
             arg_type = String
 
-        "--runway_length_fraction_L"
-            default = 4 # y_offset / L (how far from the inflow the headland is)
+        "--runway_length_fraction_FWMH"
+            default = 2.4 # y_offset / FWMH (how far from the inflow the headland is)
             arg_type = Float64
 
         "--T_advective_spinup"
-            default = 20 # Should be a multiple of interval_time_avg
+            default = 10 # Should be a multiple of interval_time_avg
             arg_type = Float64
 
         "--T_advective_statistics"
-            default = 40 # Should be a multiple of interval_time_avg
+            default = 20 # Should be a multiple of interval_time_avg
             arg_type = Float64
  
     end
@@ -110,21 +106,21 @@ end
 @info "Starting simulation $(params.simname) with a dividing factor of $(params.dz) and a $arch architecture\n"
 #---
 
-#+++ Get primary simulation parameters
+#+++ Get bathymetry file and secondary simulation parameters
+ds_bathymetry = NCDataset(joinpath(@__DIR__, "../bathymetry/balanus-bathymetry-preprocessed.nc"))
+
 include("$(@__DIR__)/siminfo.jl")
-
 let
-
     #+++ Geometry
-    θ_rad = atan(params.α)
-    FWMH = params.H / params.α
-    L = FWMH / (2√log(2)) # The proper L for an exponential to achieve FWMH
+    H_ratio = params.H / ds_bathymetry.attrib["H"]
+    FWMH = ds_bathymetry.attrib["FWMH"] * H_ratio
+    α = params.H / FWMH
 
     Lx = params.Lx_ratio * FWMH
     Ly = params.Ly_ratio * FWMH
     Lz = params.Lz_ratio * params.H
 
-    y_offset = params.runway_length_fraction_L * L
+    y_offset = params.runway_length_fraction_FWMH * FWMH
     #---
 
     #+++ Simulation size
@@ -146,40 +142,21 @@ let
     #---
 
     #+++ Diagnostic parameters
-    Γ = params.α * params.Fr_h # nonhydrostatic parameter (Schar 2002)
+    Γ = α * params.Fr_h # nonhydrostatic parameter (Schar 2002)
     Bu_h = (params.Ro_h / params.Fr_h)^2
     Slope_Bu = params.Ro_h / params.Fr_h # approximate slope Burger number
-    @assert Slope_Bu ≈ params.α * √N²∞ / f₀
+    @assert Slope_Bu ≈ α * √N²∞ / f₀
     #---
 
     #+++ Time scales
     T_inertial = 2π / f₀
-    T_strouhal = L / (params.V∞ * 0.2)
     T_cycle = Ly / params.V∞
-    T_advective = L / params.V∞
+    T_advective = FWMH / params.V∞
     #---
 
     global params = merge(params, Base.@locals)
 end
-
-pprintln(params)
-#---
-#---
-
-#+++ Base grid
-grid_base = RectilinearGrid(arch; topology = (Periodic, Bounded, Bounded),
-                            size = (params.Nx, params.Ny, params.Nz),
-                            x = (-params.Lx/2, +params.Lx/2),
-                            y = (-params.y_offset, params.Ly - params.y_offset),
-                            z = (0, params.Lz),
-                            halo = (4, 4, 4),
-                            )
-@info grid_base
-params = (; params..., Δz_min = minimum_zspacing(grid_base))
-#---
-
-#+++ Immersed boundary
-include("bathymetry.jl")
+#include("bathymetry.jl")
 
 #+++ Bathymetry visualization
 if false
@@ -199,6 +176,35 @@ if false
 end
 #---
 
+pprintln(params)
+#---
+
+#+++ Base grid
+grid_base = RectilinearGrid(arch; topology = (Periodic, Bounded, Bounded),
+                            size = (params.Nx, params.Ny, params.Nz),
+                            x = (-params.Lx/2, +params.Lx/2),
+                            y = (-params.y_offset, params.Ly - params.y_offset),
+                            z = (0, params.Lz),
+                            halo = (4, 4, 4),
+                            )
+@info grid_base
+params = (; params..., Δz_min = minimum_zspacing(grid_base))
+#---
+
+#+++ Interpolate bathymetry
+shrunk_elevation = ds_bathymetry["periodic_elevation"] * params.H_ratio
+shrunk_x = ds_bathymetry["x"] * params.H_ratio
+shrunk_y = ds_bathymetry["y"] * params.H_ratio
+
+itp = LinearInterpolation((shrunk_x, shrunk_y), shrunk_elevation)
+
+x_grid = xnodes(grid_base, Center(), Center(), Center())
+y_grid = ynodes(grid_base, Center(), Center(), Center())
+interpolated_bathymetry = itp.(x_grid, reshape(y_grid, (1, grid_base.Ny)))
+
+#---
+
+#+++ Immersed boundary
 PCB = PartialCellBottom(seamount)
 
 grid = ImmersedBoundaryGrid(grid_base, PCB)

@@ -196,16 +196,16 @@ shrunk_elevation = ds_bathymetry["periodic_elevation"] * params.H_ratio
 shrunk_x = ds_bathymetry["x"] * params.H_ratio
 shrunk_y = ds_bathymetry["y"] * params.H_ratio
 
-itp = LinearInterpolation((shrunk_x, shrunk_y), shrunk_elevation)
+@info "Interpolating bathymetry"
+itp = LinearInterpolation((shrunk_x, shrunk_y), shrunk_elevation,  extrapolation_bc=Interpolations.Flat())
 
 x_grid = xnodes(grid_base, Center(), Center(), Center())
 y_grid = ynodes(grid_base, Center(), Center(), Center())
 interpolated_bathymetry = itp.(x_grid, reshape(y_grid, (1, grid_base.Ny)))
-
 #---
 
 #+++ Immersed boundary
-PCB = PartialCellBottom(seamount)
+PCB = PartialCellBottom(interpolated_bathymetry)
 
 grid = ImmersedBoundaryGrid(grid_base, PCB)
 @info grid

@@ -301,7 +301,7 @@ model = NonhydrostaticModel(grid = grid, timestepper = :RungeKutta3,
 @info "" model
 if has_cuda_gpu() run(`nvidia-smi -i $(ENV["CUDA_VISIBLE_DEVICES"])`) end
 
-f_params = (; params.H, params.L, params.V∞, params.f₀, params.N²∞,)
+f_params = (; params.H, params.V∞, params.f₀, params.N²∞,)
 set!(model, b=(x, y, z) -> b∞(x, y, z, 0, f_params), v=params.V∞)
 #---
 

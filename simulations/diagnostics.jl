@@ -127,13 +127,14 @@ outputs_budget = Dict{Symbol, Any}(:wb => wb,
 
 #+++
 @info "Defining volume averages"
-outputs_vol_averages = Dict{Symbol, Any}(:∭⁵εₖdV => Integral(εₖ; condition = DistanceCondition(params_geometry, 5)),
-                                         :∭⁵εₚdV => Integral(εₚ; condition = DistanceCondition(params_geometry, 5)),
-                                         :∭⁵wbdV => Integral(wb; condition = DistanceCondition(params_geometry, 5)),
-                                         :∭¹⁰εₖdV => Integral(εₖ; condition = DistanceCondition(params_geometry, 10)),
-                                         :∭¹⁰εₚdV => Integral(εₚ; condition = DistanceCondition(params_geometry, 10)),
-                                         :∭¹⁰wbdV => Integral(wb; condition = DistanceCondition(params_geometry, 10)),
+outputs_vol_averages = Dict{Symbol, Any}(:∭⁵εₖdV => Integral(εₖ),
+                                         :∭⁵εₚdV => Integral(εₚ),
+                                         :∭⁵wbdV => Integral(wb),
                                          )
+#outputs_vol_averages = Dict{Symbol, Any}(:∭⁵εₖdV => Integral(εₖ; condition = DistanceCondition(params_geometry, 5)),
+#                                         :∭⁵εₚdV => Integral(εₚ; condition = DistanceCondition(params_geometry, 5)),
+#                                         :∭⁵wbdV => Integral(wb; condition = DistanceCondition(params_geometry, 5)),
+#                                         )
 #---
 
 #+++ Assemble the "full" outputs tuple

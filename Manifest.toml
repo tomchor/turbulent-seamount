@@ -1294,6 +1294,11 @@ version = "0.3.4"
 uuid = "14a3606d-f60d-562e-9121-12d972cd8159"
 version = "2023.1.10"
 
+[[deps.MuladdMacro]]
+git-tree-sha1 = "cac9cc5499c25554cba55cd3c30543cff5ca4fab"
+uuid = "46d2c3a1-f734-5fdb-9937-b9b9aeba4221"
+version = "0.2.4"
+
 [[deps.NCDatasets]]
 deps = ["CFTime", "CommonDataModel", "DataStructures", "Dates", "DiskArrays", "NetCDF_jll", "NetworkOptions", "Printf"]
 git-tree-sha1 = "777b93739ca8804011ee1decad7b070f0e201bbc"
@@ -1340,12 +1345,10 @@ uuid = "510215fc-4207-5dde-b226-833fc4488ee2"
 version = "0.5.5"
 
 [[deps.Oceananigans]]
-deps = ["Adapt", "CUDA", "Crayons", "CubedSphere", "Dates", "Distances", "DocStringExtensions", "FFTW", "GPUArrays", "Glob", "InteractiveUtils", "IterativeSolvers", "JLD2", "KernelAbstractions", "Krylov", "KrylovPreconditioners", "LinearAlgebra", "Logging", "MPI", "OffsetArrays", "OrderedCollections", "Pkg", "Printf", "Random", "ReactantCore", "Rotations", "SeawaterPolynomials", "SparseArrays", "StaticArrays", "Statistics", "StructArrays", "TimesDates"]
-git-tree-sha1 = "f1a64f00bb10df2b0b7c366f1864309332b7b2ab"
-repo-rev = "tc/partial-cell-summary"
-repo-url = "https://github.com/CliMA/Oceananigans.jl.git"
+deps = ["Adapt", "CUDA", "Crayons", "CubedSphere", "Dates", "Distances", "DocStringExtensions", "FFTW", "GPUArrays", "Glob", "InteractiveUtils", "IterativeSolvers", "JLD2", "KernelAbstractions", "Krylov", "KrylovPreconditioners", "LinearAlgebra", "Logging", "MPI", "MuladdMacro", "OffsetArrays", "OrderedCollections", "Pkg", "Printf", "Random", "ReactantCore", "Rotations", "SeawaterPolynomials", "SparseArrays", "StaticArrays", "Statistics", "StructArrays", "TimesDates"]
+git-tree-sha1 = "a61ede01885a710e7b6e43c8d611752183d67757"
 uuid = "9e8cae18-63c1-5223-a75c-80ca9d6e9a09"
-version = "0.96.21"
+version = "0.96.24"
 
     [deps.Oceananigans.extensions]
     OceananigansAMDGPUExt = "AMDGPU"

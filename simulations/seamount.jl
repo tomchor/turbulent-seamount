@@ -22,7 +22,7 @@ function parse_command_line_arguments()
 
         "--simname"
             help = "Simulation name for output"
-            default = "tokara"
+            default = "seamount"
             arg_type = String
 
         "--x₀"

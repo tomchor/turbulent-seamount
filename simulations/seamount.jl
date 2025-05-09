@@ -35,7 +35,7 @@ function parse_command_line_arguments()
 
         "--aspect"
             help = "Desired cell aspect ratio; Δx/Δz = Δy/Δz"
-            default = 3
+            default = 2
             arg_type = Number
 
         "--dz"
@@ -47,7 +47,7 @@ function parse_command_line_arguments()
             arg_type = Number
 
         "--H"
-            default = 50meters
+            default = 150meters
             arg_type = Number
 
         "--Ro_h"

@@ -35,7 +35,7 @@ function parse_command_line_arguments()
 
         "--aspect"
             help = "Desired cell aspect ratio; Δx/Δz = Δy/Δz"
-            default = 2
+            default = 3
             arg_type = Number
 
         "--dz"
@@ -59,11 +59,11 @@ function parse_command_line_arguments()
             arg_type = Float64
 
         "--Lx_ratio"
-            default = 3 # Lx / FWMH
+            default = 5 # Lx / FWMH
             arg_type = Float64
 
         "--Ly_ratio"
-            default = 9 # Ly / FWMH
+            default = 10 # Ly / FWMH
             arg_type = Float64
 
         "--Lz_ratio"

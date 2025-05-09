@@ -4,12 +4,13 @@ using InteractiveUtils
 versioninfo()
 using ArgParse
 using Oceananigans
+using Oceananigans: on_architecture
 using Oceananigans.Units
 using Oceananigans.TurbulenceClosures: Smagorinsky, DynamicCoefficient, LagrangianAveraging, DynamicSmagorinsky
 using PrettyPrinting
 using TickTock
 using NCDatasets: NCDataset
-using Interpolations: LinearInterpolation, extrapolate
+using Interpolations: LinearInterpolation
 
 using CUDA: @allowscalar, has_cuda_gpu
 
@@ -197,11 +198,12 @@ shrunk_x = ds_bathymetry["x"] * params.H_ratio
 shrunk_y = ds_bathymetry["y"] * params.H_ratio
 
 @info "Interpolating bathymetry"
-itp = LinearInterpolation((shrunk_x, shrunk_y), shrunk_elevation,  extrapolation_bc=Interpolations.Flat())
+itp = LinearInterpolation((shrunk_x, shrunk_y), shrunk_elevation,  extrapolation_bc=0)
 
 x_grid = xnodes(grid_base, Center(), Center(), Center())
 y_grid = ynodes(grid_base, Center(), Center(), Center())
-interpolated_bathymetry = itp.(x_grid, reshape(y_grid, (1, grid_base.Ny)))
+interpolated_bathymetry_cpu = itp.(x_grid, reshape(y_grid, (1, grid_base.Ny)))
+interpolated_bathymetry = on_architecture(grid_base.architecture, interpolated_bathymetry_cpu)
 #---
 
 #+++ Immersed boundary
@@ -360,9 +362,9 @@ checkpointer = construct_outputs(simulation;
                                  rundir = rundir,
                                  params = params,
                                  overwrite_existing = overwrite_existing,
-                                 interval_2d = 0.2*params.T_advective,
-                                 interval_3d = 2.0*params.T_advective,
-                                 interval_time_avg = 10*params.T_advective,
+                                 interval_2d = 0.1*params.T_advective,
+                                 interval_3d = 1.0*params.T_advective,
+                                 interval_time_avg = 5*params.T_advective,
                                  write_xyz = true,
                                  write_xiz = false,
                                  write_xyi = true,

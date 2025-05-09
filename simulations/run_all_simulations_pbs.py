@@ -7,7 +7,6 @@ from aux00_utils import aggregate_parameters
 #+++ Define run options
 simname_base = "seamount"
 
-slopes         = cycler(α = [0.05, 0.2])
 Rossby_numbers = cycler(Ro_h = [0.2, 1.25])
 Froude_numbers = cycler(Fr_h = [0.2, 1.25])
 
@@ -15,7 +14,7 @@ resolutions    = cycler(dz = [8, 4, 2, 1])
 closures       = cycler(closure = ["AMD", "AMC", "CSM", "DSM", "NON"])
 closures       = cycler(closure = ["AMD", "CSM", "DSM"])
 
-paramspace = slopes * Rossby_numbers * Froude_numbers
+paramspace = Rossby_numbers * Froude_numbers
 configs    = resolutions * closures
 
 runs = paramspace * configs
@@ -69,7 +68,7 @@ qstat -f $PBS_JOBID >> logs/{simname_ascii}.out
 for modifiers in runs:
     run_options = aggregate_parameters(modifiers)
     simname = f"{simname_base}_" + aggregate_parameters(modifiers, sep="_", prefix="")
-    simname_ascii = simname.replace("α", "A").replace("=", "")
+    simname_ascii = simname.replace("=", "")
     print(simname_ascii)
 
     #+++ Remove previous checkpoints

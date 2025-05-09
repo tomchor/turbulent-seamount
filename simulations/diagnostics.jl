@@ -11,10 +11,6 @@ viscosity(model)           = viscosity(model.closure, model.diffusivity_fields)
 diffusivity(model, tracer) = diffusivity(model.closure, model.diffusivity_fields, tracer)
 
 
-#+++ Methods/functions definitions
-#include("$(@__DIR__)/grid_metrics.jl")
-#---
-
 #+++ Write to NCDataset
 import NCDatasets as NCD
 function write_to_ds(dsname, varname, data; coords=("x_caa", "y_aca", "z_aac"), dtype=Float64)
@@ -45,6 +41,26 @@ ScratchedField(op::AbstractOperation{Center, Center, Center}) = Field(op, data=c
 ScratchedField(f::Field) = f
 ScratchedField(d::Dict) = Dict( k => ScratchedField(v) for (k, v) in d )
 ScratchedField(n::Number) = ScratchedField(n * CenterField(grid))
+#---
+
+#+++ Auxiliary immersed boundary metrics
+using Oceananigans.Fields: @compute
+import Oceananigans.Grids: znode
+using Adapt
+
+znode(k, grid, ℓz) = znode(1, 1, k, grid, Center(), Center(), ℓz)
+
+@inline z_distance_from_seamount_boundary_ccc(i, j, k, grid) = znode(k, grid, Center()) - grid.immersed_boundary.bottom_height[i, j, 1]
+@compute altitude = Field(KernelFunctionOperation{Center, Center, Center}(z_distance_from_seamount_boundary_ccc, grid))
+
+struct DistanceCondition{FT}
+    distance :: FT
+end
+
+# Necessary for GPU
+Adapt.adapt_structure(to, dc::DistanceCondition) = DistanceCondition(adapt(to, dc.distance))
+
+(dc::DistanceCondition)(i, j, k, grid, co) = z_distance_from_seamount_boundary_ccc(i, j, k, grid) > dc.distance
 #---
 
 #+++ Unpack model variables
@@ -125,14 +141,11 @@ outputs_budget = Dict{Symbol, Any}(:wb => wb,
                                    :Ek => TurbulentKineticEnergy(model, u, v, w),)
 #---
 
-#+++
+#+++ Volume averages
 @info "Defining volume averages"
-outputs_vol_averages = Dict{Symbol, Any}(:∭⁵εₖdV => Integral(εₖ; condition = DistanceCondition(params_geometry, 5)),
-                                         :∭⁵εₚdV => Integral(εₚ; condition = DistanceCondition(params_geometry, 5)),
-                                         :∭⁵wbdV => Integral(wb; condition = DistanceCondition(params_geometry, 5)),
-                                         :∭¹⁰εₖdV => Integral(εₖ; condition = DistanceCondition(params_geometry, 10)),
-                                         :∭¹⁰εₚdV => Integral(εₚ; condition = DistanceCondition(params_geometry, 10)),
-                                         :∭¹⁰wbdV => Integral(wb; condition = DistanceCondition(params_geometry, 10)),
+outputs_vol_averages = Dict{Symbol, Any}(:∭⁵εₖdV => Integral(εₖ; condition = DistanceCondition(5meters)),
+                                         :∭⁵εₚdV => Integral(εₚ; condition = DistanceCondition(5meters)),
+                                         :∭⁵wbdV => Integral(wb; condition = DistanceCondition(5meters)),
                                          )
 #---
 
@@ -182,10 +195,7 @@ function construct_outputs(simulation;
                                                                )
         @info "Starting to write grid metrics and deltas to xyz"
         laptimer()
-        #add_grid_metrics_to!(ow)
         write_to_ds(ow.filepath, "altitude", interior(compute!(Field(altitude))), coords = ("x_caa", "y_aca", "z_aac"))
-        write_to_ds(ow.filepath, "ΔxΔz", interior(compute!(Field(ΔxΔz))), coords = ("x_caa", "y_aca", "z_aac"))
-        write_to_ds(ow.filepath, "bottom_height", Array(interior(maximum(compute!(Field(bottom_height)), dims=3)))[:,:,1], coords = ("x_caa", "y_aca",))
         @info "Finished writing grid metrics and deltas to xyz"
         laptimer()
     end
@@ -209,7 +219,6 @@ function construct_outputs(simulation;
                                                                verbose = debug,
                                                                kwargs...
                                                                )
-        #add_grid_metrics_to!(ow, user_indices=indices)
     end
     #---
 
@@ -225,8 +234,6 @@ function construct_outputs(simulation;
                                                                verbose = debug,
                                                                kwargs...
                                                                )
-
-        #add_grid_metrics_to!(ow; user_indices=indices)
     end
     #---
 
@@ -242,7 +249,6 @@ function construct_outputs(simulation;
                                                                verbose = debug,
                                                                kwargs...
                                                                )
-        #add_grid_metrics_to!(ow, user_indices=indices)
     end
     #---
 
@@ -260,9 +266,6 @@ function construct_outputs(simulation;
                                                                verbose = true,
                                                                kwargs...
                                                                )
-        #add_grid_metrics_to!(ow, user_indices=indices)
-        write_to_ds(ow.filepath, "altitude", interior(compute!(Field(altitude, indices=indices))), coords = ("x_caa", "y_aca", "z_aac"))
-        write_to_ds(ow.filepath, "bottom_height", Array(interior(maximum(compute!(Field(bottom_height)), dims=3)))[:,:,1], coords = ("x_caa", "y_aca",))
     end
     #---
 
@@ -280,7 +283,6 @@ function construct_outputs(simulation;
                                                                verbose = debug,
                                                                kwargs...
                                                                )
-        #add_grid_metrics_to!(ow, user_indices=indices)
     end
     #---
 

@@ -207,14 +207,16 @@ itp = LinearInterpolation((shrunk_x, shrunk_y), shrunk_elevation,  extrapolation
 x_grid = xnodes(grid_base, Center(), Center(), Center())
 y_grid = ynodes(grid_base, Center(), Center(), Center())
 interpolated_bathymetry_cpu = itp.(x_grid, reshape(y_grid, (1, grid_base.Ny)))
-interpolated_bathymetry = on_architecture(grid_base.architecture, interpolated_bathymetry_cpu)
 
 if params.L == 0
     @warn "No smoothing performed on the bathymetry"
-    final_bathymetry = interpolated_bathymetry
+    final_bathymetry_cpu = interpolated_bathymetry_cpu
 else
-    final_bathymetry = smooth_bathymetry(interpolated_bathymetry, grid_base, scale_x=params.L, scale_y=params.L, bc_x="circular", bc_y="replicate")
+    @warn "Smoothing bathymetry with length scale $(params.L)"
+    final_bathymetry_cpu = smooth_bathymetry(interpolated_bathymetry_cpu, grid_base, scale_x=params.L, scale_y=params.L, bc_x="circular", bc_y="replicate")
 end
+
+final_bathymetry = on_architecture(grid_base.architecture, final_bathymetry_cpu)
 #---
 
 #+++ Immersed boundary

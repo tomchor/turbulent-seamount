@@ -11,6 +11,7 @@ using PrettyPrinting
 using TickTock
 using NCDatasets: NCDataset
 using Interpolations: LinearInterpolation
+using ImageFiltering
 
 using CUDA: @allowscalar, has_cuda_gpu
 
@@ -193,6 +194,16 @@ params = (; params..., Δz_min = minimum_zspacing(grid_base))
 #---
 
 #+++ Interpolate bathymetry
+function smooth_bathymetry(elevation, window_size)
+    # Create a Gaussian kernel with standard deviation proportional to window_size
+    kernel = Kernel.gaussian(window_size)
+    
+    # Apply the filter with periodic boundary conditions
+    smoothed = imfilter(elevation, kernel, "circular")
+    
+    return smoothed
+end
+
 shrunk_elevation = ds_bathymetry["periodic_elevation"] * params.H_ratio
 shrunk_x = ds_bathymetry["x"] * params.H_ratio
 shrunk_y = ds_bathymetry["y"] * params.H_ratio

@@ -50,6 +50,11 @@ function parse_command_line_arguments()
             default = 150meters
             arg_type = Number
 
+        "--L"
+            help = "Scale for smoothing the bathymetry"
+            default = 0meters
+            arg_type = Number
+
         "--Ro_h"
             default = 1.4
             arg_type = Float64
@@ -191,7 +196,7 @@ grid_base = RectilinearGrid(arch; topology = (Periodic, Bounded, Bounded),
 params = (; params..., Δz_min = minimum_zspacing(grid_base))
 #---
 
-#+++ Interpolate bathymetry
+#+++ Interpolate (and maybe smooth) bathymetry
 shrunk_elevation = ds_bathymetry["periodic_elevation"] * params.H_ratio
 shrunk_x = ds_bathymetry["x"] * params.H_ratio
 shrunk_y = ds_bathymetry["y"] * params.H_ratio
@@ -204,12 +209,16 @@ y_grid = ynodes(grid_base, Center(), Center(), Center())
 interpolated_bathymetry_cpu = itp.(x_grid, reshape(y_grid, (1, grid_base.Ny)))
 interpolated_bathymetry = on_architecture(grid_base.architecture, interpolated_bathymetry_cpu)
 
-smoothed_bathymetry = smooth_bathymetry(interpolated_bathymetry, grid_base, scale_x=100, scale_y=100, bc_x="circular", bc_y="replicate")
-
+if params.L == 0
+    @warn "No smoothing performed on the bathymetry"
+    final_bathymetry = interpolated_bathymetry
+else
+    final_bathymetry = smooth_bathymetry(interpolated_bathymetry, grid_base, scale_x=params.L, scale_y=params.L, bc_x="circular", bc_y="replicate")
+end
 #---
 
 #+++ Immersed boundary
-PCB = PartialCellBottom(interpolated_bathymetry)
+PCB = PartialCellBottom(final_bathymetry)
 
 grid = ImmersedBoundaryGrid(grid_base, PCB)
 @info grid

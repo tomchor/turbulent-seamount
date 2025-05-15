@@ -27,16 +27,16 @@ function parse_command_line_arguments()
 
         "--x₀"
             default = 0
-            arg_type = Number
+            arg_type = Float64
 
         "--y₀"
             default = 0
-            arg_type = Number
+            arg_type = Float64
 
         "--aspect"
             help = "Desired cell aspect ratio; Δx/Δz = Δy/Δz"
             default = 2
-            arg_type = Number
+            arg_type = Float64
 
         "--dz"
             default = 64
@@ -44,16 +44,16 @@ function parse_command_line_arguments()
 
         "--V∞"
             default = 0.1meters/second
-            arg_type = Number
+            arg_type = Float64
 
         "--H"
             default = 150meters
-            arg_type = Number
+            arg_type = Float64
 
         "--L"
             help = "Scale for smoothing the bathymetry"
             default = 0meters
-            arg_type = Number
+            arg_type = Float64
 
         "--Ro_h"
             default = 1.4
@@ -115,7 +115,7 @@ end
 #+++ Get bathymetry file and secondary simulation parameters
 ds_bathymetry = NCDataset(joinpath(@__DIR__, "../bathymetry/balanus-bathymetry-preprocessed.nc"))
 
-include("$(@__DIR__)/siminfo.jl")
+include("$(@__DIR__)/utils.jl")
 let
     #+++ Geometry
     H_ratio = params.H / ds_bathymetry.attrib["H"]

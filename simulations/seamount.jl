@@ -11,7 +11,6 @@ using PrettyPrinting
 using TickTock
 using NCDatasets: NCDataset
 using Interpolations: LinearInterpolation
-using ImageFiltering
 
 using CUDA: @allowscalar, has_cuda_gpu
 
@@ -158,7 +157,6 @@ let
 
     global params = merge(params, Base.@locals)
 end
-#include("bathymetry.jl")
 
 #+++ Bathymetry visualization
 if false
@@ -194,16 +192,6 @@ params = (; params..., Δz_min = minimum_zspacing(grid_base))
 #---
 
 #+++ Interpolate bathymetry
-function smooth_bathymetry(elevation, window_size)
-    # Create a Gaussian kernel with standard deviation proportional to window_size
-    kernel = Kernel.gaussian(window_size)
-    
-    # Apply the filter with periodic boundary conditions
-    smoothed = imfilter(elevation, kernel, "circular")
-    
-    return smoothed
-end
-
 shrunk_elevation = ds_bathymetry["periodic_elevation"] * params.H_ratio
 shrunk_x = ds_bathymetry["x"] * params.H_ratio
 shrunk_y = ds_bathymetry["y"] * params.H_ratio
@@ -215,6 +203,9 @@ x_grid = xnodes(grid_base, Center(), Center(), Center())
 y_grid = ynodes(grid_base, Center(), Center(), Center())
 interpolated_bathymetry_cpu = itp.(x_grid, reshape(y_grid, (1, grid_base.Ny)))
 interpolated_bathymetry = on_architecture(grid_base.architecture, interpolated_bathymetry_cpu)
+
+smoothed_bathymetry = smooth_bathymetry(interpolated_bathymetry, grid_base, scale_x=100, scale_y=100, bc_x="circular", bc_y="replicate")
+
 #---
 
 #+++ Immersed boundary

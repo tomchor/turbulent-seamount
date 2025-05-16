@@ -47,7 +47,7 @@ function parse_command_line_arguments()
             arg_type = Float64
 
         "--H"
-            default = 150meters
+            default = 120meters
             arg_type = Float64
 
         "--L"

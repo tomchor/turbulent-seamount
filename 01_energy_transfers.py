@@ -164,9 +164,6 @@ for j, config in enumerate(runs):
                                 "∭⁵εₖdV"  : "∭⁵ε̄ₖdV",
                                 "∭⁵εₚdV"  : "∭⁵ε̄ₚdV",
                                 "∭⁵wbdV"  : "⟨∭⁵wbdV⟩ₜ",
-                                "∭¹⁰εₖdV" : "∭¹⁰ε̄ₖdV",
-                                "∭¹⁰εₚdV" : "∭¹⁰ε̄ₚdV",
-                                "∭¹⁰wbdV" : "⟨∭¹⁰wbdV⟩ₜ",
                                 })
     tafields.attrs = tti.attrs
     #---
@@ -251,10 +248,6 @@ for j, config in enumerate(runs):
     bulk["∭⁵ε̄ₚdV"]    = tafields["∭⁵ε̄ₚdV"]
     bulk["⟨∭⁵wbdV⟩ₜ"] = tafields["⟨∭⁵wbdV⟩ₜ"]
 
-    bulk["∭¹⁰ε̄ₖdV"]    = tafields["∭¹⁰ε̄ₖdV"]
-    bulk["∭¹⁰ε̄ₚdV"]    = tafields["∭¹⁰ε̄ₚdV"]
-    bulk["⟨∭¹⁰wbdV⟩ₜ"] = tafields["⟨∭¹⁰wbdV⟩ₜ"]
-
     bulk["⟨∬w′b′dxdy⟩ₜ"] = integrate(tafields["⟨w′b′⟩ₜ"], dims = ("x", "y"))
     bulk["⟨∬Ek′dxdy⟩ₜ"]  = integrate(tafields["⟨Ek′⟩ₜ"], dims = ("x", "y"))
     bulk["⟨∬SPRdxdy⟩ₜ"]  = integrate(tafields["SPR"], dims = ("x", "y"))
@@ -265,11 +258,6 @@ for j, config in enumerate(runs):
     bulk["⟨∬⁵Ek′dxdy⟩ₜ"]  = integrate(tafields["⟨Ek′⟩ₜ"].where(altitude > 5, other=0), dims = ("x", "y"))
     bulk["⟨∬⁵SPRdxdy⟩ₜ"]  = integrate(tafields["SPR"].where(altitude > 5, other=0), dims = ("x", "y"))
     bulk["⟨∬⁵Πdxdy⟩ₜ"]    = bulk["⟨∬⁵SPRdxdy⟩ₜ"].sum("j")
-
-    bulk["⟨∬¹⁰w′b′dxdy⟩ₜ"] = integrate(tafields["⟨w′b′⟩ₜ"].where(altitude > 10, other=0), dims = ("x", "y"))
-    bulk["⟨∬¹⁰Ek′dxdy⟩ₜ"]  = integrate(tafields["⟨Ek′⟩ₜ"].where(altitude > 10, other=0), dims = ("x", "y"))
-    bulk["⟨∬¹⁰SPRdxdy⟩ₜ"]  = integrate(tafields["SPR"].where(altitude > 10, other=0), dims = ("x", "y"))
-    bulk["⟨∬¹⁰Πdxdy⟩ₜ"]    = bulk["⟨∬¹⁰SPRdxdy⟩ₜ"].sum("j")
 
     bulk["∬ᵋε̄ₖdxdy"] = tafields["∬ᵋε̄ₖdxdy"]
     bulk["⟨ε̄ₖ⟩ᵋ"]    = bulk["∬ᵋε̄ₖdxdy"] / tafields["∬ᵋ1dxdy"]

@@ -47,7 +47,7 @@ def very_small_submission_options(scheduler):
                    "--constraint=gpu",
                    "--cpus-per-task=32",
                    "--gpus-per-task=1",
-                   "--time=2:00:00",
+                   "--time=1:00:00",
                    ]
         options_string = "\n".join([ "#SBATCH " + option for option in options ])
     return options_string
@@ -63,7 +63,7 @@ def small_submission_options(scheduler):
                    "--constraint=gpu",
                    "--cpus-per-task=32",
                    "--gpus-per-task=1",
-                   "--time=20:00:00",
+                   "--time=2:00:00",
                    ]
         options_string = "\n".join([ "#SBATCH " + option for option in options ])
     return options_string
@@ -80,7 +80,7 @@ def big_submission_options(scheduler):
                    "--constraint=gpu&hbm80g",
                    "--cpus-per-task=32",
                    "--gpus-per-task=1",
-                   "--time=48:00:00",
+                   "--time=4:00:00",
                    ]
         options_string = "\n".join([ "#SBATCH " + option for option in options ])
     return options_string
@@ -118,7 +118,7 @@ for modifiers in runs:
 
     #+++ Fill pbs script and define command
     Δz = modifiers["dz"] if "dz" in modifiers.keys() else np.inf
-    if Δz >= 8:
+    if Δz >= 4:
         options_string = very_small_submission_options(scheduler)
         cmd1           = very_small_submission_command(scheduler)
     elif Δz >= 2:

@@ -4,6 +4,9 @@
 #SBATCH --output=logs/{simname_ascii}.log
 #SBATCH --error=logs/{simname_ascii}.log
 #SBATCH --qos=regular
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --gpus-per-node=1
 #SBATCH --mem=48GB
 #SBATCH --mail-type=end,fail
 #SBATCH --mail-user=tchor@umd.edu

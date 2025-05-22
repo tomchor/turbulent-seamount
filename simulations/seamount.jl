@@ -185,7 +185,7 @@ pprintln(params)
 #---
 
 #+++ Base grid
-grid_base = RectilinearGrid(arch; topology = (Periodic, Bounded, Bounded),
+grid_base = RectilinearGrid(arch, Float32; topology = (Periodic, Bounded, Bounded),
                             size = (params.Nx, params.Ny, params.Nz),
                             x = (-params.Lx/2, +params.Lx/2),
                             y = (-params.y_offset, params.Ly - params.y_offset),

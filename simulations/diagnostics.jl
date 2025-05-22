@@ -13,7 +13,7 @@ diffusivity(model, tracer) = diffusivity(model.closure, model.diffusivity_fields
 
 #+++ Write to NCDataset
 import NCDatasets as NCD
-function write_to_ds(dsname, varname, data; coords=("x_caa", "y_aca", "z_aac"), dtype=Float64)
+function write_to_ds(dsname, varname, data; coords=("x_caa", "y_aca", "z_aac"), dtype=eltype(grid))
     ds = NCD.NCDataset(dsname, "a")
     if varname ∉ keys(ds)
         newvar = NCD.defVar(ds, varname, dtype, coords)
@@ -78,10 +78,6 @@ outputs_state_vars = merge(outputs_vels, Dict{Any, Any}(:b => b))
 #+++ Start calculation of snapshot variables
 @info "Calculating misc diagnostics"
 
-dbdx = @at CellCenter ∂x(b)
-dbdy = @at CellCenter ∂y(b)
-dbdz = @at CellCenter ∂z(b)
-
 ω_y = @at CellCenter (∂z(u) - ∂x(w))
 
 if model.closure isa Nothing
@@ -105,8 +101,7 @@ PV = @at CellCenter ErtelPotentialVorticity(model, u, v, w, b, model.coriolis)
 
 outputs_dissip = Dict(pairs((; εₖ, εₚ, κ)))
 
-outputs_misc = Dict(pairs((; dbdx, dbdy, dbdz, ω_y,
-                             Ri, Ro, PV,)))
+outputs_misc = Dict(pairs((; ω_y, Ri, Ro, PV,)))
 
 outputs_diff = Dict(pairs((; ν, κ)))
 #---
@@ -181,6 +176,7 @@ function construct_outputs(simulation;
                            debug = false,
                            )
     model = simulation.model
+    grid = model.grid
 
     #+++ Preamble and common keyword arguments
     k_half = ceil(Int, params.H / 2params.Δz_min) # Approximately half the seamount height
@@ -195,7 +191,7 @@ function construct_outputs(simulation;
         simulation.output_writers[:nc_xyz] = ow = NetCDFWriter(model, ScratchedField(outputs_full);
                                                                filename = "$rundir/data/xyz.$(simname).nc",
                                                                schedule = TimeInterval(interval_3d),
-                                                               array_type = Array{Float64},
+                                                               array_type = Array{eltype(grid)},
                                                                verbose = debug,
                                                                kwargs...
                                                                )
@@ -220,7 +216,7 @@ function construct_outputs(simulation;
         simulation.output_writers[:nc_xyi] = ow = NetCDFWriter(model, outputs_full;
                                                                filename = "$rundir/data/xyi.$(simname).nc",
                                                                schedule = TimeInterval(interval_2d),
-                                                               array_type = Array{Float64},
+                                                               array_type = Array{eltype(grid)},
                                                                indices = indices,
                                                                verbose = debug,
                                                                kwargs...
@@ -228,14 +224,14 @@ function construct_outputs(simulation;
     end
     #---
 
-    #+++ xiz (low def) SNAPSHOTS
+    #+++ xiz SNAPSHOTS
     if write_xiz
         @info "Setting up xiz writer"
         indices = (:, grid.Ny÷2, :)
         simulation.output_writers[:nc_xiz] = ow = NetCDFWriter(model, outputs_full;
                                                                filename = "$rundir/data/xiz.$(simname).nc",
                                                                schedule = TimeInterval(interval_2d),
-                                                               array_type = Array{Float32},
+                                                               array_type = Array{eltype(grid)},
                                                                indices = indices,
                                                                verbose = debug,
                                                                kwargs...
@@ -243,14 +239,14 @@ function construct_outputs(simulation;
     end
     #---
 
-    #+++ iyz (low def) SNAPSHOTS
+    #+++ iyz SNAPSHOTS
     if write_iyz
         @info "Setting up iyz writer"
         indices = (grid.Nx÷2, :, :)
         simulation.output_writers[:nc_iyz] = ow = NetCDFWriter(model, outputs_full;
                                                                filename = "$rundir/data/iyz.$(simname).nc",
                                                                schedule = TimeInterval(interval_2d),
-                                                               array_type = Array{Float32},
+                                                               array_type = Array{eltype(grid)},
                                                                indices = indices,
                                                                verbose = debug,
                                                                kwargs...
@@ -266,7 +262,7 @@ function construct_outputs(simulation;
         simulation.output_writers[:nc_ttt] = ow = NetCDFWriter(model, outputs_ttt;
                                                                filename = "$rundir/data/ttt.$(simname).nc",
                                                                schedule = AveragedTimeInterval(interval_time_avg, stride=10),
-                                                               array_type = Array{Float64},
+                                                               array_type = Array{eltype(grid)},
                                                                with_halos = false,
                                                                indices = indices,
                                                                verbose = true,
@@ -283,7 +279,7 @@ function construct_outputs(simulation;
         simulation.output_writers[:nc_tti] = ow = NetCDFWriter(model, outputs_tti;
                                                                filename = "$rundir/data/tti.$(simname).nc",
                                                                schedule = AveragedTimeInterval(interval_time_avg, stride=10),
-                                                               array_type = Array{Float64},
+                                                               array_type = Array{eltype(grid)},
                                                                with_halos = false,
                                                                indices = indices,
                                                                verbose = debug,

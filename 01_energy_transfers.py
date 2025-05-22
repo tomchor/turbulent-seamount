@@ -164,6 +164,12 @@ for j, config in enumerate(runs):
                                 "∭⁵εₖdV"  : "∭⁵ε̄ₖdV",
                                 "∭⁵εₚdV"  : "∭⁵ε̄ₚdV",
                                 "∭⁵wbdV"  : "⟨∭⁵wbdV⟩ₜ",
+                                "∭¹⁰εₖdV" : "∭¹⁰ε̄ₖdV",
+                                "∭¹⁰εₚdV" : "∭¹⁰ε̄ₚdV",
+                                "∭¹⁰wbdV" : "⟨∭¹⁰wbdV⟩ₜ",
+                                "∭²⁰εₖdV" : "∭²⁰ε̄ₖdV",
+                                "∭²⁰εₚdV" : "∭²⁰ε̄ₚdV",
+                                "∭²⁰wbdV" : "⟨∭²⁰wbdV⟩ₜ",
                                 })
     tafields.attrs = tti.attrs
     #---
@@ -244,9 +250,15 @@ for j, config in enumerate(runs):
     bulk = xr.Dataset()
     bulk.attrs = tafields.attrs
 
-    bulk["∭⁵ε̄ₖdV"]    = tafields["∭⁵ε̄ₖdV"]
-    bulk["∭⁵ε̄ₚdV"]    = tafields["∭⁵ε̄ₚdV"]
-    bulk["⟨∭⁵wbdV⟩ₜ"] = tafields["⟨∭⁵wbdV⟩ₜ"]
+    bulk["∭⁵ε̄ₖdV"]     = tafields["∭⁵ε̄ₖdV"]
+    bulk["∭⁵ε̄ₚdV"]     = tafields["∭⁵ε̄ₚdV"]
+    bulk["⟨∭⁵wbdV⟩ₜ"]  = tafields["⟨∭⁵wbdV⟩ₜ"]
+    bulk["∭¹⁰ε̄ₖdV"]    = tafields["∭¹⁰ε̄ₖdV"]
+    bulk["∭¹⁰ε̄ₚdV"]    = tafields["∭¹⁰ε̄ₚdV"]
+    bulk["⟨∭¹⁰wbdV⟩ₜ"] = tafields["⟨∭¹⁰wbdV⟩ₜ"]
+    bulk["∭²⁰ε̄ₖdV"]    = tafields["∭²⁰ε̄ₖdV"]
+    bulk["∭²⁰ε̄ₚdV"]    = tafields["∭²⁰ε̄ₚdV"]
+    bulk["⟨∭²⁰wbdV⟩ₜ"] = tafields["⟨∭²⁰wbdV⟩ₜ"]
 
     bulk["⟨∬w′b′dxdy⟩ₜ"] = integrate(tafields["⟨w′b′⟩ₜ"], dims = ("x", "y"))
     bulk["⟨∬Ek′dxdy⟩ₜ"]  = integrate(tafields["⟨Ek′⟩ₜ"], dims = ("x", "y"))

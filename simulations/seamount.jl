@@ -64,7 +64,7 @@ function parse_command_line_arguments()
             arg_type = Float64
 
         "--Lx_ratio"
-            default = 5 # Lx / FWHM
+            default = 6 # Lx / FWHM
             arg_type = Float64
 
         "--Ly_ratio"
@@ -84,7 +84,7 @@ function parse_command_line_arguments()
             arg_type = String
 
         "--runway_length_fraction_FWHM"
-            default = 2.4 # y_offset / FWHM (how far from the inflow the headland is)
+            default = 3.5 # y_offset / FWHM (how far from the inflow the headland is)
             arg_type = Float64
 
         "--T_advective_spinup"

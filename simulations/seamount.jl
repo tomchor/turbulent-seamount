@@ -282,10 +282,10 @@ if params.closure == "CSM"
 elseif params.closure == "DSM"
     closure = Smagorinsky(coefficient=DynamicCoefficient(averaging=LagrangianAveraging(), schedule=IterationInterval(5)), Pr=1)
 elseif params.closure == "AMD"
-    closure = AnisotropicMinimumDissipation()
+    closure = AnisotropicMinimumDissipation(C=1/12)
 elseif params.closure == "AMC"
     include("AMD.jl")
-    closure = AnisotropicMinimumDissipation()
+    closure = AnisotropicMinimumDissipation(C=1/12)
 elseif params.closure == "NON"
     closure = nothing
 else

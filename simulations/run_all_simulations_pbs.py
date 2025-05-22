@@ -94,13 +94,10 @@ for modifiers in runs:
         options1 = options1 | dict(cpu_type = "milan")
         options2 = options2 | dict(gpu_type = "a100")
 
-        if modifiers["α"] > 0.1:
+        if only_one_job:
             cmd1 = f"qsub {aux_filename}"
         else:
-            if only_one_job:
-                cmd1 = f"qsub {aux_filename}"
-            else:
-                cmd1 = f"JID1=`qsub {aux_filename}`; JID2=`qsub -W depend=afterok:$JID1 {aux_filename}`; qrls $JID1"
+            cmd1 = f"JID1=`qsub {aux_filename}`; JID2=`qsub -W depend=afterok:$JID1 {aux_filename}`; qrls $JID1"
 
     options_string1 = ":".join([ f"{key}={val}" for key, val in options1.items() ])
     options_string2 = ":".join([ f"{key}={val}" for key, val in options2.items() ])

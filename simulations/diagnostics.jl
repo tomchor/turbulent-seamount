@@ -146,6 +146,12 @@ outputs_budget = Dict{Symbol, Any}(:wb => wb,
 outputs_vol_averages = Dict{Symbol, Any}(:∭⁵εₖdV => Integral(εₖ; condition = DistanceCondition(5meters)),
                                          :∭⁵εₚdV => Integral(εₚ; condition = DistanceCondition(5meters)),
                                          :∭⁵wbdV => Integral(wb; condition = DistanceCondition(5meters)),
+                                         :∭¹⁰εₖdV => Integral(εₖ; condition = DistanceCondition(10meters)),
+                                         :∭¹⁰εₚdV => Integral(εₚ; condition = DistanceCondition(10meters)),
+                                         :∭¹⁰wbdV => Integral(wb; condition = DistanceCondition(10meters)),
+                                         :∭²⁰εₖdV => Integral(εₖ; condition = DistanceCondition(20meters)),
+                                         :∭²⁰εₚdV => Integral(εₚ; condition = DistanceCondition(20meters)),
+                                         :∭²⁰wbdV => Integral(wb; condition = DistanceCondition(20meters)),
                                          )
 #---
 

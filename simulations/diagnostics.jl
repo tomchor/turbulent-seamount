@@ -217,14 +217,14 @@ function construct_outputs(simulation;
             outputs_xyi = merge(outputs_xyi, outputs_budget_integrated)
         end
 
-        simulation.output_writers[:nc_xyi] = ow = NetCDFWriter(model, outputs_full;
-                                                               filename = "$rundir/data/xyi.$(simname).nc",
-                                                               schedule = TimeInterval(interval_2d),
-                                                               array_type = Array{Float64},
-                                                               indices = indices,
-                                                               verbose = debug,
-                                                               kwargs...
-                                                               )
+        simulation.output_writers[:nc_xyi] = NetCDFWriter(model, outputs_full;
+                                                          filename = "$rundir/data/xyi.$(simname).nc",
+                                                          schedule = TimeInterval(interval_2d),
+                                                          array_type = Array{Float64},
+                                                          indices = indices,
+                                                          verbose = debug,
+                                                          kwargs...
+                                                          )
     end
     #---
 
@@ -232,14 +232,14 @@ function construct_outputs(simulation;
     if write_xiz
         @info "Setting up xiz writer"
         indices = (:, grid.Ny÷2, :)
-        simulation.output_writers[:nc_xiz] = ow = NetCDFWriter(model, outputs_full;
-                                                               filename = "$rundir/data/xiz.$(simname).nc",
-                                                               schedule = TimeInterval(interval_2d),
-                                                               array_type = Array{Float32},
-                                                               indices = indices,
-                                                               verbose = debug,
-                                                               kwargs...
-                                                               )
+        simulation.output_writers[:nc_xiz] = NetCDFWriter(model, outputs_full;
+                                                          filename = "$rundir/data/xiz.$(simname).nc",
+                                                          schedule = TimeInterval(interval_2d),
+                                                          array_type = Array{Float32},
+                                                          indices = indices,
+                                                          verbose = debug,
+                                                          kwargs...
+                                                          )
     end
     #---
 
@@ -247,14 +247,14 @@ function construct_outputs(simulation;
     if write_iyz
         @info "Setting up iyz writer"
         indices = (grid.Nx÷2, :, :)
-        simulation.output_writers[:nc_iyz] = ow = NetCDFWriter(model, outputs_full;
-                                                               filename = "$rundir/data/iyz.$(simname).nc",
-                                                               schedule = TimeInterval(interval_2d),
-                                                               array_type = Array{Float32},
-                                                               indices = indices,
-                                                               verbose = debug,
-                                                               kwargs...
-                                                               )
+        simulation.output_writers[:nc_iyz] = NetCDFWriter(model, outputs_full;
+                                                          filename = "$rundir/data/iyz.$(simname).nc",
+                                                          schedule = TimeInterval(interval_2d),
+                                                          array_type = Array{Float32},
+                                                          indices = indices,
+                                                          verbose = debug,
+                                                          kwargs...
+                                                          )
     end
     #---
 
@@ -263,15 +263,15 @@ function construct_outputs(simulation;
         @info "Setting up ttt writer"
         outputs_ttt = merge(outputs_state_vars, outputs_dissip,)
         indices = (:, :, :)
-        simulation.output_writers[:nc_ttt] = ow = NetCDFWriter(model, outputs_ttt;
-                                                               filename = "$rundir/data/ttt.$(simname).nc",
-                                                               schedule = AveragedTimeInterval(interval_time_avg, stride=10),
-                                                               array_type = Array{Float64},
-                                                               with_halos = false,
-                                                               indices = indices,
-                                                               verbose = true,
-                                                               kwargs...
-                                                               )
+        simulation.output_writers[:nc_ttt] = NetCDFWriter(model, outputs_ttt;
+                                                         filename = "$rundir/data/ttt.$(simname).nc",
+                                                         schedule = AveragedTimeInterval(interval_time_avg, stride=10),
+                                                         array_type = Array{Float64},
+                                                         with_halos = false,
+                                                         indices = indices,
+                                                         verbose = true,
+                                                         kwargs...
+                                                         )
     end
     #---
 
@@ -280,15 +280,15 @@ function construct_outputs(simulation;
         @info "Setting up tti writer"
         outputs_tti = merge(outputs_full, outputs_vol_averages)
         indices = (:, :, k_half)
-        simulation.output_writers[:nc_tti] = ow = NetCDFWriter(model, outputs_tti;
-                                                               filename = "$rundir/data/tti.$(simname).nc",
-                                                               schedule = AveragedTimeInterval(interval_time_avg, stride=10),
-                                                               array_type = Array{Float64},
-                                                               with_halos = false,
-                                                               indices = indices,
-                                                               verbose = debug,
-                                                               kwargs...
-                                                               )
+        simulation.output_writers[:nc_tti] = NetCDFWriter(model, outputs_tti;
+                                                          filename = "$rundir/data/tti.$(simname).nc",
+                                                          schedule = AveragedTimeInterval(interval_time_avg, stride=10),
+                                                          array_type = Array{Float64},
+                                                          with_halos = false,
+                                                          indices = indices,
+                                                          verbose = debug,
+                                                          kwargs...
+                                                          )
     end
     #---
 

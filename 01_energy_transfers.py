@@ -18,15 +18,15 @@ if basename(__file__) != "00_run_postproc.py":
     path = "simulations/data/"
     simname_base = "seamount"
 
-    slopes         = cycler(α = [0.05, 0.2])
     Rossby_numbers = cycler(Ro_h = [0.2, 1.25])
     Froude_numbers = cycler(Fr_h = [0.2, 1.25])
+    L              = cycler(L = [0, 300])
 
-    resolutions    = cycler(dz = [8,])
+    resolutions    = cycler(dz = [4,])
     closures       = cycler(closure = ["AMD", "AMC", "CSM", "DSM", "NON"])
     closures       = cycler(closure = ["AMD", "CSM", "DSM"])
 
-    paramspace = slopes * Rossby_numbers * Froude_numbers
+    paramspace = Rossby_numbers * Froude_numbers * L
     configs    = resolutions * closures
 
     runs = paramspace * configs
@@ -143,7 +143,7 @@ for j, config in enumerate(runs):
     tti = condense_velocities(tti)
     tti = condense_velocity_gradient_tensor(tti)
     tti = condense_reynolds_stress_tensor(tti)
-    tti = condense(tti, ["dbdx", "dbdy", "dbdz"], "∂ⱼb", dimname="j", indices=indices)
+    #tti = condense(tti, ["dbdx", "dbdy", "dbdz"], "∂ⱼb", dimname="j", indices=indices)
     #---
 
     #+++ Time average
@@ -153,7 +153,7 @@ for j, config in enumerate(runs):
                                 "∂ⱼuᵢ"    : "∂ⱼūᵢ",
                                 "uⱼuᵢ"    : "⟨uⱼuᵢ⟩ₜ",
                                 "b"       : "b̄",
-                                "∂ⱼb"     : "∂ⱼb̄",
+                                #"∂ⱼb"     : "∂ⱼb̄",
                                 "wb"      : "⟨wb⟩ₜ",
                                 "εₖ"      : "ε̄ₖ",
                                 "εₚ"      : "ε̄ₚ",
@@ -228,8 +228,8 @@ for j, config in enumerate(runs):
     #---
 
     #+++ Get CSI mask and CSI-integral
-    tafields["average_stratification_mask"] = tafields["∂ⱼb̄"].sel(j=3) > 0
-    tafields["average_CSI_mask"] = ((tafields.q̄ * tafields.f_0) < 0) & (tafields["∂ⱼb̄"].sel(j=3) > 0)
+    #tafields["average_stratification_mask"] = tafields["∂ⱼb̄"].sel(j=3) > 0
+    #tafields["average_CSI_mask"] = ((tafields.q̄ * tafields.f_0) < 0) & (tafields["∂ⱼb̄"].sel(j=3) > 0)
     #---
 
     #+++ Drop unnecessary vars

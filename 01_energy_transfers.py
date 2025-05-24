@@ -18,15 +18,15 @@ if basename(__file__) != "00_run_postproc.py":
     path = "simulations/data/"
     simname_base = "seamount"
 
-    slopes         = cycler(α = [0.05, 0.2])
     Rossby_numbers = cycler(Ro_h = [0.2, 1.25])
     Froude_numbers = cycler(Fr_h = [0.2, 1.25])
+    L              = cycler(L = [0, 300])
 
-    resolutions    = cycler(dz = [8,])
+    resolutions    = cycler(dz = [4,])
     closures       = cycler(closure = ["AMD", "AMC", "CSM", "DSM", "NON"])
     closures       = cycler(closure = ["AMD", "CSM", "DSM"])
 
-    paramspace = slopes * Rossby_numbers * Froude_numbers
+    paramspace = Rossby_numbers * Froude_numbers * L
     configs    = resolutions * closures
 
     runs = paramspace * configs
@@ -143,7 +143,7 @@ for j, config in enumerate(runs):
     tti = condense_velocities(tti)
     tti = condense_velocity_gradient_tensor(tti)
     tti = condense_reynolds_stress_tensor(tti)
-    tti = condense(tti, ["dbdx", "dbdy", "dbdz"], "∂ⱼb", dimname="j", indices=indices)
+    #tti = condense(tti, ["dbdx", "dbdy", "dbdz"], "∂ⱼb", dimname="j", indices=indices)
     #---
 
     #+++ Time average
@@ -153,7 +153,7 @@ for j, config in enumerate(runs):
                                 "∂ⱼuᵢ"    : "∂ⱼūᵢ",
                                 "uⱼuᵢ"    : "⟨uⱼuᵢ⟩ₜ",
                                 "b"       : "b̄",
-                                "∂ⱼb"     : "∂ⱼb̄",
+                                #"∂ⱼb"     : "∂ⱼb̄",
                                 "wb"      : "⟨wb⟩ₜ",
                                 "εₖ"      : "ε̄ₖ",
                                 "εₚ"      : "ε̄ₚ",
@@ -167,6 +167,9 @@ for j, config in enumerate(runs):
                                 "∭¹⁰εₖdV" : "∭¹⁰ε̄ₖdV",
                                 "∭¹⁰εₚdV" : "∭¹⁰ε̄ₚdV",
                                 "∭¹⁰wbdV" : "⟨∭¹⁰wbdV⟩ₜ",
+                                "∭²⁰εₖdV" : "∭²⁰ε̄ₖdV",
+                                "∭²⁰εₚdV" : "∭²⁰ε̄ₚdV",
+                                "∭²⁰wbdV" : "⟨∭²⁰wbdV⟩ₜ",
                                 })
     tafields.attrs = tti.attrs
     #---
@@ -225,8 +228,8 @@ for j, config in enumerate(runs):
     #---
 
     #+++ Get CSI mask and CSI-integral
-    tafields["average_stratification_mask"] = tafields["∂ⱼb̄"].sel(j=3) > 0
-    tafields["average_CSI_mask"] = ((tafields.q̄ * tafields.f_0) < 0) & (tafields["∂ⱼb̄"].sel(j=3) > 0)
+    #tafields["average_stratification_mask"] = tafields["∂ⱼb̄"].sel(j=3) > 0
+    #tafields["average_CSI_mask"] = ((tafields.q̄ * tafields.f_0) < 0) & (tafields["∂ⱼb̄"].sel(j=3) > 0)
     #---
 
     #+++ Drop unnecessary vars
@@ -247,13 +250,15 @@ for j, config in enumerate(runs):
     bulk = xr.Dataset()
     bulk.attrs = tafields.attrs
 
-    bulk["∭⁵ε̄ₖdV"]    = tafields["∭⁵ε̄ₖdV"]
-    bulk["∭⁵ε̄ₚdV"]    = tafields["∭⁵ε̄ₚdV"]
-    bulk["⟨∭⁵wbdV⟩ₜ"] = tafields["⟨∭⁵wbdV⟩ₜ"]
-
+    bulk["∭⁵ε̄ₖdV"]     = tafields["∭⁵ε̄ₖdV"]
+    bulk["∭⁵ε̄ₚdV"]     = tafields["∭⁵ε̄ₚdV"]
+    bulk["⟨∭⁵wbdV⟩ₜ"]  = tafields["⟨∭⁵wbdV⟩ₜ"]
     bulk["∭¹⁰ε̄ₖdV"]    = tafields["∭¹⁰ε̄ₖdV"]
     bulk["∭¹⁰ε̄ₚdV"]    = tafields["∭¹⁰ε̄ₚdV"]
     bulk["⟨∭¹⁰wbdV⟩ₜ"] = tafields["⟨∭¹⁰wbdV⟩ₜ"]
+    bulk["∭²⁰ε̄ₖdV"]    = tafields["∭²⁰ε̄ₖdV"]
+    bulk["∭²⁰ε̄ₚdV"]    = tafields["∭²⁰ε̄ₚdV"]
+    bulk["⟨∭²⁰wbdV⟩ₜ"] = tafields["⟨∭²⁰wbdV⟩ₜ"]
 
     bulk["⟨∬w′b′dxdy⟩ₜ"] = integrate(tafields["⟨w′b′⟩ₜ"], dims = ("x", "y"))
     bulk["⟨∬Ek′dxdy⟩ₜ"]  = integrate(tafields["⟨Ek′⟩ₜ"], dims = ("x", "y"))
@@ -265,11 +270,6 @@ for j, config in enumerate(runs):
     bulk["⟨∬⁵Ek′dxdy⟩ₜ"]  = integrate(tafields["⟨Ek′⟩ₜ"].where(altitude > 5, other=0), dims = ("x", "y"))
     bulk["⟨∬⁵SPRdxdy⟩ₜ"]  = integrate(tafields["SPR"].where(altitude > 5, other=0), dims = ("x", "y"))
     bulk["⟨∬⁵Πdxdy⟩ₜ"]    = bulk["⟨∬⁵SPRdxdy⟩ₜ"].sum("j")
-
-    bulk["⟨∬¹⁰w′b′dxdy⟩ₜ"] = integrate(tafields["⟨w′b′⟩ₜ"].where(altitude > 10, other=0), dims = ("x", "y"))
-    bulk["⟨∬¹⁰Ek′dxdy⟩ₜ"]  = integrate(tafields["⟨Ek′⟩ₜ"].where(altitude > 10, other=0), dims = ("x", "y"))
-    bulk["⟨∬¹⁰SPRdxdy⟩ₜ"]  = integrate(tafields["SPR"].where(altitude > 10, other=0), dims = ("x", "y"))
-    bulk["⟨∬¹⁰Πdxdy⟩ₜ"]    = bulk["⟨∬¹⁰SPRdxdy⟩ₜ"].sum("j")
 
     bulk["∬ᵋε̄ₖdxdy"] = tafields["∬ᵋε̄ₖdxdy"]
     bulk["⟨ε̄ₖ⟩ᵋ"]    = bulk["∬ᵋε̄ₖdxdy"] / tafields["∬ᵋ1dxdy"]

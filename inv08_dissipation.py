@@ -14,15 +14,15 @@ from aux02_plotting import letterize, create_mc, mscatter
 path = "simulations/data/"
 simname_base = "seamount"
 
-slopes         = cycler(α = [0.05])
 Rossby_numbers = cycler(Ro_h = [0.2, 1.25])
 Froude_numbers = cycler(Fr_h = [0.2, 1.25])
+L              = cycler(L = [0, 300])
 
 resolutions    = cycler(dz = [2,])
 closures       = cycler(closure = ["AMD", "CSM", "DSM", "NON"])
-closures       = cycler(closure = ["AMD", "CSM", "DSM"])
+closures       = cycler(closure = ["AMD", "CSM",])
 
-paramspace = slopes * Rossby_numbers * Froude_numbers
+paramspace = Rossby_numbers * Froude_numbers * L
 configs    = resolutions * closures
 
 runs = paramspace * configs

@@ -27,16 +27,16 @@ function parse_command_line_arguments()
 
         "--x₀"
             default = 0
-            arg_type = Number
+            arg_type = Float64
 
         "--y₀"
             default = 0
-            arg_type = Number
+            arg_type = Float64
 
         "--aspect"
             help = "Desired cell aspect ratio; Δx/Δz = Δy/Δz"
             default = 2
-            arg_type = Number
+            arg_type = Float64
 
         "--dz"
             default = 64
@@ -44,11 +44,16 @@ function parse_command_line_arguments()
 
         "--V∞"
             default = 0.1meters/second
-            arg_type = Number
+            arg_type = Float64
 
         "--H"
-            default = 150meters
-            arg_type = Number
+            default = 110meters
+            arg_type = Float64
+
+        "--L"
+            help = "Scale for smoothing the bathymetry"
+            default = 0meters
+            arg_type = Float64
 
         "--Ro_h"
             default = 1.4
@@ -59,11 +64,11 @@ function parse_command_line_arguments()
             arg_type = Float64
 
         "--Lx_ratio"
-            default = 5 # Lx / FWMH
+            default = 6 # Lx / FWHM
             arg_type = Float64
 
         "--Ly_ratio"
-            default = 10 # Ly / FWMH
+            default = 10 # Ly / FWHM
             arg_type = Float64
 
         "--Lz_ratio"
@@ -78,8 +83,8 @@ function parse_command_line_arguments()
             default = "AMD"
             arg_type = String
 
-        "--runway_length_fraction_FWMH"
-            default = 2.4 # y_offset / FWMH (how far from the inflow the headland is)
+        "--runway_length_fraction_FWHM"
+            default = 3.5 # y_offset / FWHM (how far from the inflow the headland is)
             arg_type = Float64
 
         "--T_advective_spinup"
@@ -110,18 +115,18 @@ end
 #+++ Get bathymetry file and secondary simulation parameters
 ds_bathymetry = NCDataset(joinpath(@__DIR__, "../bathymetry/balanus-bathymetry-preprocessed.nc"))
 
-include("$(@__DIR__)/siminfo.jl")
+include("$(@__DIR__)/utils.jl")
 let
     #+++ Geometry
     H_ratio = params.H / ds_bathymetry.attrib["H"]
-    FWMH = ds_bathymetry.attrib["FWMH"] * H_ratio
-    α = params.H / FWMH
+    FWHM = ds_bathymetry.attrib["FWHM"] * H_ratio
+    α = params.H / FWHM
 
-    Lx = params.Lx_ratio * FWMH
-    Ly = params.Ly_ratio * FWMH
+    Lx = params.Lx_ratio * FWHM
+    Ly = params.Ly_ratio * FWHM
     Lz = params.Lz_ratio * params.H
 
-    y_offset = params.runway_length_fraction_FWMH * FWMH
+    y_offset = params.runway_length_fraction_FWHM * FWHM
     #---
 
     #+++ Simulation size
@@ -136,7 +141,7 @@ let
     #---
 
     #+++ Dynamically-relevant secondary parameters
-    f₀ = f_0 = params.V∞ / (params.Ro_h * FWMH)
+    f₀ = f_0 = params.V∞ / (params.Ro_h * FWHM)
     N²∞ = N2_inf = (params.V∞ / (params.Fr_h * params.H))^2
     R1 = √N²∞ * params.H / f₀
     z₀ = z_0 = params.Rz * params.H
@@ -152,12 +157,11 @@ let
     #+++ Time scales
     T_inertial = 2π / f₀
     T_cycle = Ly / params.V∞
-    T_advective = FWMH / params.V∞
+    T_advective = FWHM / params.V∞
     #---
 
     global params = merge(params, Base.@locals)
 end
-#include("bathymetry.jl")
 
 #+++ Bathymetry visualization
 if false
@@ -192,7 +196,7 @@ grid_base = RectilinearGrid(arch; topology = (Periodic, Bounded, Bounded),
 params = (; params..., Δz_min = minimum_zspacing(grid_base))
 #---
 
-#+++ Interpolate bathymetry
+#+++ Interpolate (and maybe smooth) bathymetry
 shrunk_elevation = ds_bathymetry["periodic_elevation"] * params.H_ratio
 shrunk_x = ds_bathymetry["x"] * params.H_ratio
 shrunk_y = ds_bathymetry["y"] * params.H_ratio
@@ -203,11 +207,20 @@ itp = LinearInterpolation((shrunk_x, shrunk_y), shrunk_elevation,  extrapolation
 x_grid = xnodes(grid_base, Center(), Center(), Center())
 y_grid = ynodes(grid_base, Center(), Center(), Center())
 interpolated_bathymetry_cpu = itp.(x_grid, reshape(y_grid, (1, grid_base.Ny)))
-interpolated_bathymetry = on_architecture(grid_base.architecture, interpolated_bathymetry_cpu)
+
+if params.L == 0
+    @warn "No smoothing performed on the bathymetry"
+    final_bathymetry_cpu = interpolated_bathymetry_cpu
+else
+    @warn "Smoothing bathymetry with length scale $(params.L)"
+    final_bathymetry_cpu = smooth_bathymetry(interpolated_bathymetry_cpu, grid_base, scale_x=params.L, scale_y=params.L, bc_x="circular", bc_y="replicate")
+end
+
+final_bathymetry = on_architecture(grid_base.architecture, final_bathymetry_cpu)
 #---
 
 #+++ Immersed boundary
-PCB = PartialCellBottom(interpolated_bathymetry)
+PCB = PartialCellBottom(final_bathymetry)
 
 grid = ImmersedBoundaryGrid(grid_base, PCB)
 @info grid
@@ -269,10 +282,10 @@ if params.closure == "CSM"
 elseif params.closure == "DSM"
     closure = Smagorinsky(coefficient=DynamicCoefficient(averaging=LagrangianAveraging(), schedule=IterationInterval(5)), Pr=1)
 elseif params.closure == "AMD"
-    closure = AnisotropicMinimumDissipation()
+    closure = AnisotropicMinimumDissipation(C=1/12)
 elseif params.closure == "AMC"
     include("AMD.jl")
-    closure = AnisotropicMinimumDissipation()
+    closure = AnisotropicMinimumDissipation(C=1/12)
 elseif params.closure == "NON"
     closure = nothing
 else

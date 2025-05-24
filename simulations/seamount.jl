@@ -40,7 +40,7 @@ function parse_command_line_arguments()
             arg_type = Float64
 
         "--dz"
-            default = 64
+            default = 50
             arg_type = Int
 
         "--V∞"
@@ -115,9 +115,7 @@ end
 
 #+++ Get bathymetry file and secondary simulation parameters
 ds_bathymetry = NCDataset(joinpath(@__DIR__, "../bathymetry/balanus-bathymetry-preprocessed.nc"))
-z_coords = create_optimal_z_coordinates(params.dz, params.H, params.Lz, (2, 3, 5))
 
-include("$(@__DIR__)/utils.jl")
 let
     #+++ Geometry
     H_ratio = params.H / ds_bathymetry.attrib["H"]
@@ -131,33 +129,41 @@ let
     y_offset = params.runway_length_fraction_FWHM * FWHM
     #---
 
+    global params = merge(params, Base.@locals)
+end
+
+include("$(@__DIR__)/utils.jl")
+z_coords = create_optimal_z_coordinates(params.dz, params.H, params.Lz, (2, 3, 5))
+
+let
     #+++ Simulation size
-    Nx = max(ceil(Int, Lx / (params.aspect * params.dz)), 5)
-    Ny = max(ceil(Int, Ly / (params.aspect * params.dz)), 5)
+    Nx = max(ceil(Int, params.Lx / (params.aspect * params.dz)), 5)
+    Ny = max(ceil(Int, params.Ly / (params.aspect * params.dz)), 5)
 
     Nx = closest_factor_number((2, 3, 5), Nx)
     Ny = closest_factor_number((2, 3, 5), Ny)
+    Nz = length(z_coords) - 1
     N_total = Nx * Ny * Nz
     #---
 
     #+++ Dynamically-relevant secondary parameters
-    f₀ = f_0 = params.V∞ / (params.Ro_h * FWHM)
+    f₀ = f_0 = params.V∞ / (params.Ro_h * params.FWHM)
     N²∞ = N2_inf = (params.V∞ / (params.Fr_h * params.H))^2
     R1 = √N²∞ * params.H / f₀
     z₀ = z_0 = params.Rz * params.H
     #---
 
     #+++ Diagnostic parameters
-    Γ = α * params.Fr_h # nonhydrostatic parameter (Schar 2002)
+    Γ = params.α * params.Fr_h # nonhydrostatic parameter (Schar 2002)
     Bu_h = (params.Ro_h / params.Fr_h)^2
     Slope_Bu = params.Ro_h / params.Fr_h # approximate slope Burger number
-    @assert Slope_Bu ≈ α * √N²∞ / f₀
+    @assert Slope_Bu ≈ params.α * √N²∞ / f₀
     #---
 
     #+++ Time scales
     T_inertial = 2π / f₀
-    T_cycle = Ly / params.V∞
-    T_advective = FWHM / params.V∞
+    T_cycle = params.Ly / params.V∞
+    T_advective = params.FWHM / params.V∞
     #---
 
     global params = merge(params, Base.@locals)
@@ -167,7 +173,7 @@ pprintln(params)
 
 #+++ Base grid
 grid_base = RectilinearGrid(arch; topology = (Periodic, Bounded, Bounded),
-                            size = (params.Nx, params.Ny, length(z_coords)-1),
+                            size = (params.Nx, params.Ny, params.Nz),
                             x = (-params.Lx/2, +params.Lx/2),
                             y = (-params.y_offset, params.Ly - params.y_offset),
                             z = z_coords,

@@ -67,7 +67,7 @@ function parse_command_line_arguments()
             arg_type = Float64
 
         "--Lz_ratio"
-            default = 1.2 # Lz / H
+            default = 1.6 # Lz / H
             arg_type = Float64
 
         "--Rz"
@@ -157,35 +157,49 @@ let
 
     global params = merge(params, Base.@locals)
 end
-#include("bathymetry.jl")
-
-#+++ Bathymetry visualization
-if false
-    bathymetry2(x, y, z) = seamount(x, y, z)
-
-    xc = xnodes(grid_base, Center())
-    yc = ynodes(grid_base, Center())
-    zc = znodes(grid_base, Center())
-
-    using GLMakie
-
-    volume(xc, yc, zc, bathymetry2,
-           isovalue = 1, isorange = 0.5,
-           algorithm = :iso,
-           axis=(type=Axis3, aspect=(params.Lx, params.Ly, 5params.Lz)))
-    pause
-end
+pprintln(params)
 #---
 
-pprintln(params)
+#+++ Create stretched z-coordinates
+function create_stretched_z_coordinates(dz, H, Lz, stretching_factor = 1.1)
+    # Uniform spacing from 0 to H
+    z_uniform = 0:dz:H
+
+    # Stretched spacing from H to Lz
+    z_stretched = [H]
+    current_z = H
+    current_dz = dz
+
+    while current_z < Lz
+        current_dz *= stretching_factor
+        current_z += current_dz
+        if current_z <= Lz
+            push!(z_stretched, current_z)
+        else
+            # Adjust the last point to end exactly at Lz
+            push!(z_stretched, Lz)
+            break
+        end
+    end
+
+    # Combine the arrays, removing the duplicate H point
+    z_coords = vcat(collect(z_uniform), z_stretched[2:end])
+
+    return z_coords
+end
+
+# Create the stretched z-coordinates
+z_coords = create_stretched_z_coordinates(params.dz, params.H, params.Lz)
+@info "Created stretched z-grid with $(length(z_coords)) points"
+@info "Uniform spacing from 0 to $(params.H) m, then stretched to $(params.Lz) m"
 #---
 
 #+++ Base grid
 grid_base = RectilinearGrid(arch; topology = (Periodic, Bounded, Bounded),
-                            size = (params.Nx, params.Ny, params.Nz),
+                            size = (params.Nx, params.Ny, length(z_coords)-1),
                             x = (-params.Lx/2, +params.Lx/2),
                             y = (-params.y_offset, params.Ly - params.y_offset),
-                            z = (0, params.Lz),
+                            z = z_coords,
                             halo = (4, 4, 4),
                             )
 @info grid_base

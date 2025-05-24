@@ -1,4 +1,5 @@
 using Parameters
+using ImageFiltering: imfilter, Kernel
 
 """ Rounds `a` to the nearest even number """
 nearest_even(a) = Int(2*round(round(a) / 2))
@@ -68,4 +69,34 @@ function closest_factor_number(primes::NTuple{1, Int}, target::Int)
         end
     end
     return closest_number
+end
+
+function smooth_bathymetry(elevation; window_size_x, window_size_y, bc_x="circular", bc_y="replicate")
+    # Create separate Gaussian kernels for x and y directions
+    kernel_x = Kernel.gaussian((window_size_x, 0))
+    kernel_y = Kernel.gaussian((0, window_size_y))
+
+    # Apply filters sequentially with different boundary conditions
+    # First smooth in x direction
+    smoothed_x = imfilter(elevation, kernel_x, bc_x)
+    # Then smooth in y direction
+    smoothed = imfilter(smoothed_x, kernel_y, bc_y)
+
+    return smoothed
+end
+
+function smooth_bathymetry(elevation, grid; scale_x, scale_y, bc_x="circular", bc_y="replicate")
+    # Get minimum grid spacing in x and y directions
+    Δx_min = minimum_xspacing(grid)
+    Δy_min = minimum_yspacing(grid)
+
+    # Convert physical scales to window sizes
+    # We use ceil to ensure we have enough points to cover the scale
+    # The factor of 2 is because the Gaussian kernel's standard deviation
+    # should be about half the desired smoothing length
+    window_size_x = scale_x / (2 * Δx_min)
+    window_size_y = scale_y / (2 * Δy_min)
+
+    # Call the original method with calculated window sizes
+    return smooth_bathymetry(elevation; window_size_x, window_size_y, bc_x, bc_y)
 end

@@ -11,9 +11,9 @@ using PrettyPrinting
 using TickTock
 using NCDatasets: NCDataset
 using Interpolations: LinearInterpolation
+using Optim: GoldenSection, optimize
 
 using CUDA: @allowscalar, has_cuda_gpu
-using Optim
 
 #+++ Parse inital arguments
 "Returns a dictionary of command line arguments."
@@ -200,38 +200,87 @@ function create_stretched_z_coordinates(dz, H, Lz, stretching_factor = 1.1, min_
     return z_coords
 end
 
-# Create the stretched z-coordinates
-z_coords = create_stretched_z_coordinates(params.dz, params.H, params.Lz)
-@info "Created stretched z-grid with $(length(z_coords)) points"
-@info "Uniform spacing from 0 to $(params.H) m, then stretched to $(params.Lz) m"
-
 # Function to count grid points for a given stretching factor
 function count_grid_points(stretching_factor, dz, H, Lz)
     z_coords_test = create_stretched_z_coordinates(dz, H, Lz, stretching_factor)
     return length(z_coords_test) - 1  # Number of grid cells
 end
 
-# Adjust Nz to be a factor of 2, 3, 5
-initial_Nz = length(z_coords) - 1  # Number of grid cells
-optimal_Nz = closest_factor_number((2, 3, 5), initial_Nz)
+"""
+    create_optimal_z_coordinates(dz, H, Lz, prime_factors; 
+                                 initial_stretching_factor=1.1, 
+                                 min_stretching_factor=1.5,
+                                 search_bounds=(1.05, 1.5),
+                                 verbose=true)
 
-if optimal_Nz != initial_Nz
-    @info "Adjusting Nz from $initial_Nz to $optimal_Nz for optimal factorization"
+Create z-coordinates with uniform spacing from 0 to H, then stretched spacing to Lz,
+ensuring the total number of grid cells (Nz) is a product of the given prime factors.
 
-    # Objective function: minimize squared difference between actual and target Nz
-    objective(stretching_factor) = (count_grid_points(stretching_factor, params.dz, params.H, params.Lz) - optimal_Nz)^2
+# Arguments
+- `dz`: Grid spacing for the uniform region [0, H]
+- `H`: Height up to which uniform spacing is used
+- `Lz`: Total domain height
+- `prime_factors`: Tuple of prime factors (e.g., (2, 3, 5))
+- `initial_stretching_factor`: Initial guess for stretching factor
+- `min_stretching_factor`: Minimum ratio for final spacing adjustment
+- `search_bounds`: Tuple of (lower, upper) bounds for optimization
+- `verbose`: Whether to print information messages
 
-    # Find optimal stretching factor using 1D bounded optimization
-    result = optimize(objective, 1.05, 1.5, GoldenSection())
-    optimal_stretching_factor = result.minimizer
-    @info "Found optimal stretching factor: $optimal_stretching_factor"
-
-    # Create new z-coordinates with optimal stretching factor
-    z_coords = create_stretched_z_coordinates(params.dz, params.H, params.Lz, optimal_stretching_factor)
-
-    final_Nz = length(z_coords) - 1
-    @info "Adjusted z-grid now has $(length(z_coords)) points (Nz = $final_Nz, target was $optimal_Nz)"
+# Returns
+- `z_coords`: Vector of z-coordinates from 0 to Lz
+"""
+function create_optimal_z_coordinates(dz, H, Lz, prime_factors; 
+                                     initial_stretching_factor=1.1, 
+                                     min_stretching_factor=1.5,
+                                     search_bounds=(1.05, 1.5),
+                                     verbose=true)
+    
+    # Create initial stretched z-coordinates
+    z_coords = create_stretched_z_coordinates(dz, H, Lz, initial_stretching_factor, min_stretching_factor)
+    
+    if verbose
+        @info "Created initial stretched z-grid with $(length(z_coords)) points"
+        @info "Uniform spacing from 0 to $H, then stretched to $Lz"
+    end
+    
+    # Find optimal Nz that's a factor of the given primes
+    initial_Nz = length(z_coords) - 1  # Number of grid cells
+    optimal_Nz = closest_factor_number(prime_factors, initial_Nz)
+    
+    if optimal_Nz != initial_Nz
+        if verbose
+            @info "Adjusting Nz from $initial_Nz to $optimal_Nz for optimal factorization"
+        end
+        
+        # Objective function: minimize squared difference between actual and target Nz
+        objective(stretching_factor) = (count_grid_points(stretching_factor, dz, H, Lz) - optimal_Nz)^2
+        
+        # Find optimal stretching factor using 1D bounded optimization
+        result = optimize(objective, search_bounds[1], search_bounds[2], GoldenSection())
+        optimal_stretching_factor = result.minimizer
+        
+        if verbose
+            @info "Found optimal stretching factor: $optimal_stretching_factor"
+        end
+        
+        # Create new z-coordinates with optimal stretching factor
+        z_coords = create_stretched_z_coordinates(dz, H, Lz, optimal_stretching_factor, min_stretching_factor)
+        
+        final_Nz = length(z_coords) - 1
+        if verbose
+            @info "Adjusted z-grid now has $(length(z_coords)) points (Nz = $final_Nz, target was $optimal_Nz)"
+        end
+    else
+        if verbose
+            @info "Initial Nz = $initial_Nz is already optimal for given prime factors"
+        end
+    end
+    
+    return z_coords
 end
+
+# Create the optimal z-coordinates
+z_coords = create_optimal_z_coordinates(params.dz, params.H, params.Lz, (2, 3, 5))
 #---
 
 #+++ Base grid

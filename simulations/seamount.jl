@@ -13,6 +13,7 @@ using NCDatasets: NCDataset
 using Interpolations: LinearInterpolation
 
 using CUDA: @allowscalar, has_cuda_gpu
+using Optim
 
 #+++ Parse inital arguments
 "Returns a dictionary of command line arguments."
@@ -161,7 +162,7 @@ pprintln(params)
 #---
 
 #+++ Create stretched z-coordinates
-function create_stretched_z_coordinates(dz, H, Lz, stretching_factor = 1.1)
+function create_stretched_z_coordinates(dz, H, Lz, stretching_factor = 1.1, min_stretching_factor = 1.5)
     # Uniform spacing from 0 to H
     z_uniform = 0:dz:H
 
@@ -172,13 +173,24 @@ function create_stretched_z_coordinates(dz, H, Lz, stretching_factor = 1.1)
 
     while current_z < Lz
         current_dz *= stretching_factor
-        current_z += current_dz
-        if current_z <= Lz
-            push!(z_stretched, current_z)
-        else
-            # Adjust the last point to end exactly at Lz
+        next_z = current_z + current_dz
+
+        # Check if the remaining distance is too small compared to current spacing
+        remaining_distance = Lz - current_z
+        if remaining_distance < current_dz * min_stretching_factor
+            # Adjust the final point to have reasonable spacing
+            final_spacing = remaining_distance
             push!(z_stretched, Lz)
             break
+        else
+            current_z = next_z
+            if current_z <= Lz
+                push!(z_stretched, current_z)
+            else
+                # If we would overshoot, place the final point at Lz
+                push!(z_stretched, Lz)
+                break
+            end
         end
     end
 
@@ -192,6 +204,34 @@ end
 z_coords = create_stretched_z_coordinates(params.dz, params.H, params.Lz)
 @info "Created stretched z-grid with $(length(z_coords)) points"
 @info "Uniform spacing from 0 to $(params.H) m, then stretched to $(params.Lz) m"
+
+# Function to count grid points for a given stretching factor
+function count_grid_points(stretching_factor, dz, H, Lz)
+    z_coords_test = create_stretched_z_coordinates(dz, H, Lz, stretching_factor)
+    return length(z_coords_test) - 1  # Number of grid cells
+end
+
+# Adjust Nz to be a factor of 2, 3, 5
+initial_Nz = length(z_coords) - 1  # Number of grid cells
+optimal_Nz = closest_factor_number((2, 3, 5), initial_Nz)
+
+if optimal_Nz != initial_Nz
+    @info "Adjusting Nz from $initial_Nz to $optimal_Nz for optimal factorization"
+
+    # Objective function: minimize squared difference between actual and target Nz
+    objective(stretching_factor) = (count_grid_points(stretching_factor, params.dz, params.H, params.Lz) - optimal_Nz)^2
+
+    # Find optimal stretching factor using 1D bounded optimization
+    result = optimize(objective, 1.05, 1.5, GoldenSection())
+    optimal_stretching_factor = result.minimizer
+    @info "Found optimal stretching factor: $optimal_stretching_factor"
+
+    # Create new z-coordinates with optimal stretching factor
+    z_coords = create_stretched_z_coordinates(params.dz, params.H, params.Lz, optimal_stretching_factor)
+
+    final_Nz = length(z_coords) - 1
+    @info "Adjusted z-grid now has $(length(z_coords)) points (Nz = $final_Nz, target was $optimal_Nz)"
+end
 #---
 
 #+++ Base grid

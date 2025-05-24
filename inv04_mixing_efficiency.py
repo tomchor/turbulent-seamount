@@ -77,7 +77,7 @@ figs.append(plt.gcf())
 #bulk.plot.scatter(x="Slope_Bu", y="𝒫", hue="L", col="dz", row="closure", xscale="log", yscale="log", cmap="bwr")
 #figs.append(plt.gcf())
 
-bulk.sel(dz=0, method="nearest").plot.scatter(x="Slope_Bu", y="ℰₖ", hue="L", col="buffer", row="closure", xscale="log", yscale="log", cmap="bwr")
+bulk.sel(dz=0, method="nearest").plot.scatter(x="Slope_Bu", y="ℰₚ", hue="L", col="buffer", row="closure", xscale="log", yscale="log", cmap="bwr")
 figs.append(plt.gcf())
 
 for fig in figs:

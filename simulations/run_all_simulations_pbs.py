@@ -13,7 +13,7 @@ L              = cycler(L = [0, 300])
 
 resolutions    = cycler(dz = [4, 2,])
 closures       = cycler(closure = ["AMD", "AMC", "CSM", "DSM", "NON"])
-closures       = cycler(closure = ["AMD", "CSM"])
+closures       = cycler(closure = ["DSM"])
 
 paramspace = Rossby_numbers * Froude_numbers * L
 configs    = resolutions * closures

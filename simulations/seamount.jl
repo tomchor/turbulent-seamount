@@ -11,7 +11,6 @@ using PrettyPrinting
 using TickTock
 using NCDatasets: NCDataset
 using Interpolations: LinearInterpolation
-using Optim: GoldenSection, optimize
 
 using CUDA: @allowscalar, has_cuda_gpu
 
@@ -133,7 +132,8 @@ let
 end
 
 include("$(@__DIR__)/utils.jl")
-z_coords = create_optimal_z_coordinates(params.dz, params.H, params.Lz, (2, 3, 5))
+z_coords = create_optimal_z_coordinates(params.dz, params.H, params.Lz, (2, 3, 5),
+                                        initial_stretching_factor = 1.15)
 
 let
     #+++ Simulation size

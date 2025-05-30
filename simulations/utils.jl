@@ -1,5 +1,6 @@
 using Parameters
 using ImageFiltering: imfilter, Kernel
+using Optim: GoldenSection, optimize
 
 """ Rounds `a` to the nearest even number """
 nearest_even(a) = Int(2*round(round(a) / 2))
@@ -170,10 +171,10 @@ ensuring the total number of grid cells (Nz) is a product of the given prime fac
 - `z_coords`: Vector of z-coordinates from 0 to Lz
 """
 function create_optimal_z_coordinates(dz, H, Lz, prime_factors;
-                                     initial_stretching_factor=1.1,
-                                     min_stretching_factor=1.5,
-                                     search_bounds=(1.05, 1.5),
-                                     verbose=true)
+                                      initial_stretching_factor = 1.1,
+                                      min_stretching_factor = 1.5,
+                                      search_bounds = (1.05, 1.5),
+                                      verbose = true)
 
     # Create initial stretched z-coordinates
     z_coords = create_stretched_z_coordinates(dz, H, Lz, initial_stretching_factor, min_stretching_factor)

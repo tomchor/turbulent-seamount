@@ -6,8 +6,8 @@ import xarray as xr
 from cycler import cycler
 import pynanigans as pn
 from aux00_utils import open_simulation, adjust_times, aggregate_parameters
+from aux02_plotting import RdBu_r, solar, balance
 from matplotlib import pyplot as plt
-from cmocean import cm
 xr.set_options(display_width=140, display_max_rows=30)
 π = 2*np.pi
 
@@ -30,22 +30,12 @@ if basename(__file__) != "00_run_postproc.py":
 #---
 
 xyz_list = []
-ttt_list = []
 for j, config in enumerate(runs):
     simname = f"{simname_base}_" + aggregate_parameters(config, sep="_", prefix="")
 
     #+++ Open datasets
     print(f"\nOpening {simname} xyz")
     xyz = open_simulation(path+f"xyz.{simname}.nc",
-                                    use_advective_periods = True,
-                                    topology = simname[:3],
-                                    squeeze = True,
-                                    load = False,
-                                    get_grid = False,
-                                    open_dataset_kwargs = dict(chunks="auto"),
-                                    )
-    print(f"Opening {simname} ttt")
-    ttt = open_simulation(path+f"ttt.{simname}.nc",
                                     use_advective_periods = True,
                                     topology = simname[:3],
                                     squeeze = True,
@@ -60,9 +50,11 @@ for j, config in enumerate(runs):
     xyz["∂U∂z"] = np.sqrt(xyz["∂u∂z"]**2 + xyz["∂v∂z"]**2)
 
     xyz_list.append(xyz)
-    ttt_list.append(ttt)
     #---
 print("Collected all datasets")
+
+def mask_bathymetry(da, bathymetric_mask=xyz.peripheral_nodes_ccc):
+    return da.where(np.logical_not(bathymetric_mask))
 
 #+++ Plot
 fig, axes = plt.subplots(nrows=2, ncols=len(xyz_list), figsize=(12, 6),
@@ -71,18 +63,18 @@ fig, axes = plt.subplots(nrows=2, ncols=len(xyz_list), figsize=(12, 6),
 sel = dict(x_caa=300, time=np.inf, method="nearest")
 
 V_inf = xyz_list[0].attrs["V∞"]
-v_opts = dict(vmin=-1.5*V_inf, vmax=+1.5*V_inf, cmap="RdBu_r")
-shear_opts = dict(vmin=0, vmax=0.03, cmap=cm.solar)
-for xyz, ttt, col in zip(xyz_list, ttt_list, axes.T):
+
+v_opts = dict(vmin=-1.5*V_inf, vmax=+1.5*V_inf, cmap=RdBu_r)
+shear_opts = dict(vmin=0, vmax=0.03, cmap=solar)
+for xyz, col in zip(xyz_list, axes.T):
     print("Plotting column")
     xyz = xyz.sel(**sel) 
-    ttt = ttt.sel(**sel)
 
     print("  Plotting v")
-    xyz.v.pnplot(ax=col[0], x="y", **v_opts)
+    mask_bathymetry(xyz.v, xyz.peripheral_nodes_ccc).pnplot(ax=col[0], x="y", **v_opts)
 
     print("  Plotting ∂ᶻU")
-    xyz["∂U∂z"].pnplot(ax=col[1], x="y", **shear_opts)
+    mask_bathymetry(xyz["∂U∂z"], xyz.peripheral_nodes_ccc).pnplot(ax=col[1], x="y", **shear_opts)
 #---
 
 for ax in axes.flatten():

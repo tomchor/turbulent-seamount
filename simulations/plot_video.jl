@@ -116,7 +116,7 @@ kwargs = Dict(:u => (colorrange = u_lims,
                       colormap = :balance),
               )
 
-title_height = 8
+title_height = 10
 panel_height = 140; panel_width = 300
 cbar_height = 8
 bottom_axis_height = 2panel_height/3
@@ -126,15 +126,16 @@ bottom_axis_height = 2panel_height/3
 using Oceananigans.Units, Printf
 using Oceananigans: prettytime
 
-fig = Figure(size = (1500, 500))
+fig = Figure(figure_padding = (10, 30, 10, 10))  # Let resize_to_layout! determine size automatically
 n = Observable(1)
 
-title = @lift "α = $(@sprintf "%.2g" params.α),     Frₕ = $(@sprintf "%.2g" params.Fr_h),    Roₕ = $(@sprintf "%.2g" params.Ro_h);    " *
-              "Sᴮᵘ = $(@sprintf "%.2g" params.Slope_Bu);    " *
-              "V∞ = $(@sprintf "%.2g" params.V∞) m/s,    Δzₘᵢₙ = $(@sprintf "%.2g" params.Δz_min) m,    z₀ = $(@sprintf "%.2g" params.z₀) m;     " *
-              "Time = $(@sprintf "%s" prettytime(times[$n]))  =  $(@sprintf "%.3g" times[$n]/params.T_advective) advective periods  =  " *
+title = @lift "α = $(@sprintf "%.2g" params.α),     Frₕ = $(@sprintf "%.2g" params.Fr_h),    Roₕ = $(@sprintf "%.2g" params.Ro_h);    Sᴮᵘ = $(@sprintf "%.2g" params.Slope_Bu);    " *
+              "Δzₘᵢₙ = $(@sprintf "%.2g" params.Δz_min) m,    Time = $(@sprintf "%s" prettytime(times[$n]))  =  $(@sprintf "%.3g" times[$n]/params.T_advective) advective periods  =  " *
               "$(@sprintf "%.3g" times[$n]/params.T_inertial) Inertial periods"
 fig[1, 1:length(variables)] = Label(fig, title, fontsize=18, tellwidth=false, height=title_height)
+
+# Decrease horizontal spacing between panels
+colgap!(fig.layout, 5)  # Reduced from default spacing
 
 dimnames_tup = (:xF, :x_caa, :yF, :y_aca, :zF, :z_aac)
 #---
@@ -153,13 +154,19 @@ for (i, variable) in enumerate(variables)
         vₙ = @lift v[Ti=$n]
 
         #+++ Set axes labels
-        panel_title = j == 1            ? string(variable)      : ""
-        ylabel      = i == 1            ? string(dimnames[2])   : ""
+        panel_title = j == 1 ? string(variable)      : ""
+        ylabel      = i == 1 ? string(dimnames[2])   : ""
         #---
 
         #+++ Create axis and plot heatmap
         height = slice == "xy" ? 2*panel_width : panel_width/2
         ax = Axis(fig[j+1, i]; title=panel_title, xlabel=string(dimnames[1]), ylabel, width=panel_width, height)
+        
+        # Hide y-axis tick labels for all but the leftmost panels
+        if i > 1
+            hideydecorations!(ax, label=false, ticklabels=true, ticks=false, grid=false)
+        end
+        
         global hm = heatmap!(vₙ; kwargs[variable]...)
         #---
 

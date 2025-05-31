@@ -113,7 +113,7 @@ layout_params = (
     title_height = 10,
     panel_width = 300,
     cbar_height = 8,
-    column_gap = 5
+    column_gap = 0
 )
 #---
 

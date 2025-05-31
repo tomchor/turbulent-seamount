@@ -65,7 +65,7 @@ datasets = [(squeeze(ds), slice) for (ds, slice) in datasets]
 slice_info = []
 for (ds, slice) in datasets
     dim_index = SLICE_DIMS[slice]
-    
+
     # Check if dimension exists in dataset
     if dim_index in map(name, dims(ds))
         dim_values = dims(ds, dim_index)
@@ -136,32 +136,32 @@ dimnames_order = (:x_faa, :x_caa, :y_afa, :y_aca, :z_afa, :z_aac)
 for (i, variable) in enumerate(variables)
     for (j, (ds, slice)) in enumerate(datasets)
         @info "Creating panel: $variable ($slice)"
-        
+
         # Get variable data and determine dimensions
         var_data = ds[variable]
         dimnames = [dim for dim in dimnames_order if dim in map(name, dims(var_data))]
         push!(dimnames, :Ti)
-        
+
         # Permute dimensions and create observable
         v = permutedims(var_data, dimnames)
         vₙ = @lift v[Ti=$n]
-        
+
         # Set up axis properties
         panel_title = j == 1 ? string(variable) : ""
         ylabel = i == 1 ? string(dimnames[2]) : ""
         xlabel = string(dimnames[1])
         height = slice == "xy" ? 2 * layout_params.panel_width : layout_params.panel_width ÷ 2
-        
+
         # Create axis
-        ax = Axis(fig[j+1, i]; 
-                 title=panel_title, xlabel, ylabel, 
-                 width=layout_params.panel_width, height)
-        
+        ax = Axis(fig[j+1, i];
+                  title=panel_title, xlabel, ylabel,
+                  width=layout_params.panel_width, height)
+
         # Hide y-axis decorations for non-leftmost panels
         if i > 1
             hideydecorations!(ax, label=false, ticklabels=true, ticks=false, grid=false)
         end
-        
+
         # Create heatmap
         color_params = color_ranges[variable]
         global hm = heatmap!(vₙ; colorrange=color_params.range, colormap=color_params.colormap,
@@ -190,15 +190,15 @@ for (i, variable) in enumerate(variables)
     end
 
     # Add colorbar
-    cbar_label = try 
-        metadata(datasets[1][1][variable])["units"] 
-    catch 
+    cbar_label = try
+        metadata(datasets[1][1][variable])["units"]
+    catch
         string(variable)
     end
-    
-    Colorbar(fig[length(datasets)+2, i], hm; 
-            label=cbar_label, vertical=false, 
-            height=layout_params.cbar_height, ticklabelsize=12)
+
+    Colorbar(fig[length(datasets)+2, i], hm;
+             label=cbar_label, vertical=false,
+             height=layout_params.cbar_height, ticklabelsize=12)
 end
 #---
 
@@ -206,7 +206,7 @@ end
 @info "Recording animation with $(length(frames)) frames"
 resize_to_layout!(fig)
 
-Mk.record(fig, "$(@__DIR__)/../anims/$(params.simname).mp4", frames, 
+Mk.record(fig, "$(@__DIR__)/../anims/$(params.simname).mp4", frames,
          framerate=14, compression=30, px_per_unit=1) do frame
     @info "Frame $frame / $(frames[end])"
     n[] = frame

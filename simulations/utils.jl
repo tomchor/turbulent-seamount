@@ -222,6 +222,7 @@ function create_optimal_z_coordinates(dz, H, Lz, prime_factors;
     end
 
     return z_coords
+end
 #---
 
 #+++ Useful GPU show methods

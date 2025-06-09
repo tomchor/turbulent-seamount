@@ -2,6 +2,7 @@ from os import system
 from cycler import cycler
 import sys
 sys.path.append("..")
+import numpy as np
 from aux00_utils import aggregate_parameters
 
 #+++ Define run options

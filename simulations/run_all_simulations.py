@@ -30,7 +30,7 @@ verbose = 1
 aux_filename = "aux_submission_script.sh"
 julia_script = "seamount.jl"
 
-scheduler = "slurm"
+scheduler = "pbs"
 #---
 
 #+++ Open submission script template and define options

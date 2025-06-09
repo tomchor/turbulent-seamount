@@ -104,6 +104,7 @@ function smooth_bathymetry(elevation, grid; scale_x, scale_y, bc_x="circular", b
     # Call the original method with calculated window sizes
     return smooth_bathymetry(elevation; window_size_x, window_size_y, bc_x, bc_y)
 end
+#---
 
 #+++ Functions to create z coordinate
 function create_stretched_z_coordinates(dz, H, Lz, stretching_factor = 1.1, min_stretching_factor = 1.5)

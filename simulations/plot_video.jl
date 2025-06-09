@@ -1,9 +1,10 @@
 @info "Starting to plot video..."
 
 #+++ Setup Makie backend based on environment
-is_headless = ("GITHUB_ENV" ∈ keys(ENV)) || ("PBS_JOBID" ∈ keys(ENV))
-if is_headless
-    @info "Headless environment detected. Loading CairoMakie"
+is_headless() = !haskey(ENV, "DISPLAY") || isempty(ENV["DISPLAY"])
+has_opengl() = try !isempty(read(`glxinfo -B`, String)) catch; false end
+if is_headless() || !has_opengl()
+    @info "Either headless environment, or environment without openGL detected. Loading CairoMakie"
     using CairoMakie
     get!(ENV, "GKSwstype", "nul")
     Mk = CairoMakie

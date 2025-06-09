@@ -8,14 +8,14 @@ from aux00_utils import aggregate_parameters
 #+++ Define run options
 simname_base = "seamount"
 
-slopes         = cycler(α = [0.05, 0.2])
-Rossby_numbers = cycler(Ro_h = [0.08, 0.2, 0.5, 1.25])
-Froude_numbers = cycler(Fr_h = [0.08, 0.2, 0.5, 1.25])
+Rossby_numbers = cycler(Ro_h = [0.2, 1.25])
+Froude_numbers = cycler(Fr_h = [0.2, 1.25])
+L              = cycler(L = [0, 300])
 
 resolutions    = cycler(dz = [8, 4, 2, 1])
 closures       = cycler(closure = ["AMD", "AMC", "CSM", "DSM", "NON"])
 
-paramspace = slopes * Rossby_numbers * Froude_numbers
+paramspace = Rossby_numbers * Froude_numbers * L
 configs    = resolutions * closures
 
 runs = paramspace * configs
@@ -107,7 +107,7 @@ def big_submission_command(scheduler):
 for modifiers in runs:
     run_options = aggregate_parameters(modifiers)
     simname = f"{simname_base}_" + aggregate_parameters(modifiers, sep="_", prefix="")
-    simname_ascii = simname.replace("α", "A").replace("=", "")
+    simname_ascii = simname.replace("=", "")
     print(simname_ascii)
 
     #+++ Remove previous checkpoints

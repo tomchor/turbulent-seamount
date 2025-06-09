@@ -1,6 +1,7 @@
 using Parameters
 using ImageFiltering: imfilter, Kernel
 
+#+++ Get good grid size
 """ Rounds `a` to the nearest even number """
 nearest_even(a) = Int(2*round(round(a) / 2))
 
@@ -70,7 +71,9 @@ function closest_factor_number(primes::NTuple{1, Int}, target::Int)
     end
     return closest_number
 end
+#---
 
+#+++ Smooth bathymetry
 function smooth_bathymetry(elevation; window_size_x, window_size_y, bc_x="circular", bc_y="replicate")
     # Create separate Gaussian kernels for x and y directions
     kernel_x = Kernel.gaussian((window_size_x, 0))
@@ -100,3 +103,58 @@ function smooth_bathymetry(elevation, grid; scale_x, scale_y, bc_x="circular", b
     # Call the original method with calculated window sizes
     return smooth_bathymetry(elevation; window_size_x, window_size_y, bc_x, bc_y)
 end
+#---
+
+#+++ Useful GPU show methods
+using CUDA: devices, device!, functional, totalmem, name, available_memory, memory_status
+function show_gpu_status()
+    # Check if CUDA is available
+    if !functional()
+        println("CUDA is not available on this system")
+        return
+    end
+
+    # Get number of available GPUs
+    num_devices = length(devices())
+
+    println("=" ^ 70)
+    println("GPU Status Report")
+    println("=" ^ 70)
+    println("Number of GPUs available: $num_devices")
+    println()
+
+    # Iterate through all available GPUs
+    for (i, device) in enumerate(devices())
+        # Set current device
+        device!(device)
+
+        # Get device information
+        gpu_name  = name(device)
+        total_mem = totalmem(device)
+        free_mem  = available_memory()
+        used_mem  = total_mem - free_mem
+
+        # Convert to GB for readability
+        used_gb = used_mem / (1024^3)
+        total_gb = total_mem / (1024^3)
+        usage_percent = (used_mem / total_mem) * 100
+
+        # Display information
+        println("GPU $i: $gpu_name")
+        println("  Used Memory:  $(round(used_gb, digits=2)) GB")
+        println("  Total Memory: $(round(total_gb, digits=2)) GB")
+        println("  Usage:        $(round(usage_percent, digits=1))%")
+
+        # Add a visual progress bar
+        bar_length = 30
+        filled_length = Int(round(usage_percent / 100 * bar_length))
+        bar = "█" ^ filled_length * "░" ^ (bar_length - filled_length)
+        println("  [$(bar)] $(round(usage_percent, digits=1))%")
+        println()
+        println("Double check with CUDA's native function:")
+        memory_status()
+    end
+
+    println("=" ^ 70)
+end
+#---

@@ -16,17 +16,17 @@ end
 #---
 
 #+++ Load re
-using Rasters
-using Rasters: name  # Need this for name() function
-using StatsBase, Printf
+import Rasters as ra
+import NCDatasets
+using Rasters: Raster, RasterStack
+using Printf: @sprintf
 using Oceananigans.Units
 using Oceananigans: prettytime
-import NCDatasets
 #---
 
 #+++ Helper functions
 function squeeze(ds::Union{Raster, RasterStack})
-    flat_dimensions = NamedTuple((name(dim), 1) for dim in dims(ds) if length(dims(ds, dim)) == 1)
+    flat_dimensions = NamedTuple((ra.name(dim), 1) for dim in ra.dims(ds) if length(ra.dims(ds, dim)) == 1)
     return getindex(ds; flat_dimensions...)
 end
 
@@ -45,7 +45,7 @@ variables = (:v, :PV, :εₖ, :Ro)
 fpath_xyi = if @isdefined simulation
     simulation.output_writers[:nc_xyi].filepath
 else
-    "data/xyi.seamount.nc"
+    "data/xyi.seamount_Ro_h=0.2_Fr_h=1.25_L=0_dz=4_closure=DSM.nc"
 end
 
 @info "Reading primary dataset: $fpath_xyi"
@@ -68,8 +68,8 @@ for (ds, slice) in datasets
     dim_index = SLICE_DIMS[slice]
 
     # Check if dimension exists in dataset
-    if dim_index in map(name, dims(ds))
-        dim_values = dims(ds, dim_index)
+    if dim_index in map(ra.name, ra.dims(ds))
+        dim_values = ra.dims(ds, dim_index)
         if length(dim_values) > 0
             dim_value = dim_values[1]
             dim_name = string(first(string(dim_index)))
@@ -85,13 +85,13 @@ end
 
 #+++ Get parameters
 if !((@isdefined params) && (@isdefined simulation))
-    md = metadata(ds_xyi)
+    md = ra.metadata(ds_xyi)
     params = (; (Symbol(k) => v for (k, v) in md)...)
 end
 #---
 
 #+++ Setup animation parameters
-times = dims(ds_xyi, :Ti)
+times = ra.dims(ds_xyi, :Ti)
 n_times = length(times)
 max_frames = 200
 frame_step = max(1, floor(Int, n_times / max_frames))
@@ -140,7 +140,7 @@ for (i, variable) in enumerate(variables)
 
         # Get variable data and determine dimensions
         var_data = ds[variable]
-        dimnames = [dim for dim in dimnames_order if dim in map(name, dims(var_data))]
+        dimnames = [dim for dim in dimnames_order if dim in map(ra.name, ra.dims(var_data))]
         push!(dimnames, :Ti)
 
         # Permute dimensions and create observable

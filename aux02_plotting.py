@@ -4,6 +4,12 @@ from matplotlib import pyplot as plt
 from matplotlib.colors import LogNorm
 from cmocean import cm
 
+#+++ Masked colormaps
+RdBu_r = plt.cm.RdBu_r; RdBu_r.set_bad("lightgray")
+solar = cm.solar; solar.set_bad("lightgray")
+balance = cm.balance; balance.set_bad("lightgray")
+#---
+
 #+++ Manual FacetGrid plot
 def manual_facetgrid(da, fig, tt=None,
                      framedim="time",

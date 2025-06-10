@@ -1,5 +1,6 @@
 # This file may be used to create an environment using:
 # $ conda create --name <env> --file <this file>
+# $ conda create --prefix <directory> --file <this file>
 # platform: linux-64
 @EXPLICIT
 https://conda.anaconda.org/conda-forge/linux-64/libexpat-2.5.0-hcb278e6_1.conda

@@ -203,8 +203,12 @@ for j, config in enumerate(runs):
     #---
 
     #+++ Volume-average/integrate results so far
+    def mask_immersed(da, bathymetric_mask=xyza.peripheral_nodes_ccc):
+        return da.where(np.logical_not(bathymetric_mask))
+
     xyza["ΔxΔyΔz"] = xyza["Δx_caa"] * xyza["Δy_aca"] * xyza["Δz_aac"]
     xyia["ΔxΔy"]   = xyia["Δx_caa"] * xyia["Δy_aca"]
+
     def integrate(da, dV = None, dims=("x", "y", "z")):
         if dV is None:
             if dims == ("x", "y", "z"):
@@ -213,23 +217,14 @@ for j, config in enumerate(runs):
                 dV =  xyia["ΔxΔy"]
         return (da * dV).pnsum(dims)
 
-    tafields["1"] = xr.ones_like(tafields["Δx_caa"])
     #buffer = 5 # meters
-
     #distance_mask = tafields.altitude > buffer
-    #for var in ["ε̄ₖ", "ε̄ₚ", "⟨∂ₜEk⟩ₜ", "⟨wb⟩ₜ", "⟨Ek⟩ₜ", "SPR", "w̄b̄", "⟨w′b′⟩ₜ", "⟨Ek′⟩ₜ", "κ̄ₑ", "1"]:
-    #    int_all = f"∫∫∫⁰{var}dxdydz"
+    for var in ["⟨Ek′⟩ₜ", "κ̄"]:
+        int_all = f"∫∫∫⁰{var}dxdydz"
+        xyza[int_all] = integrate(xyza[var], dV=xyza.ΔxΔyΔz)
     #    int_buf = f"∫∫∫⁵{var}dxdydz"
-    #    tafields[int_all] = integrate(tafields[var])
     #    tafields[int_buf] = integrate(tafields[var], dV=tafields.ΔxΔyΔz.where(distance_mask))
-    #    tafields = condense(tafields, [int_all, int_buf], f"∫∫∫ᵇ{var}dxdydz", dimname="buffer", indices=[0, buffer])
-
-    #for var in ["ε̄ₖ", "ε̄ₚ", "SPR", "⟨w′b′⟩ₜ", "⟨Ek′⟩ₜ", "1"]:
-    #    int_all = f"∫∫⁰{var}dxdz"
-    #    int_buf = f"∫∫⁵{var}dxdz"
-    #    tafields[int_all] = integrate(tafields[var], dV=tafields.ΔxΔy, dims=("x", "z"))
-    #    tafields[int_buf] = integrate(tafields[var], dV=tafields.ΔxΔy.where(distance_mask), dims=("x", "z"))
-    #    tafields = condense(tafields, [int_all, int_buf], f"∫∫ᵇ{var}dxdz", dimname="buffer", indices=[0, buffer])
+        #tafields = condense(tafields, [int_all, int_buf], f"∫∫∫ᵇ{var}dxdydz", dimname="buffer", indices=[0, buffer])
 
     tafields["average_turbulence_mask"] = tafields["ε̄ₖ"] > 1e-8
     for var in ["ε̄ₖ", "ε̄ₚ", "SPR", "⟨w′b′⟩ₜ", "1"]:

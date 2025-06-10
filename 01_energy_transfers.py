@@ -62,7 +62,7 @@ for j, config in enumerate(runs):
     ttt = open_simulation(path+f"ttt.{simname}.nc",
                                     use_advective_periods = True,
                                     topology = simname[:3],
-                                    squeeze = True,
+                                    squeeze = False,
                                     load = False,
                                     get_grid = False,
                                     open_dataset_kwargs = dict(chunks="auto"),
@@ -71,7 +71,7 @@ for j, config in enumerate(runs):
     tti = open_simulation(path+f"tti.{simname}.nc",
                                     use_advective_periods = True,
                                     topology = simname[:3],
-                                    squeeze = True,
+                                    squeeze = False,
                                     load = False,
                                     get_grid = False,
                                     open_dataset_kwargs = dict(chunks="auto"),
@@ -137,9 +137,9 @@ for j, config in enumerate(runs):
         ds = condense(ds, ["u₁uᵢ", "u₂uᵢ", "u₃uᵢ"], "uⱼuᵢ", dimname="j", indices=indices)
         return ds
 
-    #ttt = condense_velocities(ttt)
+    ttt = condense_velocities(ttt)
     #ttt = condense_velocity_gradient_tensor(ttt)
-    #ttt = condense_reynolds_stress_tensor(ttt)
+    ttt = condense_reynolds_stress_tensor(ttt)
     tti = condense_velocities(tti)
     tti = condense_velocity_gradient_tensor(tti)
     tti = condense_reynolds_stress_tensor(tti)
@@ -148,59 +148,69 @@ for j, config in enumerate(runs):
 
     #+++ Time average
     # Here ū and ⟨u⟩ₜ are interchangeable
-    tafields = tti.mean("time")
-    tafields = tafields.rename({"uᵢ"      : "ūᵢ",
-                                "∂ⱼuᵢ"    : "∂ⱼūᵢ",
-                                "uⱼuᵢ"    : "⟨uⱼuᵢ⟩ₜ",
-                                "b"       : "b̄",
-                                #"∂ⱼb"     : "∂ⱼb̄",
-                                "wb"      : "⟨wb⟩ₜ",
-                                "εₖ"      : "ε̄ₖ",
-                                "εₚ"      : "ε̄ₚ",
-                                "ν"       : "ν̄",
-                                "κ"       : "κ̄",
-                                "Ek"      : "⟨Ek⟩ₜ",
-                                "PV"      : "q̄",
-                                "∭⁵εₖdV"  : "∭⁵ε̄ₖdV",
-                                "∭⁵εₚdV"  : "∭⁵ε̄ₚdV",
-                                "∭⁵wbdV"  : "⟨∭⁵wbdV⟩ₜ",
-                                "∭¹⁰εₖdV" : "∭¹⁰ε̄ₖdV",
-                                "∭¹⁰εₚdV" : "∭¹⁰ε̄ₚdV",
-                                "∭¹⁰wbdV" : "⟨∭¹⁰wbdV⟩ₜ",
-                                "∭²⁰εₖdV" : "∭²⁰ε̄ₖdV",
-                                "∭²⁰εₚdV" : "∭²⁰ε̄ₚdV",
-                                "∭²⁰wbdV" : "⟨∭²⁰wbdV⟩ₜ",
-                                })
-    tafields.attrs = tti.attrs
+    xyia = tti.mean("time")
+    xyia = xyia.rename({#"uᵢ"      : "ūᵢ",
+                        "∂ⱼuᵢ"    : "∂ⱼūᵢ",
+                        #"uⱼuᵢ"    : "⟨uⱼuᵢ⟩ₜ",
+                        #"b"       : "b̄",
+                        #"∂ⱼb"     : "∂ⱼb̄",
+                        "wb"      : "⟨wb⟩ₜ",
+                        "εₖ"      : "ε̄ₖ",
+                        "εₚ"      : "ε̄ₚ",
+                        "ν"       : "ν̄",
+                        "κ"       : "κ̄",
+                        "Ek"      : "⟨Ek⟩ₜ",
+                        "PV"      : "q̄",
+                        "∭⁵εₖdV"  : "∭⁵ε̄ₖdV",
+                        "∭⁵εₚdV"  : "∭⁵ε̄ₚdV",
+                        "∭⁵wbdV"  : "⟨∭⁵wbdV⟩ₜ",
+                        "∭¹⁰εₖdV" : "∭¹⁰ε̄ₖdV",
+                        "∭¹⁰εₚdV" : "∭¹⁰ε̄ₚdV",
+                        "∭¹⁰wbdV" : "⟨∭¹⁰wbdV⟩ₜ",
+                        "∭²⁰εₖdV" : "∭²⁰ε̄ₖdV",
+                        "∭²⁰εₚdV" : "∭²⁰ε̄ₚdV",
+                        "∭²⁰wbdV" : "⟨∭²⁰wbdV⟩ₜ",
+                        })
+    xyia = xyia.drop(["uᵢ", "uⱼuᵢ"])
+    xyia.attrs = tti.attrs
+
+    xyza = ttt.mean("time").rename({"uᵢ"      : "ūᵢ",
+                                    "uⱼuᵢ"    : "⟨uⱼuᵢ⟩ₜ",
+                                    "b"       : "b̄",
+                                    "εₖ"      : "ε̄ₖ",
+                                    "εₚ"      : "ε̄ₚ",
+                                    "κ"       : "κ̄",
+                                    })
+    xyza.attrs = tti.attrs
     #---
 
     #+++ Get turbulent Reynolds stress tensor
-    tafields["ūⱼūᵢ"]      = tafields["ūᵢ"] * tafields["ūᵢ"].rename(i="j")
-    tafields["⟨u′ⱼu′ᵢ⟩ₜ"] = tafields["⟨uⱼuᵢ⟩ₜ"] - tafields["ūⱼūᵢ"]
+    xyza["ūⱼūᵢ"]      = xyza["ūᵢ"] * xyza["ūᵢ"].rename(i="j")
+    xyza["⟨u′ⱼu′ᵢ⟩ₜ"] = xyza["⟨uⱼuᵢ⟩ₜ"] - xyza["ūⱼūᵢ"]
     #---
 
     #+++ Get shear production rates
-    tafields["SPR"]  = - (tafields["⟨u′ⱼu′ᵢ⟩ₜ"] * tafields["∂ⱼūᵢ"]).sum("i")
+    xyia["SPR"] = - (xyza["⟨u′ⱼu′ᵢ⟩ₜ"] * xyia["∂ⱼūᵢ"]).sum("i")
     #---
 
     #+++ Get buoyancy production rates
-    tafields["w̄b̄"]      = tafields["ūᵢ"].sel(i=3) * tafields["b̄"]
-    tafields["⟨w′b′⟩ₜ"] = tafields["⟨wb⟩ₜ"] - tafields["w̄b̄"]
+    xyia["w̄b̄"]      = xyza["ūᵢ"].sel(i=3) * xyza["b̄"]
+    xyia["⟨w′b′⟩ₜ"] = xyia["⟨wb⟩ₜ"] - xyia["w̄b̄"]
     #---
 
     #+++ Get TKE
-    tafields["⟨Ek′⟩ₜ"] = (tafields["⟨u′ⱼu′ᵢ⟩ₜ"].sel(i=1, j=1) + tafields["⟨u′ⱼu′ᵢ⟩ₜ"].sel(i=2, j=2) + tafields["⟨u′ⱼu′ᵢ⟩ₜ"].sel(i=3, j=3)) / 2
+    xyza["⟨Ek′⟩ₜ"] = (xyza["⟨u′ⱼu′ᵢ⟩ₜ"].sel(i=1, j=1) + xyza["⟨u′ⱼu′ᵢ⟩ₜ"].sel(i=2, j=2) + xyza["⟨u′ⱼu′ᵢ⟩ₜ"].sel(i=3, j=3)) / 2
     #---
 
     #+++ Volume-average/integrate results so far
-    tafields["ΔxΔyΔz"] = tafields["Δx_caa"] * tafields["Δy_aca"] * tafields["Δz_aac"]
-    tafields["ΔxΔy"]   = tafields["Δx_caa"] * tafields["Δy_aca"]
+    xyza["ΔxΔyΔz"] = xyza["Δx_caa"] * xyza["Δy_aca"] * xyza["Δz_aac"]
+    xyia["ΔxΔy"]   = xyia["Δx_caa"] * xyia["Δy_aca"]
     def integrate(da, dV = None, dims=("x", "y", "z")):
         if dV is None:
             if dims == ("x", "y", "z"):
-                dV = tafields["ΔxΔyΔz"]
+                dV = xyia["ΔxΔyΔz"]
             elif dims == ("x", "y"):
-                dV =  tafields["ΔxΔy"]
+                dV =  xyia["ΔxΔy"]
         return (da * dV).pnsum(dims)
 
     tafields["1"] = xr.ones_like(tafields["Δx_caa"])
@@ -237,42 +247,52 @@ for j, config in enumerate(runs):
     tafields = tafields.drop_dims(("x_faa", "y_afa",))
     #---
 
-    #+++ Save tafields
+    #+++ Save xyia
     outname = f"data_post/tafields_{simname}.nc"
     with ProgressBar(minimum=5, dt=5):
         print(f"Saving results to {outname}...")
-        tafields.to_netcdf(outname)
+        xyia.to_netcdf(outname)
         print("Done!\n")
-    xyi.close(); xyz.close(); tti.close(); ttt.close()
+    xyi.close(); xyz.close(); tti.close()
+    #---
+
+    #+++ Save xyza
+    outname = f"data_post/xyza_{simname}.nc"
+    with ProgressBar(minimum=5, dt=5):
+        print(f"Saving results to {outname}...")
+        xyza.to_netcdf(outname)
+        print("Done!\n")
+    xyza.close(); ttt.close()
     #---
 
     #+++ Create bulk dataset
     bulk = xr.Dataset()
-    bulk.attrs = tafields.attrs
+    bulk.attrs = xyia.attrs
 
-    bulk["∭⁵ε̄ₖdV"]     = tafields["∭⁵ε̄ₖdV"]
-    bulk["∭⁵ε̄ₚdV"]     = tafields["∭⁵ε̄ₚdV"]
-    bulk["⟨∭⁵wbdV⟩ₜ"]  = tafields["⟨∭⁵wbdV⟩ₜ"]
-    bulk["∭¹⁰ε̄ₖdV"]    = tafields["∭¹⁰ε̄ₖdV"]
-    bulk["∭¹⁰ε̄ₚdV"]    = tafields["∭¹⁰ε̄ₚdV"]
-    bulk["⟨∭¹⁰wbdV⟩ₜ"] = tafields["⟨∭¹⁰wbdV⟩ₜ"]
-    bulk["∭²⁰ε̄ₖdV"]    = tafields["∭²⁰ε̄ₖdV"]
-    bulk["∭²⁰ε̄ₚdV"]    = tafields["∭²⁰ε̄ₚdV"]
-    bulk["⟨∭²⁰wbdV⟩ₜ"] = tafields["⟨∭²⁰wbdV⟩ₜ"]
+    bulk["∭⁵ε̄ₖdV"]     = xyia["∭⁵ε̄ₖdV"]
+    bulk["∭⁵ε̄ₚdV"]     = xyia["∭⁵ε̄ₚdV"]
+    bulk["⟨∭⁵wbdV⟩ₜ"]  = xyia["⟨∭⁵wbdV⟩ₜ"]
+    bulk["∭¹⁰ε̄ₖdV"]    = xyia["∭¹⁰ε̄ₖdV"]
+    bulk["∭¹⁰ε̄ₚdV"]    = xyia["∭¹⁰ε̄ₚdV"]
+    bulk["⟨∭¹⁰wbdV⟩ₜ"] = xyia["⟨∭¹⁰wbdV⟩ₜ"]
+    bulk["∭²⁰ε̄ₖdV"]    = xyia["∭²⁰ε̄ₖdV"]
+    bulk["∭²⁰ε̄ₚdV"]    = xyia["∭²⁰ε̄ₚdV"]
+    bulk["⟨∭²⁰wbdV⟩ₜ"] = xyia["⟨∭²⁰wbdV⟩ₜ"]
+    pause
 
-    bulk["⟨∬w′b′dxdy⟩ₜ"] = integrate(tafields["⟨w′b′⟩ₜ"], dims = ("x", "y"))
-    bulk["⟨∬Ek′dxdy⟩ₜ"]  = integrate(tafields["⟨Ek′⟩ₜ"], dims = ("x", "y"))
-    bulk["⟨∬SPRdxdy⟩ₜ"]  = integrate(tafields["SPR"], dims = ("x", "y"))
+    bulk["⟨∬w′b′dxdy⟩ₜ"] = integrate(xyia["⟨w′b′⟩ₜ"], dims = ("x", "y"))
+    bulk["⟨∬Ek′dxdy⟩ₜ"]  = integrate(xyia["⟨Ek′⟩ₜ"], dims = ("x", "y"))
+    bulk["⟨∬SPRdxdy⟩ₜ"]  = integrate(xyia["SPR"], dims = ("x", "y"))
     bulk["⟨∬Πdxdy⟩ₜ"]    = bulk["⟨∬SPRdxdy⟩ₜ"].sum("j")
 
     altitude = xyz.altitude.pnsel(z=tti.z_aac, method="nearest")
-    bulk["⟨∬⁵w′b′dxdy⟩ₜ"] = integrate(tafields["⟨w′b′⟩ₜ"].where(altitude > 5, other=0), dims = ("x", "y"))
-    bulk["⟨∬⁵Ek′dxdy⟩ₜ"]  = integrate(tafields["⟨Ek′⟩ₜ"].where(altitude > 5, other=0), dims = ("x", "y"))
-    bulk["⟨∬⁵SPRdxdy⟩ₜ"]  = integrate(tafields["SPR"].where(altitude > 5, other=0), dims = ("x", "y"))
+    bulk["⟨∬⁵w′b′dxdy⟩ₜ"] = integrate(xyia["⟨w′b′⟩ₜ"].where(altitude > 5, other=0), dims = ("x", "y"))
+    bulk["⟨∬⁵Ek′dxdy⟩ₜ"]  = integrate(xyia["⟨Ek′⟩ₜ"].where(altitude > 5, other=0), dims = ("x", "y"))
+    bulk["⟨∬⁵SPRdxdy⟩ₜ"]  = integrate(xyia["SPR"].where(altitude > 5, other=0), dims = ("x", "y"))
     bulk["⟨∬⁵Πdxdy⟩ₜ"]    = bulk["⟨∬⁵SPRdxdy⟩ₜ"].sum("j")
 
-    bulk["∬ᵋε̄ₖdxdy"] = tafields["∬ᵋε̄ₖdxdy"]
-    bulk["⟨ε̄ₖ⟩ᵋ"]    = bulk["∬ᵋε̄ₖdxdy"] / tafields["∬ᵋ1dxdy"]
+    bulk["∬ᵋε̄ₖdxdy"] = xyia["∬ᵋε̄ₖdxdy"]
+    bulk["⟨ε̄ₖ⟩ᵋ"]    = bulk["∬ᵋε̄ₖdxdy"] / xyia["∬ᵋ1dxdy"]
     bulk["Loᵋ"]      = 2*π * np.sqrt(bulk["⟨ε̄ₖ⟩ᵋ"] / bulk.N2_inf**(3/2))
 
     bulk["Δz̃"] = bulk.Δz_min / bulk["Loᵋ"]
@@ -290,9 +310,9 @@ for j, config in enumerate(runs):
     bulk["N²∞"] = bulk.attrs["N²∞"]
     bulk["V∞"]  = bulk.attrs["V∞"]
     bulk["L"]   = bulk.L
-    bulk["Δx_min"] = tafields["Δx_caa"].where(tafields["Δx_caa"] > 0).min().values
-    bulk["Δy_min"] = tafields["Δy_aca"].where(tafields["Δy_aca"] > 0).min().values
-    bulk["Δz_min"] = tafields["Δz_aac"].where(tafields["Δz_aac"] > 0).min().values
+    bulk["Δx_min"] = xyia["Δx_caa"].where(xyia["Δx_caa"] > 0).min().values
+    bulk["Δy_min"] = xyia["Δy_aca"].where(xyia["Δy_aca"] > 0).min().values
+    bulk["Δz_min"] = xyia["Δz_aac"].where(xyia["Δz_aac"] > 0).min().values
 
     bulk["RoFr"] = bulk.Ro_h * bulk.Fr_h
     bulk["V∞³÷L"] = bulk.attrs["V∞"]**3 / bulk.L

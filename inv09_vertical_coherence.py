@@ -53,7 +53,7 @@ for j, config in enumerate(runs):
     #---
 print("Collected all datasets")
 
-def mask_bathymetry(da, bathymetric_mask=xyz.peripheral_nodes_ccc):
+def mask_immersed(da, bathymetric_mask=xyz.peripheral_nodes_ccc):
     return da.where(np.logical_not(bathymetric_mask))
 
 #+++ Plot
@@ -71,10 +71,10 @@ for xyz, col in zip(xyz_list, axes.T):
     xyz = xyz.sel(**sel) 
 
     print("  Plotting v")
-    mask_bathymetry(xyz.v, xyz.peripheral_nodes_ccc).pnplot(ax=col[0], x="y", **v_opts)
+    mask_immersed(xyz.v, xyz.peripheral_nodes_ccc).pnplot(ax=col[0], x="y", **v_opts)
 
     print("  Plotting ∂ᶻU")
-    mask_bathymetry(xyz["∂U∂z"], xyz.peripheral_nodes_ccc).pnplot(ax=col[1], x="y", **shear_opts)
+    mask_immersed(xyz["∂U∂z"], xyz.peripheral_nodes_ccc).pnplot(ax=col[1], x="y", **shear_opts)
 #---
 
 for ax in axes.flatten():

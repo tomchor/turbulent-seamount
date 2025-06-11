@@ -218,28 +218,24 @@ for j, config in enumerate(runs):
         return (da * dV).pnsum(dims)
 
     #buffer = 5 # meters
-    #distance_mask = tafields.altitude > buffer
+    #distance_mask = xyza.altitude > buffer
     for var in ["⟨Ek′⟩ₜ", "κ̄"]:
-        int_all = f"∫∫∫⁰{var}dxdydz"
+        int_all = f"∭⁰{var}dV"
         xyza[int_all] = integrate(xyza[var], dV=xyza.ΔxΔyΔz)
-    #    int_buf = f"∫∫∫⁵{var}dxdydz"
-    #    tafields[int_buf] = integrate(tafields[var], dV=tafields.ΔxΔyΔz.where(distance_mask))
-        #tafields = condense(tafields, [int_all, int_buf], f"∫∫∫ᵇ{var}dxdydz", dimname="buffer", indices=[0, buffer])
+    #    int_buf = f"∭⁵{var}dxdydz"
+    #    xyza[int_buf] = integrate(xyza[var], dV=xyza.ΔxΔyΔz.where(distance_mask))
+        #xyza = condense(xyza, [int_all, int_buf], f"∭ᵇ{var}dxdydz", dimname="buffer", indices=[0, buffer])
 
-    tafields["average_turbulence_mask"] = tafields["ε̄ₖ"] > 1e-8
-    for var in ["ε̄ₖ", "ε̄ₚ", "SPR", "⟨w′b′⟩ₜ", "1"]:
+    xyza["average_turbulence_mask"] = xyza["ε̄ₖ"] > 1e-8
+    xyza["1"] = mask_immersed(xr.ones_like(xyza["ε̄ₖ"]))
+    for var in ["ε̄ₖ", "1"]:
         int_turb = f"∬ᵋ{var}dxdy"
-        tafields[int_turb] = integrate(tafields[var], dV=tafields.ΔxΔy.where(tafields.average_turbulence_mask), dims=("x", "y"))
-    #---
-
-    #+++ Get CSI mask and CSI-integral
-    #tafields["average_stratification_mask"] = tafields["∂ⱼb̄"].sel(j=3) > 0
-    #tafields["average_CSI_mask"] = ((tafields.q̄ * tafields.f_0) < 0) & (tafields["∂ⱼb̄"].sel(j=3) > 0)
+        xyza[int_turb] = integrate(xyza[var], dV=xyza.ΔxΔyΔz.where(xyza.average_turbulence_mask), dims=("x", "y"))
     #---
 
     #+++ Drop unnecessary vars
-    tafields = tafields.drop_vars(["ūⱼūᵢ", "⟨uⱼuᵢ⟩ₜ", "⟨u′ⱼu′ᵢ⟩ₜ",])
-    tafields = tafields.drop_dims(("x_faa", "y_afa",))
+    xyza = xyza.drop_vars(["ūⱼūᵢ", "⟨uⱼuᵢ⟩ₜ", "⟨u′ⱼu′ᵢ⟩ₜ", "x_faa", "y_afa", "z_aaf"])
+    xyia = xyia.drop_dims(("x_faa", "y_afa",))
     #---
 
     #+++ Save xyia
@@ -273,21 +269,21 @@ for j, config in enumerate(runs):
     bulk["∭²⁰ε̄ₖdV"]    = xyia["∭²⁰ε̄ₖdV"]
     bulk["∭²⁰ε̄ₚdV"]    = xyia["∭²⁰ε̄ₚdV"]
     bulk["⟨∭²⁰wbdV⟩ₜ"] = xyia["⟨∭²⁰wbdV⟩ₜ"]
-    pause
+
+    bulk["⟨∬Ek′dxdy⟩ₜ"]  = xyza["∭⁰⟨Ek′⟩ₜdV"]
+    bulk["⟨∬Ek′dxdy⟩ₜ"]  = xyza["∭⁰κ̄dV"]
 
     bulk["⟨∬w′b′dxdy⟩ₜ"] = integrate(xyia["⟨w′b′⟩ₜ"], dims = ("x", "y"))
-    bulk["⟨∬Ek′dxdy⟩ₜ"]  = integrate(xyia["⟨Ek′⟩ₜ"], dims = ("x", "y"))
     bulk["⟨∬SPRdxdy⟩ₜ"]  = integrate(xyia["SPR"], dims = ("x", "y"))
     bulk["⟨∬Πdxdy⟩ₜ"]    = bulk["⟨∬SPRdxdy⟩ₜ"].sum("j")
 
     altitude = xyz.altitude.pnsel(z=tti.z_aac, method="nearest")
     bulk["⟨∬⁵w′b′dxdy⟩ₜ"] = integrate(xyia["⟨w′b′⟩ₜ"].where(altitude > 5, other=0), dims = ("x", "y"))
-    bulk["⟨∬⁵Ek′dxdy⟩ₜ"]  = integrate(xyia["⟨Ek′⟩ₜ"].where(altitude > 5, other=0), dims = ("x", "y"))
     bulk["⟨∬⁵SPRdxdy⟩ₜ"]  = integrate(xyia["SPR"].where(altitude > 5, other=0), dims = ("x", "y"))
     bulk["⟨∬⁵Πdxdy⟩ₜ"]    = bulk["⟨∬⁵SPRdxdy⟩ₜ"].sum("j")
 
-    bulk["∬ᵋε̄ₖdxdy"] = xyia["∬ᵋε̄ₖdxdy"]
-    bulk["⟨ε̄ₖ⟩ᵋ"]    = bulk["∬ᵋε̄ₖdxdy"] / xyia["∬ᵋ1dxdy"]
+    bulk["∬ᵋε̄ₖdxdy"] = xyza["∬ᵋε̄ₖdxdy"]
+    bulk["⟨ε̄ₖ⟩ᵋ"]    = xyza["∬ᵋε̄ₖdxdy"] / xyza["∬ᵋ1dxdy"]
     bulk["Loᵋ"]      = 2*π * np.sqrt(bulk["⟨ε̄ₖ⟩ᵋ"] / bulk.N2_inf**(3/2))
 
     bulk["Δz̃"] = bulk.Δz_min / bulk["Loᵋ"]

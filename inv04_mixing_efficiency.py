@@ -18,7 +18,7 @@ Froude_numbers = cycler(Fr_h = [0.2, 1.25])
 L              = cycler(L = [0, 300])
 
 resolutions    = cycler(dz = [4, 2,])
-closures       = cycler(closure = ["AMD", "CSM",])
+closures       = cycler(closure = [ "DSM",])
 
 paramspace = Rossby_numbers * Froude_numbers * L
 configs    = resolutions * closures
@@ -60,8 +60,8 @@ bulk["𝒫"].attrs = dict(long_name=r"Norm shear prod rate $\mathcal{P}$")
 
 figs = []
 
-bulk.sel(dz=0, method="nearest").plot.scatter(x="Slope_Bu", y="γ", hue="L", col="buffer", row="closure", xscale="log", yscale="log", cmap="bwr")
-figs.append(plt.gcf())
+#bulk.sel(dz=0, method="nearest").plot.scatter(x="Slope_Bu", y="γ", hue="L", col="buffer", row="closure", xscale="log", yscale="log", cmap="bwr")
+#figs.append(plt.gcf())
 
 #bulk.plot.scatter(x="Slope_Bu", y="ℬ", hue="L", col="dz", row="closure", xscale="log", yscale="symlog", cmap="bwr")
 #for ax in plt.gcf().axes[:-1]:
@@ -71,11 +71,14 @@ figs.append(plt.gcf())
 #bulk.plot.scatter(x="RoFr", y="𝒦⁵", hue="L", col="dz", row="closure", xscale="log", yscale="log", cmap="bwr")
 #figs.append(plt.gcf())
 
-#bulk.plot.scatter(x="Slope_Bu", y="𝒦ℰ", hue="L", col="dz", row="closure", xscale="log", yscale="log", cmap="bwr")
-#figs.append(plt.gcf())
+bulk.plot.scatter(x="Slope_Bu", y="𝒦ℰ", hue="L", col="dz", row="closure", xscale="log", yscale="log", cmap="bwr")
+figs.append(plt.gcf())
 
 #bulk.plot.scatter(x="Slope_Bu", y="𝒫", hue="L", col="dz", row="closure", xscale="log", yscale="log", cmap="bwr")
 #figs.append(plt.gcf())
+
+bulk.sel(dz=0, method="nearest").plot.scatter(x="Slope_Bu", y="ℰₖ", hue="L", col="buffer", row="closure", xscale="log", yscale="log", cmap="bwr")
+figs.append(plt.gcf())
 
 bulk.sel(dz=0, method="nearest").plot.scatter(x="Slope_Bu", y="ℰₚ", hue="L", col="buffer", row="closure", xscale="log", yscale="log", cmap="bwr")
 figs.append(plt.gcf())

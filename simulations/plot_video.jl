@@ -42,19 +42,19 @@ const SLICE_DIMS = Dict(
 variables = (:v, :PV, :εₖ, :Ro)
 
 # Get main dataset path
-fpath_xyi = if @isdefined simulation
-    simulation.output_writers[:nc_xyi].filepath
+fpath_xyii = if @isdefined simulation
+    simulation.output_writers[:nc_xyii].filepath
 else
-    "data/xyi.seamount_Ro_h=0.2_Fr_h=1.25_L=0_dz=4_closure=DSM.nc"
+    "data/xyii.seamount_Ro_h=0.2_Fr_h=1.25_L=0_dz=4_closure=DSM.nc"
 end
 
-@info "Reading primary dataset: $fpath_xyi"
-ds_xyi = RasterStack(fpath_xyi, lazy=true, name=variables)
+@info "Reading primary dataset: $fpath_xyii"
+ds_xyii = RasterStack(fpath_xyii, lazy=true, name=variables)
 
 # Load additional datasets if they exist
-datasets = [(ds_xyi, "xy")]
-for (prefix, slice_name) in [("xiz", "xz"), ("iyz", "yz")]
-    fpath = replace(fpath_xyi, "xyi" => prefix)
+datasets = [(ds_xyii, "xy")]
+for (prefix, slice_name) in [("xizi", "xz"), ("iyzi", "yz")]
+    fpath = replace(fpath_xyii, "xyii" => prefix)
     if isfile(fpath)
         ds = RasterStack(fpath, lazy=true, name=variables)
         push!(datasets, (ds, slice_name))
@@ -85,13 +85,13 @@ end
 
 #+++ Get parameters
 if !((@isdefined params) && (@isdefined simulation))
-    md = ra.metadata(ds_xyi)
+    md = ra.metadata(ds_xyii)
     params = (; (Symbol(k) => v for (k, v) in md)...)
 end
 #---
 
 #+++ Setup animation parameters
-times = ra.dims(ds_xyi, :Ti)
+times = ra.dims(ds_xyii, :Ti)
 n_times = length(times)
 max_frames = 200
 frame_step = max(1, floor(Int, n_times / max_frames))

@@ -113,7 +113,8 @@ outputs_covs = Dict{Symbol, Any}(:uu => (@at CellCenter u*u),
                                  :ww => (@at CellCenter w*w),
                                  :uv => (@at CellCenter u*v),
                                  :uw => (@at CellCenter u*w),
-                                 :vw => (@at CellCenter v*w),)
+                                 :vw => (@at CellCenter v*w),
+                                 :wb => (@at CellCenter w*b))
 #---
 
 #+++ Define velocity gradient tensor
@@ -129,36 +130,20 @@ outputs_grads = Dict{Symbol, Any}(:∂u∂x => (@at CellCenter ∂x(u)),
                                   :∂w∂z => (@at CellCenter ∂z(w)),)
 #---
 
-#+++ Define other energy budget terms
-@info "Calculating energy budget terms"
-wb = @at CellCenter w * b
-outputs_budget = Dict{Symbol, Any}(:wb => wb,
-                                   :Ek => TurbulentKineticEnergy(model, u, v, w),)
-#---
-
 #+++ Volume averages
 @info "Defining volume averages"
 outputs_vol_averages = Dict{Symbol, Any}(:∭⁵εₖdV  => Integral(εₖ; condition = DistanceCondition(5meters)),
                                          :∭⁵εₚdV  => Integral(εₚ; condition = DistanceCondition(5meters)),
-                                         :∭⁵wdV   => Integral(w;  condition = DistanceCondition(5meters)),
-                                         :∭⁵bdV   => Integral(b;  condition = DistanceCondition(5meters)),
-                                         :∭⁵wbdV  => Integral(wb; condition = DistanceCondition(5meters)),
                                          :∭¹⁰εₖdV => Integral(εₖ; condition = DistanceCondition(10meters)),
                                          :∭¹⁰εₚdV => Integral(εₚ; condition = DistanceCondition(10meters)),
-                                         :∭¹⁰wdV  => Integral(w;  condition = DistanceCondition(10meters)),
-                                         :∭¹⁰bdV  => Integral(b;  condition = DistanceCondition(10meters)),
-                                         :∭¹⁰wbdV => Integral(wb; condition = DistanceCondition(10meters)),
                                          :∭²⁰εₖdV => Integral(εₖ; condition = DistanceCondition(20meters)),
                                          :∭²⁰εₚdV => Integral(εₚ; condition = DistanceCondition(20meters)),
-                                         :∭²⁰wdV  => Integral(w;  condition = DistanceCondition(20meters)),
-                                         :∭²⁰bdV  => Integral(b;  condition = DistanceCondition(20meters)),
-                                         :∭²⁰wbdV => Integral(wb; condition = DistanceCondition(20meters)),
                                          )
 #---
 
 #+++ Assemble the "full" outputs tuple
 @info "Assemble diagnostics quantities"
-outputs_full = merge(outputs_state_vars, outputs_dissip, outputs_misc, outputs_covs, outputs_grads, outputs_budget, outputs_diff)
+outputs_full = merge(outputs_state_vars, outputs_dissip, outputs_misc, outputs_covs, outputs_grads, outputs_diff)
 #---
 #---
 
@@ -201,11 +186,7 @@ function construct_outputs(simulation;
                                                                verbose = debug,
                                                                kwargs...
                                                                )
-        @info "Starting to write grid metrics and deltas to xyz"
-        laptimer()
         write_to_ds(ow.filepath, "altitude", interior(compute!(Field(altitude))), coords = ("x_caa", "y_aca", "z_aac"))
-        @info "Finished writing grid metrics and deltas to xyz"
-        laptimer()
     end
     #---
 
@@ -213,12 +194,6 @@ function construct_outputs(simulation;
     if write_xyi
         @info "Setting up xyi writer"
         indices = (:, :, k_half)
-
-        if write_aaa
-            outputs_budget_integrated = Dict( Symbol(:∫∫∫, k, :dxdydz) => Integral(ScratchedField(v))  for (k, v) in outputs_budget )
-            outputs_xyi = merge(outputs_xyi, outputs_budget_integrated)
-        end
-
         simulation.output_writers[:nc_xyi] = NetCDFWriter(model, outputs_full;
                                                           filename = "$rundir/data/xyi.$(simname).nc",
                                                           schedule = TimeInterval(interval_2d),
@@ -264,16 +239,14 @@ function construct_outputs(simulation;
     if write_ttt
         @info "Setting up ttt writer"
         outputs_ttt = merge(outputs_state_vars, outputs_dissip, outputs_covs)
-        indices = (:, :, :)
-        simulation.output_writers[:nc_ttt] = NetCDFWriter(model, outputs_ttt;
-                                                         filename = "$rundir/data/ttt.$(simname).nc",
-                                                         schedule = AveragedTimeInterval(interval_time_avg, stride=10),
-                                                         array_type = Array{eltype(grid)},
-                                                         with_halos = false,
-                                                         indices = indices,
-                                                         verbose = true,
-                                                         kwargs...
-                                                         )
+        simulation.output_writers[:nc_ttt] = ow = NetCDFWriter(model, outputs_ttt;
+                                                               filename = "$rundir/data/ttt.$(simname).nc",
+                                                               schedule = AveragedTimeInterval(interval_time_avg, stride=10),
+                                                               array_type = Array{eltype(grid)},
+                                                               verbose = true,
+                                                               kwargs...
+                                                               )
+        write_to_ds(ow.filepath, "altitude", interior(compute!(Field(altitude))), coords = ("x_caa", "y_aca", "z_aac"))
     end
     #---
 

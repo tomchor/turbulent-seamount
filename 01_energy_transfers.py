@@ -270,8 +270,10 @@ for j, config in enumerate(runs):
     bulk["∭²⁰ε̄ₚdV"]    = xyia["∭²⁰ε̄ₚdV"]
     bulk["⟨∭²⁰wbdV⟩ₜ"] = xyia["⟨∭²⁰wbdV⟩ₜ"]
 
-    bulk["⟨∬Ek′dxdy⟩ₜ"]  = xyza["∭⁰⟨Ek′⟩ₜdV"]
-    bulk["⟨∬Ek′dxdy⟩ₜ"]  = xyza["∭⁰κ̄dV"]
+    bulk["∭⁰⟨Ek′⟩ₜdV"] = xyza["∭⁰⟨Ek′⟩ₜdV"]
+    bulk["∭⁰κ̄dV"]      = xyza["∭⁰κ̄dV"]
+
+    bulk["V∞∬⟨Ek′⟩ₜdxdz"] = xyza.V_inf * integrate(xyza["⟨Ek′⟩ₜ"].pnsel(y=np.inf, method="nearest"), dV=xyza.Δx_caa*xyza.Δz_aac, dims=["x", "z"])
 
     bulk["⟨∬w′b′dxdy⟩ₜ"] = integrate(xyia["⟨w′b′⟩ₜ"], dims = ("x", "y"))
     bulk["⟨∬SPRdxdy⟩ₜ"]  = integrate(xyia["SPR"], dims = ("x", "y"))

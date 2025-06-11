@@ -40,80 +40,80 @@ for j, config in enumerate(runs):
     simname = f"{simname_base}_" + aggregate_parameters(config, sep="_", prefix="")
 
     #+++ Open datasets
-    print(f"\nOpening {simname} xyz")
-    xyz = open_simulation(path+f"xyz.{simname}.nc",
-                                    use_advective_periods = True,
-                                    topology = simname[:3],
-                                    squeeze = True,
-                                    load = False,
-                                    get_grid = False,
-                                    open_dataset_kwargs = dict(chunks="auto"),
-                                    )
-    print(f"Opening {simname} xyi")
-    xyi = open_simulation(path+f"xyi.{simname}.nc",
-                                    use_advective_periods = True,
-                                    topology = simname[:3],
-                                    squeeze = True,
-                                    load = False,
-                                    get_grid = False,
-                                    open_dataset_kwargs = dict(chunks="auto"),
-                                    )
-    print(f"Opening {simname} ttt")
-    ttt = open_simulation(path+f"ttt.{simname}.nc",
-                                    use_advective_periods = True,
-                                    topology = simname[:3],
-                                    squeeze = False,
-                                    load = False,
-                                    get_grid = False,
-                                    open_dataset_kwargs = dict(chunks="auto"),
-                                    )
-    print(f"Opening {simname} tti")
-    tti = open_simulation(path+f"tti.{simname}.nc",
-                                    use_advective_periods = True,
-                                    topology = simname[:3],
-                                    squeeze = False,
-                                    load = False,
-                                    get_grid = False,
-                                    open_dataset_kwargs = dict(chunks="auto"),
-                                    )
+    print(f"\nOpening {simname} xyzi")
+    xyzi = open_simulation(path+f"xyzi.{simname}.nc",
+                           use_advective_periods = True,
+                           topology = simname[:3],
+                           squeeze = True,
+                           load = False,
+                           get_grid = False,
+                           open_dataset_kwargs = dict(chunks="auto"),
+                           ) 
+    print(f"Opening {simname} xyii")
+    xyii = open_simulation(path+f"xyii.{simname}.nc",
+                           use_advective_periods = True,
+                           topology = simname[:3],
+                           squeeze = True,
+                           load = False,
+                           get_grid = False,
+                           open_dataset_kwargs = dict(chunks="auto"),
+                           ) 
+    print(f"Opening {simname} xyza")
+    xyza = open_simulation(path+f"xyza.{simname}.nc",
+                           use_advective_periods = True,
+                           topology = simname[:3],
+                           squeeze = False,
+                           load = False,
+                           get_grid = False,
+                           open_dataset_kwargs = dict(chunks="auto"),
+                           ) 
+    print(f"Opening {simname} xyia")
+    xyia = open_simulation(path+f"xyia.{simname}.nc",
+                           use_advective_periods = True,
+                           topology = simname[:3],
+                           squeeze = False,
+                           load = False,
+                           get_grid = False,
+                           open_dataset_kwargs = dict(chunks="auto"),
+                           )
     #---
 
     #+++ Get rid of slight misalignment in times
-    xyz = adjust_times(xyz, round_times=True)
-    xyi = adjust_times(xyi, round_times=True)
-    ttt = adjust_times(ttt, round_times=True)
-    tti = adjust_times(tti, round_times=True)
+    xyzi = adjust_times(xyzi, round_times=True)
+    xyii = adjust_times(xyii, round_times=True)
+    xyza = adjust_times(xyza, round_times=True)
+    xyia = adjust_times(xyia, round_times=True)
 
-    ttt = ttt.assign_coords(x_caa=tti.x_caa.values, y_aca=tti.y_aca.values) # This is needed just as long as ttt is float32 and tti is float64
+    xyza = xyza.assign_coords(x_caa=xyia.x_caa.values, y_aca=xyia.y_aca.values) # This is needed just as long as xyza is float32 and xyia is float64
     #---
 
     #+++ Preliminary definitions and checks
     print("Doing prelim checks")
-    Δt = xyz.time.diff("time").median()
+    Δt = xyzi.time.diff("time").median()
     Δt_tol = Δt/100
-    if np.all(xyi.time.diff("time") > Δt_tol):
+    if np.all(xyii.time.diff("time") > Δt_tol):
         print(Fore.GREEN + f"Δt is consistent for {simname}", Style.RESET_ALL)
     else:
         print(f"Δt is inconsistent for {simname}")
-        print(np.count_nonzero(xyz.time.diff("time") < Δt_tol), "extra time steps")
+        print(np.count_nonzero(xyzi.time.diff("time") < Δt_tol), "extra time steps")
 
         tslice1 = slice(0.0, None, None)
-        xyz = xyz.sel(time=tslice1)
+        xyzi = xyzi.sel(time=tslice1)
 
-        xyi = xyi.reindex(dict(time=np.arange(0, xyz.time[-1]+1e-5, Δt)), method="nearest", tolerance=Δt/Δt_tol)
-        xyz = xyz.reindex(dict(time=np.arange(0, xyz.time[-1]+1e-5, Δt)), method="nearest", tolerance=Δt/Δt_tol)
+        xyii = xyii.reindex(dict(time=np.arange(0, xyzi.time[-1]+1e-5, Δt)), method="nearest", tolerance=Δt/Δt_tol)
+        xyzi = xyzi.reindex(dict(time=np.arange(0, xyzi.time[-1]+1e-5, Δt)), method="nearest", tolerance=Δt/Δt_tol)
     #---
 
     #+++ Trimming domain
-    t_slice_inclusive = slice(tti.T_advective_spinup, np.inf) # For snapshots, we want to include t=T_advective_spinup
-    t_slice_exclusive = slice(tti.T_advective_spinup + 0.01, np.inf) # For time-averaged outputs, we want to exclude t=T_advective_spinup
-    x_slice = slice(xyz.x_faa[0], np.inf)
+    t_slice_inclusive = slice(xyia.T_advective_spinup, np.inf) # For snapshots, we want to include t=T_advective_spinup
+    t_slice_exclusive = slice(xyia.T_advective_spinup + 0.01, np.inf) # For time-averaged outputs, we want to exclude t=T_advective_spinup
+    x_slice = slice(None, np.inf)
     y_slice = slice(None, np.inf)
 
-    xyz = xyz.sel(time=t_slice_inclusive, x_caa=x_slice, x_faa=x_slice, y_aca=y_slice, y_afa=y_slice)
-    xyi = xyi.sel(time=t_slice_inclusive, x_caa=x_slice, x_faa=x_slice, y_aca=y_slice, y_afa=y_slice)
-    ttt = ttt.sel(time=t_slice_exclusive, x_caa=x_slice, x_faa=x_slice, y_aca=y_slice, y_afa=y_slice)
-    tti = tti.sel(time=t_slice_exclusive, x_caa=x_slice, x_faa=x_slice, y_aca=y_slice, y_afa=y_slice)
+    xyzi = xyzi.sel(time=t_slice_inclusive, x_caa=x_slice, x_faa=x_slice, y_aca=y_slice, y_afa=y_slice)
+    xyii = xyii.sel(time=t_slice_inclusive, x_caa=x_slice, x_faa=x_slice, y_aca=y_slice, y_afa=y_slice)
+    xyza = xyza.sel(time=t_slice_exclusive, x_caa=x_slice, x_faa=x_slice, y_aca=y_slice, y_afa=y_slice)
+    xyia = xyia.sel(time=t_slice_exclusive, x_caa=x_slice, x_faa=x_slice, y_aca=y_slice, y_afa=y_slice)
     #---
 
     #+++ Condense tensors
@@ -137,51 +137,44 @@ for j, config in enumerate(runs):
         ds = condense(ds, ["u₁uᵢ", "u₂uᵢ", "u₃uᵢ"], "uⱼuᵢ", dimname="j", indices=indices)
         return ds
 
-    ttt = condense_velocities(ttt)
-    #ttt = condense_velocity_gradient_tensor(ttt)
-    ttt = condense_reynolds_stress_tensor(ttt)
-    tti = condense_velocities(tti)
-    tti = condense_velocity_gradient_tensor(tti)
-    tti = condense_reynolds_stress_tensor(tti)
-    #tti = condense(tti, ["dbdx", "dbdy", "dbdz"], "∂ⱼb", dimname="j", indices=indices)
+    xyza = condense_velocities(xyza)
+    #xyza = condense_velocity_gradient_tensor(xyza)
+    xyza = condense_reynolds_stress_tensor(xyza)
+    xyia = condense_velocities(xyia)
+    xyia = condense_velocity_gradient_tensor(xyia)
+    xyia = condense_reynolds_stress_tensor(xyia)
+    #xyia = condense(xyia, ["dbdx", "dbdy", "dbdz"], "∂ⱼb", dimname="j", indices=indices)
     #---
 
     #+++ Time average
     # Here ū and ⟨u⟩ₜ are interchangeable
-    xyia = tti.mean("time")
-    xyia = xyia.rename({#"uᵢ"      : "ūᵢ",
-                        "∂ⱼuᵢ"    : "∂ⱼūᵢ",
-                        #"uⱼuᵢ"    : "⟨uⱼuᵢ⟩ₜ",
-                        #"b"       : "b̄",
-                        #"∂ⱼb"     : "∂ⱼb̄",
-                        "wb"      : "⟨wb⟩ₜ",
-                        "εₖ"      : "ε̄ₖ",
-                        "εₚ"      : "ε̄ₚ",
-                        "ν"       : "ν̄",
-                        "κ"       : "κ̄",
-                        "Ek"      : "⟨Ek⟩ₜ",
-                        "PV"      : "q̄",
-                        "∭⁵εₖdV"  : "∭⁵ε̄ₖdV",
-                        "∭⁵εₚdV"  : "∭⁵ε̄ₚdV",
-                        "∭⁵wbdV"  : "⟨∭⁵wbdV⟩ₜ",
-                        "∭¹⁰εₖdV" : "∭¹⁰ε̄ₖdV",
-                        "∭¹⁰εₚdV" : "∭¹⁰ε̄ₚdV",
-                        "∭¹⁰wbdV" : "⟨∭¹⁰wbdV⟩ₜ",
-                        "∭²⁰εₖdV" : "∭²⁰ε̄ₖdV",
-                        "∭²⁰εₚdV" : "∭²⁰ε̄ₚdV",
-                        "∭²⁰wbdV" : "⟨∭²⁰wbdV⟩ₜ",
-                        })
+    xyia = xyia.mean("time").rename({"∂ⱼuᵢ"    : "∂ⱼūᵢ",
+                                     #"b"       : "b̄",
+                                     "wb"      : "⟨wb⟩ₜ",
+                                     "εₖ"      : "ε̄ₖ",
+                                     "εₚ"      : "ε̄ₚ",
+                                     "ν"       : "ν̄",
+                                     "κ"       : "κ̄",
+                                     "Ek"      : "⟨Ek⟩ₜ",
+                                     "PV"      : "q̄",
+                                     "∭⁵εₖdV"  : "∭⁵ε̄ₖdV",
+                                     "∭⁵εₚdV"  : "∭⁵ε̄ₚdV",
+                                     "∭¹⁰εₖdV" : "∭¹⁰ε̄ₖdV",
+                                     "∭¹⁰εₚdV" : "∭¹⁰ε̄ₚdV",
+                                     "∭²⁰εₖdV" : "∭²⁰ε̄ₖdV",
+                                     "∭²⁰εₚdV" : "∭²⁰ε̄ₚdV",
+                                     })
     xyia = xyia.drop(["uᵢ", "uⱼuᵢ"])
-    xyia.attrs = tti.attrs
+    xyia.attrs = xyia.attrs
 
-    xyza = ttt.mean("time").rename({"uᵢ"      : "ūᵢ",
-                                    "uⱼuᵢ"    : "⟨uⱼuᵢ⟩ₜ",
-                                    "b"       : "b̄",
-                                    "εₖ"      : "ε̄ₖ",
-                                    "εₚ"      : "ε̄ₚ",
-                                    "κ"       : "κ̄",
-                                    })
-    xyza.attrs = tti.attrs
+    xyza = xyza.mean("time").rename({"uᵢ"   : "ūᵢ",
+                                     "uⱼuᵢ" : "⟨uⱼuᵢ⟩ₜ",
+                                     "b"    : "b̄",
+                                     "εₖ"   : "ε̄ₖ",
+                                     "εₚ"   : "ε̄ₚ",
+                                     "κ"    : "κ̄",
+                                     })
+    xyza.attrs = xyia.attrs
     #---
 
     #+++ Get turbulent Reynolds stress tensor
@@ -244,7 +237,7 @@ for j, config in enumerate(runs):
         print(f"Saving results to {outname}...")
         xyia.to_netcdf(outname)
         print("Done!\n")
-    xyi.close(); xyz.close(); tti.close()
+    xyii.close(); xyzi.close(); xyia.close()
     #---
 
     #+++ Save xyza
@@ -253,7 +246,7 @@ for j, config in enumerate(runs):
         print(f"Saving results to {outname}...")
         xyza.to_netcdf(outname)
         print("Done!\n")
-    xyza.close(); ttt.close()
+    xyza.close(); xyza.close()
     #---
 
     #+++ Create bulk dataset
@@ -279,7 +272,7 @@ for j, config in enumerate(runs):
     bulk["⟨∬SPRdxdy⟩ₜ"]  = integrate(xyia["SPR"], dims = ("x", "y"))
     bulk["⟨∬Πdxdy⟩ₜ"]    = bulk["⟨∬SPRdxdy⟩ₜ"].sum("j")
 
-    altitude = xyz.altitude.pnsel(z=tti.z_aac, method="nearest")
+    altitude = xyzi.altitude.pnsel(z=xyia.z_aac, method="nearest")
     bulk["⟨∬⁵w′b′dxdy⟩ₜ"] = integrate(xyia["⟨w′b′⟩ₜ"].where(altitude > 5, other=0), dims = ("x", "y"))
     bulk["⟨∬⁵SPRdxdy⟩ₜ"]  = integrate(xyia["SPR"].where(altitude > 5, other=0), dims = ("x", "y"))
     bulk["⟨∬⁵Πdxdy⟩ₜ"]    = bulk["⟨∬⁵SPRdxdy⟩ₜ"].sum("j")

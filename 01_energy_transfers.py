@@ -18,13 +18,13 @@ if basename(__file__) != "00_run_postproc.py":
     path = "simulations/data/"
     simname_base = "seamount"
 
-    Rossby_numbers = cycler(Ro_h = [0.2, 1.25])
-    Froude_numbers = cycler(Fr_h = [0.2, 1.25])
+    Rossby_numbers = cycler(Ro_h = [0.2])
+    Froude_numbers = cycler(Fr_h = [0.2])
     L              = cycler(L = [0, 300])
 
     resolutions    = cycler(dz = [4,])
     closures       = cycler(closure = ["AMD", "AMC", "CSM", "DSM", "NON"])
-    closures       = cycler(closure = ["AMD", "CSM", "DSM"])
+    closures       = cycler(closure = ["DSM"])
 
     paramspace = Rossby_numbers * Froude_numbers * L
     configs    = resolutions * closures
@@ -148,33 +148,32 @@ for j, config in enumerate(runs):
 
     #+++ Time average
     # Here ū and ⟨u⟩ₜ are interchangeable
-    xyia = xyia.mean("time").rename({"∂ⱼuᵢ"    : "∂ⱼūᵢ",
-                                     #"b"       : "b̄",
-                                     "wb"      : "⟨wb⟩ₜ",
-                                     "εₖ"      : "ε̄ₖ",
-                                     "εₚ"      : "ε̄ₚ",
-                                     "ν"       : "ν̄",
-                                     "κ"       : "κ̄",
-                                     "Ek"      : "⟨Ek⟩ₜ",
-                                     "PV"      : "q̄",
-                                     "∭⁵εₖdV"  : "∭⁵ε̄ₖdV",
-                                     "∭⁵εₚdV"  : "∭⁵ε̄ₚdV",
-                                     "∭¹⁰εₖdV" : "∭¹⁰ε̄ₖdV",
-                                     "∭¹⁰εₚdV" : "∭¹⁰ε̄ₚdV",
-                                     "∭²⁰εₖdV" : "∭²⁰ε̄ₖdV",
-                                     "∭²⁰εₚdV" : "∭²⁰ε̄ₚdV",
-                                     })
-    xyia = xyia.drop(["uᵢ", "uⱼuᵢ"])
-    xyia.attrs = xyia.attrs
+    xyia = xyia.mean("time", keep_attrs=True).rename({"∂ⱼuᵢ"    : "∂ⱼūᵢ",
+                                                      "εₖ"      : "ε̄ₖ",
+                                                      "εₚ"      : "ε̄ₚ",
+                                                      "ν"       : "ν̄",
+                                                      "κ"       : "κ̄",
+                                                      "PV"      : "q̄",
+                                                      "Ri"      : "R̄i",
+                                                      "Ro"      : "R̄o",
+                                                      "ω_y"     : "ω̄_y",
+                                                      "∭⁵εₖdV"  : "∭⁵ε̄ₖdV",
+                                                      "∭⁵εₚdV"  : "∭⁵ε̄ₚdV",
+                                                      "∭¹⁰εₖdV" : "∭¹⁰ε̄ₖdV",
+                                                      "∭¹⁰εₚdV" : "∭¹⁰ε̄ₚdV",
+                                                      "∭²⁰εₖdV" : "∭²⁰ε̄ₖdV",
+                                                      "∭²⁰εₚdV" : "∭²⁰ε̄ₚdV",
+                                                      })
+    xyia = xyia.drop(["uᵢ", "uⱼuᵢ", "b", "wb"])
 
-    xyza = xyza.mean("time").rename({"uᵢ"   : "ūᵢ",
-                                     "uⱼuᵢ" : "⟨uⱼuᵢ⟩ₜ",
-                                     "b"    : "b̄",
-                                     "εₖ"   : "ε̄ₖ",
-                                     "εₚ"   : "ε̄ₚ",
-                                     "κ"    : "κ̄",
-                                     })
-    xyza.attrs = xyia.attrs
+    xyza = xyza.mean("time", keep_attrs=True).rename({"uᵢ"   : "ūᵢ",
+                                                      "b"    : "b̄",
+                                                      "uⱼuᵢ" : "⟨uⱼuᵢ⟩ₜ",
+                                                      "wb"   : "⟨wb⟩ₜ",
+                                                      "εₖ"   : "ε̄ₖ",
+                                                      "εₚ"   : "ε̄ₚ",
+                                                      "κ"    : "κ̄",
+                                                      })
     #---
 
     #+++ Get turbulent Reynolds stress tensor
@@ -187,8 +186,8 @@ for j, config in enumerate(runs):
     #---
 
     #+++ Get buoyancy production rates
-    xyia["w̄b̄"]      = xyza["ūᵢ"].sel(i=3) * xyza["b̄"]
-    xyia["⟨w′b′⟩ₜ"] = xyia["⟨wb⟩ₜ"] - xyia["w̄b̄"]
+    xyza["w̄b̄"]      = xyza["ūᵢ"].sel(i=3) * xyza["b̄"]
+    xyza["⟨w′b′⟩ₜ"] = xyza["⟨wb⟩ₜ"] - xyza["w̄b̄"]
     #---
 
     #+++ Get TKE
@@ -200,6 +199,7 @@ for j, config in enumerate(runs):
         return da.where(np.logical_not(bathymetric_mask))
 
     xyza["ΔxΔyΔz"] = xyza["Δx_caa"] * xyza["Δy_aca"] * xyza["Δz_aac"]
+    xyza["ΔxΔz"]   = xyza["Δx_caa"] * xyza["Δz_aac"]
     xyia["ΔxΔy"]   = xyia["Δx_caa"] * xyia["Δy_aca"]
 
     def integrate(da, dV = None, dims=("x", "y", "z")):
@@ -210,14 +210,10 @@ for j, config in enumerate(runs):
                 dV =  xyia["ΔxΔy"]
         return (da * dV).pnsum(dims)
 
-    #buffer = 5 # meters
-    #distance_mask = xyza.altitude > buffer
-    for var in ["⟨Ek′⟩ₜ", "κ̄"]:
-        int_all = f"∭⁰{var}dV"
-        xyza[int_all] = integrate(xyza[var], dV=xyza.ΔxΔyΔz)
-    #    int_buf = f"∭⁵{var}dxdydz"
-    #    xyza[int_buf] = integrate(xyza[var], dV=xyza.ΔxΔyΔz.where(distance_mask))
-        #xyza = condense(xyza, [int_all, int_buf], f"∭ᵇ{var}dxdydz", dimname="buffer", indices=[0, buffer])
+    distance_mask = xyza.altitude > 5 # meters
+    for var in ["⟨Ek′⟩ₜ", "⟨w′b′⟩ₜ"]:
+        int_buf = f"∭⁵{var}dV"
+        xyza[int_buf] = integrate(xyza[var], dV=xyza.ΔxΔyΔz.where(distance_mask))
 
     xyza["average_turbulence_mask"] = xyza["ε̄ₖ"] > 1e-8
     xyza["1"] = mask_immersed(xr.ones_like(xyza["ε̄ₖ"]))
@@ -231,51 +227,28 @@ for j, config in enumerate(runs):
     xyia = xyia.drop_dims(("x_faa", "y_afa",))
     #---
 
-    #+++ Save xyia
-    outname = f"data_post/tafields_{simname}.nc"
-    with ProgressBar(minimum=5, dt=5):
-        print(f"Saving results to {outname}...")
-        xyia.to_netcdf(outname)
-        print("Done!\n")
-    xyii.close(); xyzi.close(); xyia.close()
-    #---
-
-    #+++ Save xyza
-    outname = f"data_post/xyza_{simname}.nc"
-    with ProgressBar(minimum=5, dt=5):
-        print(f"Saving results to {outname}...")
-        xyza.to_netcdf(outname)
-        print("Done!\n")
-    xyza.close(); xyza.close()
-    #---
-
     #+++ Create bulk dataset
     bulk = xr.Dataset()
     bulk.attrs = xyia.attrs
 
     bulk["∭⁵ε̄ₖdV"]     = xyia["∭⁵ε̄ₖdV"]
     bulk["∭⁵ε̄ₚdV"]     = xyia["∭⁵ε̄ₚdV"]
-    bulk["⟨∭⁵wbdV⟩ₜ"]  = xyia["⟨∭⁵wbdV⟩ₜ"]
     bulk["∭¹⁰ε̄ₖdV"]    = xyia["∭¹⁰ε̄ₖdV"]
     bulk["∭¹⁰ε̄ₚdV"]    = xyia["∭¹⁰ε̄ₚdV"]
-    bulk["⟨∭¹⁰wbdV⟩ₜ"] = xyia["⟨∭¹⁰wbdV⟩ₜ"]
     bulk["∭²⁰ε̄ₖdV"]    = xyia["∭²⁰ε̄ₖdV"]
     bulk["∭²⁰ε̄ₚdV"]    = xyia["∭²⁰ε̄ₚdV"]
-    bulk["⟨∭²⁰wbdV⟩ₜ"] = xyia["⟨∭²⁰wbdV⟩ₜ"]
 
-    bulk["∭⁰⟨Ek′⟩ₜdV"] = xyza["∭⁰⟨Ek′⟩ₜdV"]
-    bulk["∭⁰κ̄dV"]      = xyza["∭⁰κ̄dV"]
+    bulk["∭⁵⟨Ek′⟩ₜdV"]  = xyza["∭⁵⟨Ek′⟩ₜdV"]
+    bulk["∭⁵⟨w′b′⟩ₜdV"] = xyza["∭⁵⟨w′b′⟩ₜdV"]
 
-    bulk["V∞∬⟨Ek′⟩ₜdxdz"] = xyza.V_inf * integrate(xyza["⟨Ek′⟩ₜ"].pnsel(y=np.inf, method="nearest"), dV=xyza.Δx_caa*xyza.Δz_aac, dims=["x", "z"])
+    bulk["V∞∬⟨Ek′⟩ₜdxdz"] = xyza.attrs["V∞"] * integrate(xyza["⟨Ek′⟩ₜ"].pnsel(y=np.inf, method="nearest"), dV=xyza.Δx_caa*xyza.Δz_aac, dims=["x", "z"])
 
-    bulk["⟨∬w′b′dxdy⟩ₜ"] = integrate(xyia["⟨w′b′⟩ₜ"], dims = ("x", "y"))
-    bulk["⟨∬SPRdxdy⟩ₜ"]  = integrate(xyia["SPR"], dims = ("x", "y"))
-    bulk["⟨∬Πdxdy⟩ₜ"]    = bulk["⟨∬SPRdxdy⟩ₜ"].sum("j")
+    bulk["∬⁰⟨SPRdxdy⟩ₜdxdy"]  = integrate(xyia["SPR"], dims = ("x", "y"))
+    bulk["∬⁰⟨Πdxdy⟩ₜdxdy"]    = bulk["∬⁰⟨SPRdxdy⟩ₜdxdy"].sum("j")
 
     altitude = xyzi.altitude.pnsel(z=xyia.z_aac, method="nearest")
-    bulk["⟨∬⁵w′b′dxdy⟩ₜ"] = integrate(xyia["⟨w′b′⟩ₜ"].where(altitude > 5, other=0), dims = ("x", "y"))
-    bulk["⟨∬⁵SPRdxdy⟩ₜ"]  = integrate(xyia["SPR"].where(altitude > 5, other=0), dims = ("x", "y"))
-    bulk["⟨∬⁵Πdxdy⟩ₜ"]    = bulk["⟨∬⁵SPRdxdy⟩ₜ"].sum("j")
+    bulk["∬⁵⟨SPRdxdy⟩ₜdxdy"]  = integrate(xyia["SPR"].where(altitude > 5, other=0), dims = ("x", "y"))
+    bulk["∬⁵⟨Πdxdy⟩ₜdxdy"]    = bulk["∬⁵⟨SPRdxdy⟩ₜdxdy"].sum("j")
 
     bulk["∬ᵋε̄ₖdxdy"] = xyza["∬ᵋε̄ₖdxdy"]
     bulk["⟨ε̄ₖ⟩ᵋ"]    = xyza["∬ᵋε̄ₖdxdy"] / xyza["∬ᵋ1dxdy"]
@@ -306,7 +279,25 @@ for j, config in enumerate(runs):
     bulk["N∞³L²"] = np.sqrt(bulk.N2_inf)**3 * bulk.L**2
     #---
 
-    #+++ Final touches and save bulk
+    #+++ Save xyia
+    outname = f"data_post/tafields_{simname}.nc"
+    with ProgressBar(minimum=5, dt=5):
+        print(f"Saving results to {outname}...")
+        xyia.to_netcdf(outname)
+        print("Done!\n")
+    xyii.close(); xyzi.close(); xyia.close()
+    #---
+
+    #+++ Save xyza
+    outname = f"data_post/xyza_{simname}.nc"
+    with ProgressBar(minimum=5, dt=5):
+        print(f"Saving results to {outname}...")
+        xyza.to_netcdf(outname)
+        print("Done!\n")
+    xyza.close(); xyza.close()
+    #---
+
+    #+++ Save bulkstats
     outname = f"data_post/bulkstats_{simname}.nc"
     with ProgressBar(minimum=2, dt=5):
         print(f"Saving bulk results to {outname}...")

@@ -7,8 +7,8 @@ using Oceananigans
 using Oceananigans: on_architecture
 using Oceananigans.Units
 using Oceananigans.TurbulenceClosures: Smagorinsky, DynamicCoefficient, LagrangianAveraging, DynamicSmagorinsky
-using PrettyPrinting
-using TickTock
+using PrettyPrinting: pprintln
+using TickTock: tick, tock
 using NCDatasets: NCDataset
 using Interpolations: LinearInterpolation
 
@@ -340,8 +340,8 @@ add_callback!(simulation, cfl_changer, SpecifiedTimes([t_switch]); name=:cfl_cha
 
 #+++ Diagnostics
 #+++ Define pickup characteristics
-write_chk = params.dz < 2
-if write_chk
+write_ckpt = params.dz < 2
+if write_ckpt
     if any(startswith("chk.$(params.simname)_iteration"), readdir("data"))
         @warn "Checkpoint for $(params.simname) found. Assuming this is a pick-up simulation! Setting overwrite_existing=false."
         overwrite_existing = false
@@ -365,13 +365,13 @@ checkpointer = construct_outputs(simulation;
                                  interval_2d = 0.1*params.T_advective,
                                  interval_3d = 1.0*params.T_advective,
                                  interval_time_avg = 5*params.T_advective,
-                                 write_xyz = true,
-                                 write_xiz = false,
-                                 write_xyi = true,
-                                 write_iyz = false,
-                                 write_ttt = true,
-                                 write_tti = true,
-                                 write_chk,
+                                 write_xyzi = true,
+                                 write_xizi = false,
+                                 write_xyii = true,
+                                 write_iyzi = false,
+                                 write_xyza = true,
+                                 write_xyia = true,
+                                 write_ckpt,
                                  debug = false,
                                  )
 tock()
@@ -380,7 +380,7 @@ tock()
 #+++ Run simulations and plot video afterwards
 if has_cuda_gpu() show_gpu_status() end
 @info "Starting simulation"
-run!(simulation, pickup=write_chk)
+run!(simulation, pickup=write_ckpt)
 #---
 
 #+++ Plot video

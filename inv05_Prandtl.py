@@ -10,9 +10,9 @@ from matplotlib.colors import LogNorm
 path = "simulations/data/"
 simname_base = "seamount"
 
-#tti = xr.open_dataset(path + f"tti.{simname_base}_α=0.05_Ro_h=0.5_Fr_h=0.2_res=2_closure=AMD_bounded=0.nc", decode_times=False).squeeze()
-tti = xr.open_dataset(path + f"tti.{simname_base}_α=0.05_Ro_h=1.25_Fr_h=0.2_res=2_closure=AMC_bounded=0.nc", decode_times=False).squeeze()
-tt0 = tti.isel(time=-1)
+#xyia = xr.open_dataset(path + f"xyia.{simname_base}_α=0.05_Ro_h=0.5_Fr_h=0.2_res=2_closure=AMD_bounded=0.nc", decode_times=False).squeeze()
+xyia = xr.open_dataset(path + f"xyia.{simname_base}_α=0.05_Ro_h=1.25_Fr_h=0.2_res=2_closure=AMC_bounded=0.nc", decode_times=False).squeeze()
+tt0 = xyia.isel(time=-1)
 
 (tt0.ν / tt0.κ).where(tt0["εₖ"] > 5e-8).plot(vmin=0.4, vmax=0.8)
 #(tt0.ν / tt0.κ).plot(vmin=0.4, vmax=0.8)

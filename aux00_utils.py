@@ -120,7 +120,7 @@ def adjust_times(ds, round_times=True, decimals=4):
 #---
 
 #+++ Check if all simulations are complete
-def check_simulation_completion(simnames, slice_name="ttt", path="./headland_simulations/data/", verbose=True):
+def check_simulation_completion(simnames, slice_name="xyza", path="./simulations/data/", verbose=True):
     from colorama import Fore, Back, Style
     times = []
     for simname in simnames:
@@ -146,7 +146,7 @@ def form_run_names(superprefix, *args, **kwargs):
 #---
 
 #+++ Define collect_datasets() function
-def collect_datasets(simnames_filtered, slice_name="xyi", path="./headland_simulations/data/", verbose=False):
+def collect_datasets(simnames_filtered, slice_name="xyii", path="./simulations/data/", verbose=False):
     dslist = []
     for sim_number, simname in enumerate(simnames_filtered):
         #+++ Open datasets
@@ -177,9 +177,9 @@ def collect_datasets(simnames_filtered, slice_name="xyi", path="./headland_simul
                                  open_dataset_kwargs=dict(chunks=dict(time=1)),
                                  )
 
-            if slice_name == "xyi":
+            if slice_name == "xyii":
                 ds = ds.drop_vars(["z_aac", "z_aaf"])
-            elif slice_name == "xiz":
+            elif slice_name == "xiza":
                 ds = ds.drop_vars(["y_aca", "y_afa"])
             elif slice_name == "iyz":
                 ds = ds.drop_vars(["x_caa", "x_faa"])
@@ -225,14 +225,14 @@ def collect_datasets(simnames_filtered, slice_name="xyi", path="./headland_simul
     #+++ Create snapshots dataset
     for i, ds in enumerate(dslist[1:]):
         try:
-            if slice_name == "xyi":
+            if slice_name == "xyii":
                 assert np.allclose(dslist[0].y_aca.values, ds.y_aca.values), "y coordinates don't match in all datasets"
-            elif slice_name == "xiz":
+            elif slice_name == "xiza":
                 assert np.allclose(dslist[0].z_aac.values, ds.z_aac.values), "z coordinates don't match in all datasets"
         except AttributeError:
-            if slice_name == "xyi":
+            if slice_name == "xyii":
                 assert np.allclose(dslist[0].y.values, ds.y.values), "y coordinates don't match in all datasets"
-            elif slice_name == "xiz":
+            elif slice_name == "xiza":
                 assert np.allclose(dslist[0].z.values, ds.z.values), "z coordinates don't match in all datasets"
         if "time" in ds.coords.keys():
             if verbose:

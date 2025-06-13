@@ -112,7 +112,7 @@ end
 @info "Starting simulation $(params.simname) with a dividing factor of $(params.dz) and a $arch architecture\n"
 #---
 
-#+++ Get bathymetry file and secondary simulation parameters
+#+++ Get bathymetry file, z_coords, and secondary simulation parameters
 ds_bathymetry = NCDataset(joinpath(@__DIR__, "../bathymetry/balanus-bathymetry-preprocessed.nc"))
 
 let

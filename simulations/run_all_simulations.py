@@ -98,7 +98,7 @@ def small_submission_command(scheduler):
 
 def big_submission_command(scheduler):
     if scheduler == "pbs":
-        cmd1 = f"JID1=`qsub {aux_filename}`; JID2=`qsub -W depend=afterok:$JID1 {aux_filename}`; qrls $JID1"
+        cmd1 = f"JID1=`qsub {aux_filename}`; JID2=`qsub -W depend=afterok:$JID1 {aux_filename}`; JID3=`qsub -W depend=afterok:$JID2 {aux_filename}`; qrls $JID1"
     elif scheduler == "slurm":
         cmd1 = small_submission_command(scheduler)
     return cmd1

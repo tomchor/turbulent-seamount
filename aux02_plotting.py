@@ -8,6 +8,7 @@ from cmocean import cm
 RdBu_r = plt.cm.RdBu_r; RdBu_r.set_bad("lightgray")
 solar = cm.solar; solar.set_bad("lightgray")
 balance = cm.balance; balance.set_bad("lightgray")
+inferno = plt.cm.inferno; inferno.set_bad("lightgray")
 #---
 
 #+++ Manual FacetGrid plot

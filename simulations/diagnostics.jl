@@ -2,6 +2,8 @@ using Oceananigans.AbstractOperations: @at, ∂x, ∂y, ∂z
 using Oceananigans.Units
 using Oceananigans.Grids: Center, Face
 import Oceananigans.TurbulenceClosures: viscosity, diffusivity
+using CUDA  # Add CUDA import
+#using MacroTools  # Add MacroTools for macro writing
 
 using Oceanostics: KineticEnergyDissipationRate,
                    ErtelPotentialVorticity, RossbyNumber, RichardsonNumber,
@@ -147,6 +149,28 @@ outputs_full = merge(outputs_state_vars, outputs_dissip, outputs_misc, outputs_c
 #---
 #---
 
+#+++ GPU Memory tracking helper
+function get_gpu_memory_usage()
+    if CUDA.functional()
+        device = CUDA.device()
+        return CUDA.memory_status(device).allocated / (1024^3)  # Convert to GB
+    else
+        return 0.0
+    end
+end
+
+macro measure_memory(expr)
+    return quote
+        start_time = get_gpu_memory_usage()
+        result = $expr
+        end_time = get_gpu_memory_usage()
+        elapsed_time = end_time - start_time
+        println("Execution time: $(elapsed_time) seconds")
+        result  # Return the original result
+    end
+end
+#---
+
 #+++ Construct outputs into simulation
 function construct_outputs(simulation; 
                            simname = "TEST",
@@ -178,13 +202,13 @@ function construct_outputs(simulation;
     #+++ xyzi SNAPSHOTS
     if write_xyzi
         @info "Setting up xyzi writer"
-        simulation.output_writers[:nc_xyzi] = ow = NetCDFWriter(model, ScratchedField(outputs_full);
-                                                                filename = "$rundir/data/xyzi.$(simname).nc",
-                                                                schedule = TimeInterval(interval_3d),
-                                                                array_type = Array{eltype(grid)},
-                                                                verbose = debug,
-                                                                kwargs...
-                                                                )
+        simulation.output_writers[:nc_xyzi] = ow = @measure_memory NetCDFWriter(model, ScratchedField(outputs_full);
+                             filename = "$rundir/data/xyzi.$(simname).nc",
+                             schedule = TimeInterval(interval_3d),
+                             array_type = Array{eltype(grid)},
+                             verbose = debug,
+                             kwargs...
+                             )
         write_to_ds(ow.filepath, "altitude", interior(compute!(Field(altitude))), coords = ("x_caa", "y_aca", "z_aac"))
     end
     #---
@@ -193,14 +217,14 @@ function construct_outputs(simulation;
     if write_xyii
         @info "Setting up xyii writer"
         indices = (:, :, k_half)
-        simulation.output_writers[:nc_xyii] = NetCDFWriter(model, outputs_full;
-                                                           filename = "$rundir/data/xyii.$(simname).nc",
-                                                           schedule = TimeInterval(interval_2d),
-                                                           array_type = Array{eltype(grid)},
-                                                           indices = indices,
-                                                           verbose = debug,
-                                                           kwargs...
-                                                           )
+        simulation.output_writers[:nc_xyii] = @measure_memory NetCDFWriter(model, outputs_full;
+                        filename = "$rundir/data/xyii.$(simname).nc",
+                        schedule = TimeInterval(interval_2d),
+                        array_type = Array{eltype(grid)},
+                        indices = indices,
+                        verbose = debug,
+                        kwargs...
+                        )
     end
     #---
 
@@ -208,14 +232,14 @@ function construct_outputs(simulation;
     if write_xizi
         @info "Setting up xizi writer"
         indices = (:, grid.Ny÷2, :)
-        simulation.output_writers[:nc_xizi] = NetCDFWriter(model, outputs_full;
-                                                           filename = "$rundir/data/xizi.$(simname).nc",
-                                                           schedule = TimeInterval(interval_2d),
-                                                           array_type = Array{eltype(grid)},
-                                                           indices = indices,
-                                                           verbose = debug,
-                                                           kwargs...
-                                                           )
+        simulation.output_writers[:nc_xizi] = @measure_memory NetCDFWriter(model, outputs_full;
+                        filename = "$rundir/data/xizi.$(simname).nc",
+                        schedule = TimeInterval(interval_2d),
+                        array_type = Array{eltype(grid)},
+                        indices = indices,
+                        verbose = debug,
+                        kwargs...
+                        )
     end
     #---
 
@@ -223,14 +247,14 @@ function construct_outputs(simulation;
     if write_iyzi
         @info "Setting up iyzi writer"
         indices = (grid.Nx÷2, :, :)
-        simulation.output_writers[:nc_iyzi] = NetCDFWriter(model, outputs_full;
-                                                           filename = "$rundir/data/iyzi.$(simname).nc",
-                                                           schedule = TimeInterval(interval_2d),
-                                                           array_type = Array{eltype(grid)},
-                                                           indices = indices,
-                                                           verbose = debug,
-                                                           kwargs...
-                                                           )
+        simulation.output_writers[:nc_iyzi] = @measure_memory NetCDFWriter(model, outputs_full;
+                        filename = "$rundir/data/iyzi.$(simname).nc",
+                        schedule = TimeInterval(interval_2d),
+                        array_type = Array{eltype(grid)},
+                        indices = indices,
+                        verbose = debug,
+                        kwargs...
+                        )
     end
     #---
 
@@ -238,14 +262,14 @@ function construct_outputs(simulation;
     if write_xyza
         @info "Setting up xyza writer"
         outputs_xyza = merge(outputs_state_vars, outputs_dissip, outputs_covs)
-        simulation.output_writers[:nc_xyza] = ow = NetCDFWriter(model, outputs_xyza;
-                                                                filename = "$rundir/data/xyza.$(simname).nc",
-                                                                schedule = AveragedTimeInterval(interval_time_avg, stride=10),
-                                                                array_type = Array{eltype(grid)},
-                                                                verbose = true,
-                                                                kwargs...
-                                                                )
-        write_to_ds(ow.filepath, "altitude", interior(compute!(Field(altitude))), coords = ("x_caa", "y_aca", "z_aac"))
+        simulation.output_writers[:nc_xyza] = ow = @measure_memory NetCDFWriter(model, outputs_xyza;
+                             filename = "$rundir/data/xyza.$(simname).nc",
+                             schedule = AveragedTimeInterval(interval_time_avg, stride=10),
+                             array_type = Array{eltype(grid)},
+                             verbose = true,
+                             kwargs...
+                             )
+            write_to_ds(ow.filepath, "altitude", interior(compute!(Field(altitude))), coords = ("x_caa", "y_aca", "z_aac"))
     end
     #---
 
@@ -254,22 +278,22 @@ function construct_outputs(simulation;
         @info "Setting up xyia writer"
         outputs_xyia = merge(outputs_full, outputs_vol_averages)
         indices = (:, :, k_half)
-        simulation.output_writers[:nc_xyia] = NetCDFWriter(model, outputs_xyia;
-                                                           filename = "$rundir/data/xyia.$(simname).nc",
-                                                           schedule = AveragedTimeInterval(interval_time_avg, stride=10),
-                                                           array_type = Array{eltype(grid)},
-                                                           with_halos = false,
-                                                           indices = indices,
-                                                           verbose = debug,
-                                                           kwargs...
-                                                           )
+        simulation.output_writers[:nc_xyia] = @measure_memory NetCDFWriter(model, outputs_xyia;
+                        filename = "$rundir/data/xyia.$(simname).nc",
+                        schedule = AveragedTimeInterval(interval_time_avg, stride=10),
+                        array_type = Array{eltype(grid)},
+                        with_halos = false,
+                        indices = indices,
+                        verbose = debug,
+                        kwargs...
+                        )
     end
     #---
 
     #+++ Checkpointer
     @info "Setting up ckpt writer"
     if write_ckpt
-        simulation.output_writers[:ckpt_writer] = checkpointer = Checkpointer(model;
+        simulation.output_writers[:ckpt_writer] = checkpointer = @measure_memory Checkpointer(model;
                                                                              dir="$rundir/data/",
                                                                              prefix = "ckpt.$(simname)",
                                                                              schedule = TimeInterval(interval_time_avg),

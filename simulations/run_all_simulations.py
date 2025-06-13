@@ -131,10 +131,7 @@ for modifiers in runs:
         if only_one_job:
             cmd1 = small_submission_command(scheduler)
         else:
-            if modifiers["α"] > 0.1:
-                cmd1 = small_submission_command(scheduler)
-            else:
-                cmd1 = big_submission_command(scheduler)
+            cmd1 = big_submission_command(scheduler)
 
     submission_script = template.format(simname_ascii = simname_ascii,
                                         simname = simname,

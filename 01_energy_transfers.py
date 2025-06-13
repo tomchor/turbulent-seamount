@@ -243,12 +243,12 @@ for j, config in enumerate(runs):
 
     bulk["V∞∬⟨Ek′⟩ₜdxdz"] = xyza.attrs["V∞"] * integrate(xyza["⟨Ek′⟩ₜ"].pnsel(y=np.inf, method="nearest"), dV=xyza.Δx_caa*xyza.Δz_aac, dims=["x", "z"])
 
-    bulk["∬⁰⟨SPRdxdy⟩ₜdxdy"]  = integrate(xyia["SPR"], dims = ("x", "y"))
-    bulk["∬⁰⟨Πdxdy⟩ₜdxdy"]    = bulk["∬⁰⟨SPRdxdy⟩ₜdxdy"].sum("j")
+    bulk["∬⁰SPRdxdy"]  = integrate(xyia["SPR"], dims = ("x", "y"))
+    bulk["∬⁰Πdxdy"]    = bulk["∬⁰SPRdxdy"].sum("j")
 
     altitude = xyzi.altitude.pnsel(z=xyia.z_aac, method="nearest")
-    bulk["∬⁵⟨SPRdxdy⟩ₜdxdy"]  = integrate(xyia["SPR"].where(altitude > 5, other=0), dims = ("x", "y"))
-    bulk["∬⁵⟨Πdxdy⟩ₜdxdy"]    = bulk["∬⁵⟨SPRdxdy⟩ₜdxdy"].sum("j")
+    bulk["∬⁵SPRdxdy"]  = integrate(xyia["SPR"].where(altitude > 5, other=0), dims = ("x", "y"))
+    bulk["∬⁵Πdxdy"]    = bulk["∬⁵SPRdxdy"].sum("j")
 
     bulk["∬ᵋε̄ₖdxdy"] = xyza["∬ᵋε̄ₖdxdy"]
     bulk["⟨ε̄ₖ⟩ᵋ"]    = xyza["∬ᵋε̄ₖdxdy"] / xyza["∬ᵋ1dxdy"]

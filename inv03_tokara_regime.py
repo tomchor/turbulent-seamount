@@ -20,7 +20,7 @@ path = "simulations/data/"
 #iyz.v.sel(time=[3, 3.5, 4], method="nearest").pnplot(y="z", row="time", robust=True)
 #iyz["∂u∂z"].sel(time=[3, 3.5, 4], method="nearest").pnplot(y="z", row="time", robust=True)
 
-tokara = open_simulation(path + "xyz.tokara_res=2_α=0.2_Ro_h=1.4_Fr_h=0.6.nc",
+tokara = open_simulation(path + "xyzi.tokara_res=2_α=0.2_Ro_h=1.4_Fr_h=0.6.nc",
                          use_inertial_periods = True,
                          topology = "PNN",
                          squeeze = True,
@@ -30,7 +30,7 @@ tokara = open_simulation(path + "xyz.tokara_res=2_α=0.2_Ro_h=1.4_Fr_h=0.6.nc",
                          )
 depths = np.linspace(0.1, 0.9, 5) * tokara.H 
 
-coupled = open_simulation(path + "xyz.tokara_res=2_α=0.2_Ro_h=0.08_Fr_h=1.25_closure=AMD_bounded=0.nc",
+coupled = open_simulation(path + "xyzi.tokara_res=2_α=0.2_Ro_h=0.08_Fr_h=1.25_closure=AMD_bounded=0.nc",
                           use_inertial_periods = True,
                           topology = "PNN",
                           squeeze = True,

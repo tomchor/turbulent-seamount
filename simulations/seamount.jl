@@ -242,11 +242,17 @@ v_north = PerturbationAdvectionOpenBoundaryCondition(params.V∞; inflow_timesca
 w_south = w_north = ValueBoundaryCondition(0)
 #---
 
-#+++ Boundary conditions for buoyancy
-b∞(x, y, z, t, p) = p.N²∞ * z
-b∞(x, z, t, p) = b∞(x, 0, z, t, p)
+#+++ Boundary and initial conditions for buoyancy
+struct LinearStratification
+    N²∞ :: Float64 # stratification strength (s⁻²)
+end
 
-b_south = b_north = ValueBoundaryCondition(b∞, parameters = (; params.N²∞))
+(strat::LinearStratification)(z) = strat.N²∞ * z
+(strat::LinearStratification)(x, y, z) = strat(z) # For initial condition
+(strat::LinearStratification)(x, y, z, t) = strat(z) # For the sponge layer
+
+b∞ = LinearStratification(params.N²∞)
+b_south = b_north = ValueBoundaryCondition((x, z, t) -> b∞(z))
 #---
 
 #+++ Assemble BCs
@@ -290,6 +296,17 @@ end
 
 #+++ Model and ICs
 @info "Creating model"
+
+#+++ Add top sponge layer
+h_sponge = 0.1 * params.Lz
+mask_top = PiecewiseLinearMask{:z}(center=params.Lz, width=h_sponge)
+damping_rate = max(√params.N²∞, params.α * params.V∞ / h_sponge) / 10
+
+u_sponge = w_sponge = Relaxation(rate=damping_rate, mask=mask_top)
+v_sponge = Relaxation(rate=damping_rate, mask=mask_top, target=params.V∞)
+b_sponge = Relaxation(rate=damping_rate, mask=mask_top, target=b∞)
+#---
+
 model = NonhydrostaticModel(grid = grid, timestepper = :RungeKutta3,
                             advection = WENO(grid=grid_base, order=5),
                             buoyancy = BuoyancyTracer(),
@@ -297,14 +314,13 @@ model = NonhydrostaticModel(grid = grid, timestepper = :RungeKutta3,
                             tracers = :b,
                             closure = closure,
                             boundary_conditions = bcs,
-                            forcing = (; u=Fᵤ),
+                            forcing = (; u=(u_sponge, Fᵤ), v=v_sponge, w=w_sponge, b=b_sponge),
                             hydrostatic_pressure_anomaly = CenterField(grid),
                             )
 @info "" model
 if has_cuda_gpu() show_gpu_status() end
 
-f_params = (; params.H, params.V∞, params.f₀, params.N²∞,)
-set!(model, b=(x, y, z) -> b∞(x, y, z, 0, f_params), v=params.V∞)
+set!(model, b=(x, y, z) -> b∞(z), v=params.V∞)
 #---
 
 #+++ Create simulation

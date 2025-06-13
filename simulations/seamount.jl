@@ -250,9 +250,10 @@ end
 (strat::LinearStratification)(z) = strat.N²∞ * z
 (strat::LinearStratification)(x, y, z) = strat(z) # For initial condition
 (strat::LinearStratification)(x, y, z, t) = strat(z) # For the sponge layer
-
 b∞ = LinearStratification(params.N²∞)
-b_south = b_north = ValueBoundaryCondition((x, z, t) -> b∞(z))
+
+b_boundaries(x, z, t, N²∞) = z * N²∞
+b_south = b_north = ValueBoundaryCondition(b_boundaries, parameters=params.N²∞)
 #---
 
 #+++ Assemble BCs

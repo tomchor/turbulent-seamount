@@ -237,23 +237,26 @@ end
 
 macro measure_memory(expr)
     return quote
-        gpu_device = first(devices())
-        total_mem, free_mem, used_mem_before = get_gpu_memory_usage(gpu_device)
-        result = $(esc(expr)) # esc() ensures variables are looked up in caller's scope
-        total_mem, free_mem, used_mem_after = get_gpu_memory_usage(gpu_device)
-        used_by_expr_gb = (used_mem_after - used_mem_before) / 1024^3
-        total_mem_gb = total_mem / 1024^3
-        println("="^70)
-        println("Expression used $used_by_expr_gb GB, or $(100 * used_by_expr_gb / total_mem_gb) % of the GPU")
-        println("="^70)
-        result
+        if functional() # Check if CUDA is available and functional
+            gpu_device = first(devices())
+            total_mem, free_mem, used_mem_before = get_gpu_memory_usage(gpu_device)
+            result = $(esc(expr)) # esc() ensures variables are looked up in caller's scope
+            total_mem, free_mem, used_mem_after = get_gpu_memory_usage(gpu_device)
+            used_by_expr_gb = (used_mem_after - used_mem_before) / 1024^3
+            total_mem_gb = total_mem / 1024^3
+            println("="^70)
+            println("Expression used $used_by_expr_gb GB, or $(100 * used_by_expr_gb / total_mem_gb) % of the GPU")
+            println("="^70)
+            result
+        else
+            result = $(esc(expr)) # esc() ensures variables are looked up in caller's scope
+        end
     end
 end
 
 function show_gpu_status()
     # Check if CUDA is available
     if !functional()
-        println("CUDA is not available on this system")
         return
     end
 

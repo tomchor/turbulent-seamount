@@ -134,7 +134,7 @@ end
 
 include("$(@__DIR__)/utils.jl")
 z_coords = create_optimal_z_coordinates(params.dz, params.H, params.Lz, (2, 3, 5),
-                                        initial_stretching_factor = 1.15)
+                                        initial_stretching_factor = 1.05)
 
 let
     #+++ Simulation size
@@ -296,11 +296,10 @@ else
 end
 #---
 
-
 #+++ Add top sponge layer
 let
     h_sponge = 0.2 * params.Lz
-    sponge_damping_rate = max(√params.N²∞, params.α * params.V∞ / h_sponge)
+    sponge_damping_rate = max(√params.N²∞, params.α * params.V∞ / h_sponge) / 10
 
     global params = merge(params, Base.@locals)
 end

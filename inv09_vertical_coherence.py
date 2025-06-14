@@ -59,9 +59,6 @@ def mask_immersed(da, bathymetric_mask=xyzi.peripheral_nodes_ccc):
     return da.where(np.logical_not(bathymetric_mask))
 
 #+++ Plot
-fig, axes = plt.subplots(nrows=3, ncols=len(xyzi_list), figsize=(12, 9),
-                         sharex=True, sharey=True, squeeze=True)
-
 sel = dict(x_caa=300, time=np.inf, method="nearest")
 
 V_inf = xyzi_list[0].attrs["V∞"]
@@ -72,6 +69,9 @@ v_opts = dict(vmin=-1.5*V_inf, vmax=+1.5*V_inf, cmap=RdBu_r)
 uw_opts = dict(vmin=-3e-3, vmax=+3e-3, cmap=RdBu_r)
 shear_opts = dict(vmin=0, vmax=0.03, cmap=solar)
 ε_opts = dict(norm=LogNorm(clip=True), vmin=1e-8, vmax=1e-6, cmap=inferno)
+
+fig, axes = plt.subplots(nrows=3, ncols=len(xyzi_list), figsize=(12, 9),
+                         sharex=True, sharey=True, squeeze=True)
 for xyzi, col in zip(xyzi_list, axes.T):
     print("Plotting column")
     xyzi = xyzi.sel(**sel) 

@@ -39,7 +39,7 @@ function parse_command_line_arguments()
             arg_type = Float64
 
         "--dz"
-            default = 50
+            default = 8
             arg_type = Int
 
         "--V∞"
@@ -56,11 +56,11 @@ function parse_command_line_arguments()
             arg_type = Float64
 
         "--Ro_h"
-            default = 1.4
+            default = 1.25
             arg_type = Float64
 
         "--Fr_h"
-            default = 0.6
+            default = 0.2
             arg_type = Float64
 
         "--Lx_ratio"
@@ -92,7 +92,7 @@ function parse_command_line_arguments()
             arg_type = Float64
 
         "--T_advective_statistics"
-            default = 20 # Should be a multiple of interval_time_avg
+            default = 10 # Should be a multiple of interval_time_avg
             arg_type = Float64
 
     end
@@ -108,6 +108,7 @@ if has_cuda_gpu()
     arch = GPU()
 else
     arch = CPU()
+    params = (; params..., dz = 50meters)
 end
 @info "Starting simulation $(params.simname) with a dividing factor of $(params.dz) and a $arch architecture\n"
 #---
@@ -295,19 +296,23 @@ else
 end
 #---
 
-#+++ Model and ICs
-@info "Creating model"
 
 #+++ Add top sponge layer
-h_sponge = 0.1 * params.Lz
-mask_top = PiecewiseLinearMask{:z}(center=params.Lz, width=h_sponge)
-damping_rate = max(√params.N²∞, params.α * params.V∞ / h_sponge) / 10
+let
+    h_sponge = 0.2 * params.Lz
+    sponge_damping_rate = max(√params.N²∞, params.α * params.V∞ / h_sponge)
 
-u_sponge = w_sponge = Relaxation(rate=damping_rate, mask=mask_top)
-v_sponge = Relaxation(rate=damping_rate, mask=mask_top, target=params.V∞)
-b_sponge = Relaxation(rate=damping_rate, mask=mask_top, target=b∞)
+    global params = merge(params, Base.@locals)
+end
+
+mask_top = PiecewiseLinearMask{:z}(center=params.Lz, width=params.h_sponge)
+w_sponge = Relaxation(rate=params.sponge_damping_rate, mask=mask_top, target=0)
+v_sponge = Relaxation(rate=params.sponge_damping_rate, mask=mask_top, target=params.V∞)
+b_sponge = Relaxation(rate=params.sponge_damping_rate, mask=mask_top, target=b∞)
 #---
 
+#+++ Model and ICs
+@info "Creating model"
 model = NonhydrostaticModel(grid = grid, timestepper = :RungeKutta3,
                             advection = WENO(grid=grid_base, order=5),
                             buoyancy = BuoyancyTracer(),
@@ -315,7 +320,7 @@ model = NonhydrostaticModel(grid = grid, timestepper = :RungeKutta3,
                             tracers = :b,
                             closure = closure,
                             boundary_conditions = bcs,
-                            forcing = (; u=(u_sponge, Fᵤ), v=v_sponge, w=w_sponge, b=b_sponge),
+                            forcing = (; u=Fᵤ, v=v_sponge, w=w_sponge, b=b_sponge),
                             hydrostatic_pressure_anomaly = CenterField(grid),
                             )
 @info "" model

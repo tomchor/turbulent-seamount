@@ -149,28 +149,6 @@ outputs_full = merge(outputs_state_vars, outputs_dissip, outputs_misc, outputs_c
 #---
 #---
 
-#+++ GPU Memory tracking helper
-function get_gpu_memory_usage()
-    if CUDA.functional()
-        device = CUDA.device()
-        return CUDA.memory_status(device).allocated / (1024^3)  # Convert to GB
-    else
-        return 0.0
-    end
-end
-
-macro measure_memory(expr)
-    return quote
-        start_time = get_gpu_memory_usage()
-        result = $expr
-        end_time = get_gpu_memory_usage()
-        elapsed_time = end_time - start_time
-        println("Execution time: $(elapsed_time) seconds")
-        result  # Return the original result
-    end
-end
-#---
-
 #+++ Construct outputs into simulation
 function construct_outputs(simulation; 
                            simname = "TEST",

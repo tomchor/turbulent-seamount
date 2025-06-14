@@ -227,6 +227,29 @@ end
 
 #+++ Useful GPU show methods
 using CUDA: devices, device!, functional, totalmem, name, available_memory, memory_status
+
+function get_gpu_memory_usage(gpu_device)
+    total_mem = totalmem(gpu_device) |> Float64
+    free_mem  = available_memory()
+    used_mem  = total_mem - free_mem
+    return total_mem, free_mem, used_mem
+end
+
+macro measure_memory(expr)
+    return quote
+        gpu_device = first(devices())
+        total_mem, free_mem, used_mem_before = get_gpu_memory_usage(gpu_device)
+        result = $(esc(expr)) # esc() ensures variables are looked up in caller's scope
+        total_mem, free_mem, used_mem_after = get_gpu_memory_usage(gpu_device)
+        used_by_expr_gb = (used_mem_after - used_mem_before) / 1024^3
+        total_mem_gb = total_mem / 1024^3
+        println("="^70)
+        println("Expression used $used_by_expr_gb GB, or $(100 * used_by_expr_gb / total_mem_gb) % of the GPU")
+        println("="^70)
+        result
+    end
+end
+
 function show_gpu_status()
     # Check if CUDA is available
     if !functional()
@@ -237,22 +260,20 @@ function show_gpu_status()
     # Get number of available GPUs
     num_devices = length(devices())
 
-    println("=" ^ 70)
+    println("="^70)
     println("GPU Status Report")
-    println("=" ^ 70)
+    println("="^70)
     println("Number of GPUs available: $num_devices")
     println()
 
     # Iterate through all available GPUs
-    for (i, device) in enumerate(devices())
+    for (i, gpu_device) in enumerate(devices())
         # Set current device
-        device!(device)
+        device!(gpu_device)
 
         # Get device information
-        gpu_name  = name(device)
-        total_mem = totalmem(device)
-        free_mem  = available_memory()
-        used_mem  = total_mem - free_mem
+        gpu_name  = name(gpu_device)
+        total_mem, free_mem, used_mem = get_gpu_memory_usage(gpu_device)
 
         # Convert to GB for readability
         used_gb = used_mem / (1024^3)

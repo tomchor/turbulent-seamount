@@ -72,7 +72,7 @@ function parse_command_line_arguments()
             arg_type = Float64
 
         "--Lz_ratio"
-            default = 1.6 # Lz / H
+            default = 2 # Lz / H
             arg_type = Float64
 
         "--Rz"

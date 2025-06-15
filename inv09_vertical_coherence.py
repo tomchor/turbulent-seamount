@@ -50,6 +50,7 @@ for j, config in enumerate(runs):
     #+++ Calculate new variables and append
     xyzi["Uz²"] = xyzi["∂u∂z"]**2 + xyzi["∂v∂z"]**2
     xyzi["∫εₚdx"] = xyzi["εₚ"].pnintegrate("x")
+    xyzi["∫εₖdx"] = xyzi["εₖ"].pnintegrate("x")
 
     xyzi_list.append(xyzi)
     #---

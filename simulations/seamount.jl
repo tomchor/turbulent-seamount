@@ -299,7 +299,7 @@ end
 #+++ Add top sponge layer
 let
     h_sponge = 0.2 * params.Lz
-    sponge_damping_rate = max(√params.N²∞, params.α * params.V∞ / h_sponge) / 10
+    sponge_damping_rate = max(√params.N²∞, params.α * params.V∞ / h_sponge)
 
     global params = merge(params, Base.@locals)
 end

@@ -42,9 +42,9 @@ bulk["γ"] = bulk["∭ᵇε̄ₚdV"] / (bulk["∭ᵇε̄ₚdV"] + bulk["∭ᵇε
 
 bulk["RoFr"] = bulk.Ro_h * bulk.Fr_h
 
-bulk["𝒦ℰ"] = bulk["⟨∬⁵Ek′dxdy⟩ₜ"]
-bulk["𝒫"] = bulk["⟨∬⁵Πdxdy⟩ₜ"]
-bulk["ℬ"] = bulk["⟨∬⁵w′b′dxdy⟩ₜ"]
+bulk["𝒦ℰ"] = bulk["∭⁵⟨Ek′⟩ₜdV"]
+bulk["𝒫"] = bulk["∬⁵Πdxdy"]
+bulk["ℬ"] = bulk["∭⁵⟨w′b′⟩ₜdV"]
 
 bulk["ℰₖ"] = bulk["∭ᵇε̄ₖdV"] / (bulk.attrs["V∞"]**3 * bulk.FWHM * bulk.H)
 bulk["ℰₚ"] = bulk["∭ᵇε̄ₚdV"] / (bulk.attrs["V∞"]**3 * bulk.FWHM * bulk.H)
@@ -77,10 +77,13 @@ figs.append(plt.gcf())
 #bulk.plot.scatter(x="Slope_Bu", y="𝒫", hue="L", col="dz", row="closure", xscale="log", yscale="log", cmap="bwr")
 #figs.append(plt.gcf())
 
-bulk.sel(dz=0, method="nearest").plot.scatter(x="Slope_Bu", y="ℰₖ", hue="L", col="buffer", row="closure", xscale="log", yscale="log", cmap="bwr")
-figs.append(plt.gcf())
+#bulk.sel(dz=0, method="nearest").plot.scatter(x="Slope_Bu", y="ℰₖ", hue="L", col="buffer", row="closure", xscale="log", yscale="log", cmap="bwr")
+#figs.append(plt.gcf())
 
 bulk.sel(dz=0, method="nearest").plot.scatter(x="Slope_Bu", y="ℰₚ", hue="L", col="buffer", row="closure", xscale="log", yscale="log", cmap="bwr")
+figs.append(plt.gcf())
+
+bulk.sel(buffer=5).plot.scatter(x="Slope_Bu", y="ℰₚ", hue="L", col="dz", row="closure", xscale="log", yscale="log", cmap="bwr")
 figs.append(plt.gcf())
 
 for fig in figs:

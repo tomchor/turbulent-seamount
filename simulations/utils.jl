@@ -302,3 +302,51 @@ function show_gpu_status()
     println("=" ^ 70)
 end
 #---
+
+#+++ Piecewise Linear Mask
+"""
+    PiecewiseLinearMask{D}(center, width)
+
+Callable object that returns a piecewise linear masking function centered on
+`center`, with `width`, and varying along direction `D`. The mask is:
+- 0 when |D - center| > width
+- 1 when D = center
+- Linear interpolation between 0 and 1 when |D - center| ≤ width
+
+Example
+=======
+
+Create a piecewise linear mask centered on `z=0` with width `1` meter.
+
+```julia
+julia> mask = PiecewiseLinearMask{:z}(center=0, width=1)
+```
+"""
+struct PiecewiseLinearMask{D, T}
+    center :: T
+     width :: T
+
+    function PiecewiseLinearMask{D}(; center, width) where D
+        T = promote_type(typeof(center), typeof(width))
+        return new{D, T}(center, width)
+    end
+end
+
+@inline function (p::PiecewiseLinearMask{:x})(x, y, z)
+    d = abs(x - p.center)
+    return d > p.width ? 0.0 : 1.0 - d/p.width
+end
+
+@inline function (p::PiecewiseLinearMask{:y})(x, y, z)
+    d = abs(y - p.center)
+    return d > p.width ? 0.0 : 1.0 - d/p.width
+end
+
+@inline function (p::PiecewiseLinearMask{:z})(x, y, z)
+    d = abs(z - p.center)
+    return d > p.width ? 0.0 : 1.0 - d/p.width
+end
+
+Base.summary(p::PiecewiseLinearMask{D}) where D =
+    "piecewise_linear($D, center=$(p.center), width=$(p.width))"
+#---

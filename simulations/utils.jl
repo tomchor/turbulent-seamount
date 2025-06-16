@@ -326,3 +326,30 @@ end
 Base.summary(p::PiecewiseLinearMask{D}) where D =
     "piecewise_linear($D, center=$(p.center), width=$(p.width))"
 #---
+
+#+++ Auxiliary immersed boundary metrics
+using Oceananigans.Fields: @compute
+import Oceananigans.Grids: znode
+using Adapt
+
+const c = Center()
+const f = Face()
+znode(k, grid, ℓz) = znode(1, 1, k, grid, c, c, ℓz)
+
+@inline z_distance_from_seamount_boundary_ccc(i, j, k, grid, args...) = znode(k, grid, c) - grid.immersed_boundary.bottom_height[i, j, 1]
+
+struct VerticalDistanceCondition{FT}
+    distance_from_bottom :: FT
+    distance_from_top    :: FT
+end
+
+VerticalDistanceCondition(; distance_from_bottom=5meters, distance_from_top=params.h_sponge) = VerticalDistanceCondition(distance_from_bottom, distance_from_top)
+
+# Necessary for GPU
+Adapt.adapt_structure(to, dc::VerticalDistanceCondition) = VerticalDistanceCondition(adapt(to, dc.distance_from_bottom),
+                                                                                     adapt(to, dc.distance_from_top))
+
+z_distance_from_top(i, j, k, grid, args...) = znode(grid.Nz + 1, grid, f) - znode(k, grid, c)
+z_distance_from_bottom(args...) = z_distance_from_seamount_boundary_ccc(args...)
+(dc::VerticalDistanceCondition)(i, j, k, grid, co) = z_distance_from_bottom(i, j, k, grid) > dc.distance_from_bottom & z_distance_from_top(i, j, k, grid) > dc.distance_from_top
+#---

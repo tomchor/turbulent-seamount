@@ -113,12 +113,12 @@ outputs_grads = Dict{Symbol, Any}(:∂u∂x => (@at CellCenter ∂x(u)),
 
 #+++ Volume averages
 @info "Defining volume averages"
-outputs_vol_averages = Dict{Symbol, Any}(:∭⁵εₖdV  => Integral(εₖ; condition = VerticalDistanceCondition(5meters)),
-                                         :∭⁵εₚdV  => Integral(εₚ; condition = VerticalDistanceCondition(5meters)),
-                                         :∭¹⁰εₖdV => Integral(εₖ; condition = VerticalDistanceCondition(10meters)),
-                                         :∭¹⁰εₚdV => Integral(εₚ; condition = VerticalDistanceCondition(10meters)),
-                                         :∭²⁰εₖdV => Integral(εₖ; condition = VerticalDistanceCondition(20meters)),
-                                         :∭²⁰εₚdV => Integral(εₚ; condition = VerticalDistanceCondition(20meters)),
+outputs_vol_averages = Dict{Symbol, Any}(:∭⁵εₖdV  => Integral(εₖ; condition = VerticalDistanceCondition(distance_from_bottom=5meters , distance_from_top=params.h_sponge)),
+                                         :∭⁵εₚdV  => Integral(εₚ; condition = VerticalDistanceCondition(distance_from_bottom=5meters , distance_from_top=params.h_sponge)),
+                                         :∭¹⁰εₖdV => Integral(εₖ; condition = VerticalDistanceCondition(distance_from_bottom=10meters, distance_from_top=params.h_sponge)),
+                                         :∭¹⁰εₚdV => Integral(εₚ; condition = VerticalDistanceCondition(distance_from_bottom=10meters, distance_from_top=params.h_sponge)),
+                                         :∭²⁰εₖdV => Integral(εₖ; condition = VerticalDistanceCondition(distance_from_bottom=20meters, distance_from_top=params.h_sponge)),
+                                         :∭²⁰εₚdV => Integral(εₚ; condition = VerticalDistanceCondition(distance_from_bottom=20meters, distance_from_top=params.h_sponge)),
                                          )
 #---
 

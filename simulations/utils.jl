@@ -351,5 +351,5 @@ Adapt.adapt_structure(to, dc::VerticalDistanceCondition) = VerticalDistanceCondi
 
 z_distance_from_top(i, j, k, grid, args...) = znode(grid.Nz + 1, grid, f) - znode(k, grid, c)
 z_distance_from_bottom(args...) = z_distance_from_seamount_boundary_ccc(args...)
-(dc::VerticalDistanceCondition)(i, j, k, grid, co) = z_distance_from_bottom(i, j, k, grid) > dc.distance_from_bottom & z_distance_from_top(i, j, k, grid) > dc.distance_from_top
+(dc::VerticalDistanceCondition)(i, j, k, grid, co) = (z_distance_from_bottom(i, j, k, grid) > dc.distance_from_bottom) & (z_distance_from_top(i, j, k, grid) > dc.distance_from_top)
 #---

@@ -1,6 +1,7 @@
 using Parameters
 using ImageFiltering: imfilter, Kernel
 using Optim: GoldenSection, optimize
+using CUDA: devices, device!, functional, totalmem, name, available_memory, memory_status
 
 #+++ Get good grid size
 """ Rounds `a` to the nearest even number """
@@ -226,7 +227,6 @@ end
 #---
 
 #+++ Useful GPU show methods
-using CUDA: devices, device!, functional, totalmem, name, available_memory, memory_status
 function show_gpu_status()
     # Check if CUDA is available
     if !functional()
@@ -329,27 +329,39 @@ Base.summary(p::PiecewiseLinearMask{D}) where D =
 
 #+++ Auxiliary immersed boundary metrics
 using Oceananigans.Fields: @compute
-import Oceananigans.Grids: znode
+import Oceananigans.Grids: ynode, znode
 using Adapt
 
 const c = Center()
 const f = Face()
+
+ynode(j, grid, ℓy) = ynode(1, j, 1, grid, c, ℓz, c)
 znode(k, grid, ℓz) = znode(1, 1, k, grid, c, c, ℓz)
 
 @inline z_distance_from_seamount_boundary_ccc(i, j, k, grid, args...) = znode(k, grid, c) - grid.immersed_boundary.bottom_height[i, j, 1]
 
-struct VerticalDistanceCondition{FT}
-    distance_from_bottom :: FT
-    distance_from_top    :: FT
+struct DistanceCondition{FT}
+    from_bottom :: FT
+    from_top    :: FT
+    from_north  :: FT
 end
 
-VerticalDistanceCondition(; distance_from_bottom=5meters, distance_from_top=params.h_sponge) = VerticalDistanceCondition(distance_from_bottom, distance_from_top)
+function DistanceCondition(FT=Float64; from_bottom=5meters, from_top=0, from_north=0)
+    from_bottom = convert(FT, from_bottom)
+    from_top    = convert(FT, from_top)
+    from_north  = convert(FT, from_north)
+    return DistanceCondition(from_bottom, from_top, from_north)
+end
 
 # Necessary for GPU
-Adapt.adapt_structure(to, dc::VerticalDistanceCondition) = VerticalDistanceCondition(adapt(to, dc.distance_from_bottom),
-                                                                                     adapt(to, dc.distance_from_top))
+Adapt.adapt_structure(to, dc::DistanceCondition) = DistanceCondition(adapt(to, dc.from_bottom),
+                                                                     adapt(to, dc.from_top),
+                                                                     adapt(to, dc.from_north))
 
-z_distance_from_top(i, j, k, grid, args...) = znode(grid.Nz + 1, grid, f) - znode(k, grid, c)
 z_distance_from_bottom(args...) = z_distance_from_seamount_boundary_ccc(args...)
-(dc::VerticalDistanceCondition)(i, j, k, grid, co) = (z_distance_from_bottom(i, j, k, grid) > dc.distance_from_bottom) & (z_distance_from_top(i, j, k, grid) > dc.distance_from_top)
+z_distance_from_top(i, j, k, grid, args...) = znode(grid.Nz + 1, grid, f) - znode(k, grid, c)
+y_distance_from_north(i, j, k, grid, args...) = ynode(grid.Ny + 1, grid, f) - ynode(j, grid, c)
+(dc::DistanceCondition)(i, j, k, grid, co) = (z_distance_from_bottom(i, j, k, grid) > dc.from_bottom) &
+                                             (z_distance_from_top(i, j, k, grid) > dc.from_top) &
+                                             (y_distance_from_north(i, j, k, grid) > dc.from_north)
 #---

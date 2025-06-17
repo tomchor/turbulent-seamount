@@ -113,13 +113,23 @@ outputs_grads = Dict{Symbol, Any}(:∂u∂x => (@at CellCenter ∂x(u)),
 
 #+++ Volume averages
 @info "Defining volume averages"
-outputs_vol_averages = Dict{Symbol, Any}(:∭⁵εₖdV  => Integral(εₖ; condition = VerticalDistanceCondition(distance_from_bottom=5meters , distance_from_top=params.h_sponge)),
-                                         :∭⁵εₚdV  => Integral(εₚ; condition = VerticalDistanceCondition(distance_from_bottom=5meters , distance_from_top=params.h_sponge)),
-                                         :∭¹⁰εₖdV => Integral(εₖ; condition = VerticalDistanceCondition(distance_from_bottom=10meters, distance_from_top=params.h_sponge)),
-                                         :∭¹⁰εₚdV => Integral(εₚ; condition = VerticalDistanceCondition(distance_from_bottom=10meters, distance_from_top=params.h_sponge)),
-                                         :∭²⁰εₖdV => Integral(εₖ; condition = VerticalDistanceCondition(distance_from_bottom=20meters, distance_from_top=params.h_sponge)),
-                                         :∭²⁰εₚdV => Integral(εₚ; condition = VerticalDistanceCondition(distance_from_bottom=20meters, distance_from_top=params.h_sponge)),
+# Define conditions to avoid unresolved bottom, sponge layer, and couple of points closest to the
+# open boundary
+dc5  = DistanceCondition(from_bottom=5meters , from_top=params.h_sponge, from_north=2minimum_yspacing(grid))
+dc10 = DistanceCondition(from_bottom=10meters, from_top=params.h_sponge, from_north=2minimum_yspacing(grid))
+dc20 = DistanceCondition(from_bottom=20meters, from_top=params.h_sponge, from_north=2minimum_yspacing(grid))
+
+outputs_vol_averages = Dict{Symbol, Any}(:∭⁵εₖdV  => Integral(εₖ; condition = dc5),
+                                         :∭⁵εₚdV  => Integral(εₚ; condition = dc5),
+                                         :∭¹⁰εₖdV => Integral(εₖ; condition = dc10),
+                                         :∭¹⁰εₚdV => Integral(εₚ; condition = dc10),
+                                         :∭²⁰εₖdV => Integral(εₖ; condition = dc20),
+                                         :∭²⁰εₚdV => Integral(εₚ; condition = dc20),
                                          )
+
+dcf5  = Field(KernelFunctionOperation{Center, Center, Center}(dc5,  grid, nothing)) |> compute!
+dcf10 = Field(KernelFunctionOperation{Center, Center, Center}(dc10, grid, nothing)) |> compute!
+dcf20 = Field(KernelFunctionOperation{Center, Center, Center}(dc20, grid, nothing)) |> compute!
 #---
 
 #+++ Assemble the "full" outputs tuple
@@ -167,6 +177,9 @@ function construct_outputs(simulation;
                                                                 kwargs...
                                                                 )
         write_to_ds(ow.filepath, "altitude", interior(compute!(Field(altitude))), coords = ("x_caa", "y_aca", "z_aac"))
+        write_to_ds(ow.filepath, "distance_condition_5meters",  interior(dcf5),  coords = ("x_caa", "y_aca", "z_aac"))
+        write_to_ds(ow.filepath, "distance_condition_10meters", interior(dcf10), coords = ("x_caa", "y_aca", "z_aac"))
+        write_to_ds(ow.filepath, "distance_condition_20meters", interior(dcf20), coords = ("x_caa", "y_aca", "z_aac"))
     end
     #---
 
@@ -227,6 +240,9 @@ function construct_outputs(simulation;
                                                                 kwargs...
                                                                 )
         write_to_ds(ow.filepath, "altitude", interior(compute!(Field(altitude))), coords = ("x_caa", "y_aca", "z_aac"))
+        write_to_ds(ow.filepath, "distance_condition_5meters",  interior(dcf5),  coords = ("x_caa", "y_aca", "z_aac"))
+        write_to_ds(ow.filepath, "distance_condition_10meters", interior(dcf10), coords = ("x_caa", "y_aca", "z_aac"))
+        write_to_ds(ow.filepath, "distance_condition_20meters", interior(dcf20), coords = ("x_caa", "y_aca", "z_aac"))
     end
     #---
 

@@ -45,26 +45,6 @@ ScratchedField(d::Dict) = Dict( k => ScratchedField(v) for (k, v) in d )
 ScratchedField(n::Number) = ScratchedField(n * CenterField(grid))
 #---
 
-#+++ Auxiliary immersed boundary metrics
-using Oceananigans.Fields: @compute
-import Oceananigans.Grids: znode
-using Adapt
-
-znode(k, grid, ℓz) = znode(1, 1, k, grid, Center(), Center(), ℓz)
-
-@inline z_distance_from_seamount_boundary_ccc(i, j, k, grid) = znode(k, grid, Center()) - grid.immersed_boundary.bottom_height[i, j, 1]
-@compute altitude = Field(KernelFunctionOperation{Center, Center, Center}(z_distance_from_seamount_boundary_ccc, grid))
-
-struct DistanceCondition{FT}
-    distance :: FT
-end
-
-# Necessary for GPU
-Adapt.adapt_structure(to, dc::DistanceCondition) = DistanceCondition(adapt(to, dc.distance))
-
-(dc::DistanceCondition)(i, j, k, grid, co) = z_distance_from_seamount_boundary_ccc(i, j, k, grid) > dc.distance
-#---
-
 #+++ Unpack model variables
 CellCenter = (Center, Center, Center) # Output everything on cell centers to make life easier
 u, v, w = model.velocities
@@ -80,6 +60,7 @@ outputs_state_vars = merge(outputs_vels, Dict{Any, Any}(:b => b))
 #+++ Start calculation of snapshot variables
 @info "Calculating misc diagnostics"
 
+@compute altitude = Field(KernelFunctionOperation{Center, Center, Center}(z_distance_from_seamount_boundary_ccc, grid))
 ω_y = @at CellCenter (∂z(u) - ∂x(w))
 
 if model.closure isa Nothing
@@ -134,13 +115,23 @@ outputs_grads = Dict{Symbol, Any}(:∂u∂x => (@at CellCenter ∂x(u)),
 
 #+++ Volume averages
 @info "Defining volume averages"
-outputs_vol_averages = Dict{Symbol, Any}(:∭⁵εₖdV  => Integral(εₖ; condition = DistanceCondition(5meters)),
-                                         :∭⁵εₚdV  => Integral(εₚ; condition = DistanceCondition(5meters)),
-                                         :∭¹⁰εₖdV => Integral(εₖ; condition = DistanceCondition(10meters)),
-                                         :∭¹⁰εₚdV => Integral(εₚ; condition = DistanceCondition(10meters)),
-                                         :∭²⁰εₖdV => Integral(εₖ; condition = DistanceCondition(20meters)),
-                                         :∭²⁰εₚdV => Integral(εₚ; condition = DistanceCondition(20meters)),
+# Define conditions to avoid unresolved bottom, sponge layer, and couple of points closest to the
+# open boundary
+dc5  = DistanceCondition(from_bottom=5meters , from_top=params.h_sponge, from_north=2minimum_yspacing(grid))
+dc10 = DistanceCondition(from_bottom=10meters, from_top=params.h_sponge, from_north=2minimum_yspacing(grid))
+dc20 = DistanceCondition(from_bottom=20meters, from_top=params.h_sponge, from_north=2minimum_yspacing(grid))
+
+outputs_vol_averages = Dict{Symbol, Any}(:∭⁵εₖdV  => Integral(εₖ; condition = dc5),
+                                         :∭⁵εₚdV  => Integral(εₚ; condition = dc5),
+                                         :∭¹⁰εₖdV => Integral(εₖ; condition = dc10),
+                                         :∭¹⁰εₚdV => Integral(εₚ; condition = dc10),
+                                         :∭²⁰εₖdV => Integral(εₖ; condition = dc20),
+                                         :∭²⁰εₚdV => Integral(εₚ; condition = dc20),
                                          )
+
+dcf5  = Field(KernelFunctionOperation{Center, Center, Center}(dc5,  grid, nothing)) |> compute!
+dcf10 = Field(KernelFunctionOperation{Center, Center, Center}(dc10, grid, nothing)) |> compute!
+dcf20 = Field(KernelFunctionOperation{Center, Center, Center}(dc20, grid, nothing)) |> compute!
 #---
 
 #+++ Assemble the "full" outputs tuple
@@ -181,13 +172,16 @@ function construct_outputs(simulation;
     if write_xyzi
         @info "Setting up xyzi writer"
         simulation.output_writers[:nc_xyzi] = ow = @measure_memory NetCDFWriter(model, ScratchedField(outputs_full);
-                             filename = "$rundir/data/xyzi.$(simname).nc",
-                             schedule = TimeInterval(interval_3d),
-                             array_type = Array{eltype(grid)},
-                             verbose = debug,
-                             kwargs...
-                             )
+                                                                                filename = "$rundir/data/xyzi.$(simname).nc",
+                                                                                schedule = TimeInterval(interval_3d),
+                                                                                array_type = Array{eltype(grid)},
+                                                                                verbose = debug,
+                                                                                kwargs...
+                                                                                )
         write_to_ds(ow.filepath, "altitude", interior(compute!(Field(altitude))), coords = ("x_caa", "y_aca", "z_aac"))
+        write_to_ds(ow.filepath, "distance_condition_5meters",  interior(dcf5),  coords = ("x_caa", "y_aca", "z_aac"))
+        write_to_ds(ow.filepath, "distance_condition_10meters", interior(dcf10), coords = ("x_caa", "y_aca", "z_aac"))
+        write_to_ds(ow.filepath, "distance_condition_20meters", interior(dcf20), coords = ("x_caa", "y_aca", "z_aac"))
     end
     #---
 
@@ -241,13 +235,16 @@ function construct_outputs(simulation;
         @info "Setting up xyza writer"
         outputs_xyza = merge(outputs_state_vars, outputs_dissip, outputs_covs)
         simulation.output_writers[:nc_xyza] = ow = @measure_memory NetCDFWriter(model, outputs_xyza;
-                             filename = "$rundir/data/xyza.$(simname).nc",
-                             schedule = AveragedTimeInterval(interval_time_avg, stride=10),
-                             array_type = Array{eltype(grid)},
-                             verbose = true,
-                             kwargs...
-                             )
-            write_to_ds(ow.filepath, "altitude", interior(compute!(Field(altitude))), coords = ("x_caa", "y_aca", "z_aac"))
+                                                                                filename = "$rundir/data/xyza.$(simname).nc",
+                                                                                schedule = AveragedTimeInterval(interval_time_avg, stride=10),
+                                                                                array_type = Array{eltype(grid)},
+                                                                                verbose = true,
+                                                                                kwargs...
+                                                                                )
+        write_to_ds(ow.filepath, "altitude", interior(compute!(Field(altitude))), coords = ("x_caa", "y_aca", "z_aac"))
+        write_to_ds(ow.filepath, "distance_condition_5meters",  interior(dcf5),  coords = ("x_caa", "y_aca", "z_aac"))
+        write_to_ds(ow.filepath, "distance_condition_10meters", interior(dcf10), coords = ("x_caa", "y_aca", "z_aac"))
+        write_to_ds(ow.filepath, "distance_condition_20meters", interior(dcf20), coords = ("x_caa", "y_aca", "z_aac"))
     end
     #---
 

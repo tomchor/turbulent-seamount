@@ -1,6 +1,7 @@
 using Parameters
 using ImageFiltering: imfilter, Kernel
 using Optim: GoldenSection, optimize
+using CUDA: devices, device!, functional, totalmem, name, available_memory, memory_status
 
 #+++ Get good grid size
 """ Rounds `a` to the nearest even number """
@@ -303,50 +304,41 @@ function show_gpu_status()
 end
 #---
 
-#+++ Piecewise Linear Mask
-"""
-    PiecewiseLinearMask{D}(center, width)
+#+++ Auxiliary immersed boundary metrics
+using Oceananigans.Fields: @compute
+import Oceananigans.Grids: ynode, znode
+using Adapt
 
-Callable object that returns a piecewise linear masking function centered on
-`center`, with `width`, and varying along direction `D`. The mask is:
-- 0 when |D - center| > width
-- 1 when D = center
-- Linear interpolation between 0 and 1 when |D - center| ≤ width
+const c = Center()
+const f = Face()
 
-Example
-=======
+ynode(j, grid, ℓy) = ynode(1, j, 1, grid, c, ℓz, c)
+znode(k, grid, ℓz) = znode(1, 1, k, grid, c, c, ℓz)
 
-Create a piecewise linear mask centered on `z=0` with width `1` meter.
+@inline z_distance_from_seamount_boundary_ccc(i, j, k, grid, args...) = znode(k, grid, c) - grid.immersed_boundary.bottom_height[i, j, 1]
 
-```julia
-julia> mask = PiecewiseLinearMask{:z}(center=0, width=1)
-```
-"""
-struct PiecewiseLinearMask{D, T}
-    center :: T
-     width :: T
-
-    function PiecewiseLinearMask{D}(; center, width) where D
-        T = promote_type(typeof(center), typeof(width))
-        return new{D, T}(center, width)
-    end
+struct DistanceCondition{FT}
+    from_bottom :: FT
+    from_top    :: FT
+    from_north  :: FT
 end
 
-@inline function (p::PiecewiseLinearMask{:x})(x, y, z)
-    d = abs(x - p.center)
-    return d > p.width ? 0.0 : 1.0 - d/p.width
+function DistanceCondition(FT=Float64; from_bottom=5meters, from_top=0, from_north=0)
+    from_bottom = convert(FT, from_bottom)
+    from_top    = convert(FT, from_top)
+    from_north  = convert(FT, from_north)
+    return DistanceCondition(from_bottom, from_top, from_north)
 end
 
-@inline function (p::PiecewiseLinearMask{:y})(x, y, z)
-    d = abs(y - p.center)
-    return d > p.width ? 0.0 : 1.0 - d/p.width
-end
+# Necessary for GPU
+Adapt.adapt_structure(to, dc::DistanceCondition) = DistanceCondition(adapt(to, dc.from_bottom),
+                                                                     adapt(to, dc.from_top),
+                                                                     adapt(to, dc.from_north))
 
-@inline function (p::PiecewiseLinearMask{:z})(x, y, z)
-    d = abs(z - p.center)
-    return d > p.width ? 0.0 : 1.0 - d/p.width
-end
-
-Base.summary(p::PiecewiseLinearMask{D}) where D =
-    "piecewise_linear($D, center=$(p.center), width=$(p.width))"
+z_distance_from_bottom(args...) = z_distance_from_seamount_boundary_ccc(args...)
+z_distance_from_top(i, j, k, grid, args...) = znode(grid.Nz + 1, grid, f) - znode(k, grid, c)
+y_distance_from_north(i, j, k, grid, args...) = ynode(grid.Ny + 1, grid, f) - ynode(j, grid, c)
+(dc::DistanceCondition)(i, j, k, grid, co) = (z_distance_from_bottom(i, j, k, grid) > dc.from_bottom) &
+                                             (z_distance_from_top(i, j, k, grid) > dc.from_top) &
+                                             (y_distance_from_north(i, j, k, grid) > dc.from_north)
 #---

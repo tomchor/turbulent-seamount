@@ -208,7 +208,7 @@ final_bathymetry = on_architecture(grid_base.architecture, final_bathymetry_cpu)
 #---
 
 #+++ Immersed boundary
-PCB = PartialCellBottom(final_bathymetry)
+PCB = GridFittedBottom(final_bathymetry)
 
 grid = ImmersedBoundaryGrid(grid_base, PCB)
 @info grid
@@ -287,13 +287,6 @@ else
     throw(ArgumentError("Check options for `closure`"))
 end
 
-if closure isa DynamicSmagorinsky
-    cfl = params.dz >= 4 ? 0.5 : 0.65
-    t_switch = 8 * params.T_advective
-else
-    cfl = 0.9
-    t_switch = 12 * params.T_advective
-end
 #---
 
 #+++ Add top sponge layer
@@ -345,13 +338,13 @@ progress(simulation) = @info (PercentageProgress(with_prefix=false, with_units=f
                               + "step dur = " * walltime_per_timestep)(simulation)
 simulation.callbacks[:progress] = Callback(progress, IterationInterval(40))
 
-initial_cfl = params.dz > 4 ? 0.8 : 0.9
-conjure_time_step_wizard!(simulation, IterationInterval(1), max_change=1.05, cfl=initial_cfl, min_Δt=1e-4, max_Δt=1/√params.N²∞)
+conjure_time_step_wizard!(simulation, IterationInterval(1), max_change=1.05, cfl=0.9, min_Δt=1e-4, max_Δt=1/√params.N²∞)
 
+t_switch = 12 * params.T_advective
 function cfl_changer(sim)
     if sim.model.clock.time > 0
         @warn "Changing target cfl to $cfl"
-        simulation.callbacks[:time_step_wizard].func.cfl = cfl
+        simulation.callbacks[:time_step_wizard].func.cfl = 0.8
     end
 end
 add_callback!(simulation, cfl_changer, SpecifiedTimes([t_switch]); name=:cfl_changer)

@@ -19,7 +19,7 @@ module li
 
 #/glade/u/apps/ch/opt/usr/bin/dumpenv # Dumps environment (for debugging with CISL support)
 
-export JULIA_DEPOT_PATH="/glade/work/tomasc/.julia"
+export JULIA_DEPOT_PATH="$WORK/.julia"
 echo $CUDA_VISIBLE_DEVICES
 
 time julia --project --pkgimages=no {julia_script} {run_options} --simname={simname} 2>&1 | tee logs/{simname_ascii}.out

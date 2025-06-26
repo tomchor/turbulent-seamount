@@ -227,8 +227,6 @@ end
 #---
 
 #+++ Useful GPU show methods
-using CUDA: devices, device!, functional, totalmem, name, available_memory, memory_status
-
 """
     @CUDAstats ex
 
@@ -252,25 +250,6 @@ function get_gpu_memory_usage(gpu_device)
     free_mem  = available_memory()
     used_mem  = total_mem - free_mem
     return total_mem, free_mem, used_mem
-end
-
-macro measure_memory(expr)
-    return quote
-        if functional() # Check if CUDA is available and functional
-            gpu_device = first(devices())
-            total_mem, free_mem, used_mem_before = get_gpu_memory_usage(gpu_device)
-            result = $(esc(expr)) # esc() ensures variables are looked up in caller's scope
-            total_mem, free_mem, used_mem_after = get_gpu_memory_usage(gpu_device)
-            used_by_expr_gb = (used_mem_after - used_mem_before) / 1024^3
-            total_mem_gb = total_mem / 1024^3
-            println("="^70)
-            println("Expression used $used_by_expr_gb GB, or $(100 * used_by_expr_gb / total_mem_gb) % of the GPU")
-            println("="^70)
-            result
-        else
-            result = $(esc(expr)) # esc() ensures variables are looked up in caller's scope
-        end
-    end
 end
 
 function show_gpu_status()

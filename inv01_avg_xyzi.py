@@ -19,7 +19,7 @@ if basename(__file__) != "00_run_postproc.py":
     simname_base = "seamount"
 
     Rossby_numbers = cycler(Ro_h = [0.2])
-    Froude_numbers = cycler(Fr_h = [0.2])
+    Froude_numbers = cycler(Fr_h = [1.25])
     L              = cycler(L = [0])
 
     resolutions    = cycler(dz = [4,])
@@ -185,7 +185,7 @@ for j, config in enumerate(runs):
     xyia = get_turbulent_Reynolds_stress_tensor(xyia)
     xyit = get_turbulent_Reynolds_stress_tensor(xyit)
 
-    if False:
+    if True:
         from matplotlib import pyplot as plt
         for i in [2]:
             fig, axes = plt.subplots(nrows=2, ncols=3, sharex=True, sharey=True)
@@ -237,40 +237,10 @@ for j, config in enumerate(runs):
     xyia = get_turbulent_kinetic_energy(xyia)
     xyit = get_turbulent_kinetic_energy(xyit)
 
-    if True:
+    if False:
         from matplotlib import pyplot as plt
         fig, axes = plt.subplots(ncols=2, sharex=True, sharey=True)
         im = xyia["⟨Ek′⟩ₜ"].pnplot(ax=axes[0], robust=True)
         vmin, vmax = im.get_clim()
         xyit["⟨Ek′⟩ₜ"].pnplot(ax=axes[1], vmin=vmin, vmax=vmax, cmap=im.get_cmap())
-    pause
     #---
-
-    #+++ Volume-average/integrate results so far
-    def mask_immersed(da, bathymetric_mask=xyza.peripheral_nodes_ccc):
-        return da.where(np.logical_not(bathymetric_mask))
-
-    xyza["ΔxΔyΔz"] = xyza["Δx_caa"] * xyza["Δy_aca"] * xyza["Δz_aac"]
-    xyza["ΔxΔz"]   = xyza["Δx_caa"] * xyza["Δz_aac"]
-    xyia["ΔxΔy"]   = xyia["Δx_caa"] * xyia["Δy_aca"]
-
-    def integrate(da, dV = None, dims=("x", "y", "z")):
-        if dV is None:
-            if dims == ("x", "y", "z"):
-                dV = xyia["ΔxΔyΔz"]
-            elif dims == ("x", "y"):
-                dV =  xyia["ΔxΔy"]
-        return (da * dV).pnsum(dims)
-
-    distance_mask = xyza.altitude > 5 # meters
-    for var in ["⟨Ek′⟩ₜ", "⟨w′b′⟩ₜ"]:
-        int_buf = f"∭⁵{var}dV"
-        xyza[int_buf] = integrate(xyza[var], dV=xyza.ΔxΔyΔz.where(distance_mask))
-
-    xyza["average_turbulence_mask"] = xyza["ε̄ₖ"] > 1e-8
-    xyza["1"] = mask_immersed(xr.ones_like(xyza["ε̄ₖ"]))
-    for var in ["ε̄ₖ", "1"]:
-        int_turb = f"∬ᵋ{var}dxdy"
-        xyza[int_turb] = integrate(xyza[var], dV=xyza.ΔxΔyΔz.where(xyza.average_turbulence_mask), dims=("x", "y"))
-    #---
-

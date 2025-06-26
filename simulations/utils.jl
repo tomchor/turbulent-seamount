@@ -229,6 +229,24 @@ end
 #+++ Useful GPU show methods
 using CUDA: devices, device!, functional, totalmem, name, available_memory, memory_status
 
+"""
+    @CUDAstats ex
+
+A macro that wraps `CUDA.@time` but only executes the timing functionality when CUDA is functional.
+If CUDA is not available or not functional, it simply executes the expression without timing.
+
+This is useful for code that should work both with and without GPU support.
+"""
+macro CUDAstats(ex)
+    quote
+        if functional()
+            CUDA.@time $(esc(ex))
+        else
+            $(esc(ex))
+        end
+    end
+end
+
 function get_gpu_memory_usage(gpu_device)
     total_mem = totalmem(gpu_device) |> Float64
     free_mem  = available_memory()

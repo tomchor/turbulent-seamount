@@ -52,7 +52,7 @@ for j, config in enumerate(runs):
                            load = False,
                            get_grid = False,
                            open_dataset_kwargs = dict(chunks="auto"),
-                           ) 
+                           )
     print(f"Opening {simname} xyii")
     xyii = open_simulation(path+f"xyii.{simname}.nc",
                            use_advective_periods = True,
@@ -61,7 +61,7 @@ for j, config in enumerate(runs):
                            load = False,
                            get_grid = False,
                            open_dataset_kwargs = dict(chunks="auto"),
-                           ) 
+                           )
     #---
 
     #+++ Get datasets ready
@@ -137,7 +137,35 @@ for j, config in enumerate(runs):
                 dV =  xyia["ΔyΔz"]
         return (da * dV).pnsum(dims)
 
-    pause
+
+    def drop_faces(ds, drop_coords=True):
+        """
+        Drop all variables that have face coordinates (x_faa, y_afa, z_aaf)
+
+        Parameters
+        ----------
+        ds : xarray.Dataset
+            Dataset to filter
+        drop_coords : bool, optional
+            Whether to also drop coordinates with face dimensions. Default True.
+
+        Returns
+        -------
+        xarray.Dataset
+            Dataset with face variables removed
+        """
+        face_dims = ["x_faa", "y_afa", "z_aaf"]
+
+        # Get variables to drop
+        vars_to_drop = []
+        for var in ds.variables:
+            if any(dim in ds[var].dims for dim in face_dims):
+                if var in ds.coords and not drop_coords:
+                    continue
+                vars_to_drop.append(var)
+
+        return ds.drop_vars(vars_to_drop)
+
     xyzi = xyzi.where(xyzi.distance_condition_10meters.compute(), drop=True, other=np.nan)
     for var in ["ε̄ₚ", "ε̄ₖ", "⟨Ek′⟩ₜ", "⟨w′b′⟩ₜ", "SPR"]:
         int_buf = f"∭⁵{var}dV"

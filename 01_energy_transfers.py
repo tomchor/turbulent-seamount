@@ -24,9 +24,9 @@ if basename(__file__) != "00_run_postproc.py":
 
     Rossby_numbers = cycler(Ro_h = [0.2])
     Froude_numbers = cycler(Fr_h = [1.25])
-    L              = cycler(L = [0,])
+    L              = cycler(L = [0, 300])
 
-    resolutions    = cycler(dz = [2,])
+    resolutions    = cycler(dz = [8,])
     closures       = cycler(closure = ["AMD", "AMC", "CSM", "DSM", "NON"])
     closures       = cycler(closure = ["DSM"])
 
@@ -91,9 +91,10 @@ for j, config in enumerate(runs):
     t_slice_inclusive = slice(xyii.T_advective_spinup, np.inf) # For snapshots, we want to include t=T_advective_spinup
     t_slice_exclusive = slice(xyii.T_advective_spinup + 0.01, np.inf) # For time-averaged outputs, we want to exclude t=T_advective_spinup
     x_slice = slice(None, np.inf)
-    y_slice = slice(None, np.inf)
+    y_slice = slice(None, xyzi.y_afa[-2] - 2*xyzi.Δy_afa.values.max()) # Cut off last two points
+    z_slice = slice(None, xyzi.z_aaf[-1] - xyii.h_sponge) # Cut off top sponge
 
-    xyzi = xyzi.sel(time=t_slice_inclusive, x_caa=x_slice, x_faa=x_slice, y_aca=y_slice, y_afa=y_slice)
+    xyzi = xyzi.sel(time=t_slice_inclusive, x_caa=x_slice, x_faa=x_slice, y_aca=y_slice, y_afa=y_slice, z_aac=z_slice, z_aaf=z_slice)
     xyii = xyii.sel(time=t_slice_inclusive, x_caa=x_slice, x_faa=x_slice, y_aca=y_slice, y_afa=y_slice)
     #---
 
@@ -101,42 +102,42 @@ for j, config in enumerate(runs):
     xyzi = condense_velocities(xyzi, indices=indices)
     xyzi = condense_velocity_gradient_tensor(xyzi, indices=indices)
     xyzi = condense_reynolds_stress_tensor(xyzi, indices=indices)
-    xyzi = temporal_average(xyzi)
+    xyza = temporal_average(xyzi)
 
     xyii = condense_velocities(xyii, indices=indices)
     xyii = condense_velocity_gradient_tensor(xyii, indices=indices)
     xyii = condense_reynolds_stress_tensor(xyii, indices=indices)
-    xyii = temporal_average(xyii)
+    xyia = temporal_average(xyii)
     #---
     #---
 
     #+++ Get turbulent variables
-    xyzi = get_turbulent_Reynolds_stress_tensor(xyzi)
-    xyzi = get_shear_production_rates(xyzi)
-    xyzi = get_buoyancy_production_rates(xyzi)
-    xyzi = get_turbulent_kinetic_energy(xyzi)
+    xyza = get_turbulent_Reynolds_stress_tensor(xyza)
+    xyza = get_shear_production_rates(xyza)
+    xyza = get_buoyancy_production_rates(xyza)
+    xyza = get_turbulent_kinetic_energy(xyza)
 
-    xyii = get_turbulent_Reynolds_stress_tensor(xyii)
-    xyii = get_shear_production_rates(xyii)
-    xyii = get_buoyancy_production_rates(xyii)
-    xyii = get_turbulent_kinetic_energy(xyii)
+    xyia = get_turbulent_Reynolds_stress_tensor(xyia)
+    xyia = get_shear_production_rates(xyia)
+    xyia = get_buoyancy_production_rates(xyia)
+    xyia = get_turbulent_kinetic_energy(xyia)
     #---
 
     #+++ Volume-average/integrate results so far
-    xyzi["ΔxΔyΔz"] = xyzi["Δx_caa"] * xyzi["Δy_aca"] * xyzi["Δz_aac"]
-    xyzi["ΔxΔy"] = xyzi["Δx_caa"] * xyzi["Δy_aca"]
-    xyzi["ΔyΔz"] = xyzi["Δy_aca"] * xyzi["Δz_aac"]
+    xyza["ΔxΔyΔz"] = xyza["Δx_caa"] * xyza["Δy_aca"] * xyza["Δz_aac"]
+    xyza["ΔxΔy"] = xyza["Δx_caa"] * xyza["Δy_aca"]
+    xyza["ΔyΔz"] = xyza["Δy_aca"] * xyza["Δz_aac"]
 
+    #+++ Aux functions
     def integrate(da, dV = None, dims=("x", "y", "z")):
         if dV is None:
             if dims == ("x", "y", "z"):
-                dV = xyia["ΔxΔyΔz"]
+                dV = xyza["ΔxΔyΔz"]
             elif dims == ("x", "y"):
-                dV =  xyia["ΔxΔy"]
+                dV =  xyza["ΔxΔy"]
             elif dims == ("y", "z"):
-                dV =  xyia["ΔyΔz"]
+                dV =  xyza["ΔyΔz"]
         return (da * dV).pnsum(dims)
-
 
     def drop_faces(ds, drop_coords=True):
         """
@@ -166,52 +167,41 @@ for j, config in enumerate(runs):
 
         return ds.drop_vars(vars_to_drop)
 
-    xyzi = xyzi.where(xyzi.distance_condition_10meters.compute(), drop=True, other=np.nan)
+    def mask_immersed(da, bathymetric_mask=xyza.peripheral_nodes_ccc):
+        return da.where(np.logical_not(bathymetric_mask))
+    #---
+
+    xyza = drop_faces(xyza, drop_coords=True).where(xyza.distance_condition_10meters, other=np.nan)
     for var in ["ε̄ₚ", "ε̄ₖ", "⟨Ek′⟩ₜ", "⟨w′b′⟩ₜ", "SPR"]:
         int_buf = f"∭⁵{var}dV"
-        xyzi[int_buf] = integrate(xyzi[var], dV=xyzi.ΔxΔyΔz)
+        xyza[int_buf] = integrate(xyza[var], dV=xyza.ΔxΔyΔz)
 
     xyza["average_turbulence_mask"] = xyza["ε̄ₖ"] > 1e-11
     xyza["1"] = mask_immersed(xr.ones_like(xyza["ε̄ₖ"]))
     for var in ["ε̄ₖ", "1"]:
-        int_turb = f"∬ᵋ{var}dxdy"
-        xyza[int_turb] = integrate(xyza[var], dV=xyza.ΔxΔyΔz.where(xyza.average_turbulence_mask), dims=("x", "y"))
-    pause
+        int_turb = f"∭ᵋ{var}dxdy"
+        xyza[int_turb] = integrate(xyza[var], dV=xyza.ΔxΔyΔz.where(xyza.average_turbulence_mask))
     #---
 
     #+++ Create bulk dataset
     bulk = xr.Dataset()
-    bulk.attrs = xyia.attrs
-
-    bulk["∭⁵ε̄ₖdV"]     = xyia["∭⁵ε̄ₖdV"]
-    bulk["∭⁵ε̄ₚdV"]     = xyia["∭⁵ε̄ₚdV"]
-    bulk["∭¹⁰ε̄ₖdV"]    = xyia["∭¹⁰ε̄ₖdV"]
-    bulk["∭¹⁰ε̄ₚdV"]    = xyia["∭¹⁰ε̄ₚdV"]
-    bulk["∭²⁰ε̄ₖdV"]    = xyia["∭²⁰ε̄ₖdV"]
-    bulk["∭²⁰ε̄ₚdV"]    = xyia["∭²⁰ε̄ₚdV"]
+    bulk.attrs = xyza.attrs
 
     bulk["∭⁵⟨Ek′⟩ₜdV"]  = xyza["∭⁵⟨Ek′⟩ₜdV"]
     bulk["∭⁵⟨w′b′⟩ₜdV"] = xyza["∭⁵⟨w′b′⟩ₜdV"]
+    bulk["∭⁵SPRdxdy"]   = xyza["∭⁵SPRdV"]
 
     bulk["V∞∬⟨Ek′⟩ₜdxdz"] = xyza.attrs["V∞"] * integrate(xyza["⟨Ek′⟩ₜ"].pnsel(y=np.inf, method="nearest"), dV=xyza.Δx_caa*xyza.Δz_aac, dims=["x", "z"])
 
-    bulk["∬⁰SPRdxdy"]  = integrate(xyia["SPR"], dims = ("x", "y"))
-    bulk["∬⁰Πdxdy"]    = bulk["∬⁰SPRdxdy"].sum("j")
-
-    altitude = xyzi.altitude.pnsel(z=xyia.z_aac, method="nearest")
-    bulk["∬⁵SPRdxdy"]  = integrate(xyia["SPR"].where(altitude > 5, other=0), dims = ("x", "y"))
-    bulk["∬⁵Πdxdy"]    = bulk["∬⁵SPRdxdy"].sum("j")
-
-    bulk["∬ᵋε̄ₖdxdy"] = xyza["∬ᵋε̄ₖdxdy"]
-    bulk["⟨ε̄ₖ⟩ᵋ"]    = xyza["∬ᵋε̄ₖdxdy"] / xyza["∬ᵋ1dxdy"]
+    bulk["∭ᵋε̄ₖdxdy"] = xyza["∭ᵋε̄ₖdxdy"]
+    bulk["⟨ε̄ₖ⟩ᵋ"]    = xyza["∭ᵋε̄ₖdxdy"] / xyza["∭ᵋ1dxdy"]
     bulk["Loᵋ"]      = 2*π * np.sqrt(bulk["⟨ε̄ₖ⟩ᵋ"] / bulk.N2_inf**(3/2))
+    bulk["Δz̃"]       = bulk.Δz_min / bulk["Loᵋ"]
 
-    bulk["Δz̃"] = bulk.Δz_min / bulk["Loᵋ"]
-
+    bulk["Ro_h"]     = bulk.Ro_h
+    bulk["Fr_h"]     = bulk.Fr_h
     bulk["Slope_Bu"] = bulk.Slope_Bu
-    bulk["Ro_h"] = bulk.Ro_h
-    bulk["Fr_h"] = bulk.Fr_h
-    bulk["α"]    = bulk.α
+    bulk["α"]        = bulk.α
 
     bulk["Bu_h"] = bulk.Bu_h
     bulk["Γ"]    = bulk.Γ
@@ -221,38 +211,39 @@ for j, config in enumerate(runs):
     bulk["N²∞"] = bulk.attrs["N²∞"]
     bulk["V∞"]  = bulk.attrs["V∞"]
     bulk["L"]   = bulk.L
-    bulk["Δx_min"] = xyia["Δx_caa"].where(xyia["Δx_caa"] > 0).min().values
-    bulk["Δy_min"] = xyia["Δy_aca"].where(xyia["Δy_aca"] > 0).min().values
-    bulk["Δz_min"] = xyia["Δz_aac"].where(xyia["Δz_aac"] > 0).min().values
 
-    bulk["RoFr"] = bulk.Ro_h * bulk.Fr_h
+    bulk["Δx_min"] = xyza["Δx_caa"].min()
+    bulk["Δy_min"] = xyza["Δy_aca"].min()
+    bulk["Δz_min"] = xyza["Δz_aac"].min()
+
+    bulk["RoFr"]  = bulk.Ro_h * bulk.Fr_h
     bulk["V∞³÷L"] = bulk.attrs["V∞"]**3 / bulk.L
     bulk["V∞²N∞"] = bulk.attrs["V∞"]**2 * np.sqrt(bulk.N2_inf)
     bulk["N∞³L²"] = np.sqrt(bulk.N2_inf)**3 * bulk.L**2
     #---
 
     #+++ Save Datasets
-    #+++ Drop unnecessary vars
-    xyza = xyza.drop_vars(["ūⱼūᵢ", "⟨uⱼuᵢ⟩ₜ", "⟨u′ⱼu′ᵢ⟩ₜ", "x_faa", "y_afa", "z_aaf"])
-    xyia = xyia.drop_dims(("x_faa", "y_afa",))
+    #+++ Drop unnecessary vars to speed up calculations
+    xyza = xyza.drop_vars(["ūⱼūᵢ", "⟨uⱼuᵢ⟩ₜ", "⟨u′ⱼu′ᵢ⟩ₜ"])
     #---
 
     #+++ Save xyia
-    outname = f"data_post/tafields_{simname}.nc"
+    outname = f"data_post/xyia_{simname}.nc"
     with ProgressBar(minimum=5, dt=5):
         print(f"Saving results to {outname}...")
         xyia.to_netcdf(outname)
         print("Done!\n")
-    xyii.close(); xyzi.close(); xyia.close()
+    xyia.close()
     #---
 
     #+++ Save xyza
-    outname = f"data_post/xyza_{simname}.nc"
-    with ProgressBar(minimum=5, dt=5):
-        print(f"Saving results to {outname}...")
-        xyza.to_netcdf(outname)
-        print("Done!\n")
-    xyza.close(); xyza.close()
+    if write_xyza:
+        outname = f"data_post/xyza_{simname}.nc"
+        with ProgressBar(minimum=5, dt=5):
+            print(f"Saving results to {outname}...")
+            xyza.to_netcdf(outname)
+            print("Done!\n")
+        xyza.close()
     #---
 
     #+++ Save bulkstats

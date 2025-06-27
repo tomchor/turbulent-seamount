@@ -139,7 +139,7 @@ for j, config in enumerate(runs):
     xyia = get_turbulent_Reynolds_stress_tensor(xyia)
     xyit = get_turbulent_Reynolds_stress_tensor(xyit)
 
-    if True:
+    if False:
         from matplotlib import pyplot as plt
         for i in [2]:
             fig, axes = plt.subplots(nrows=2, ncols=3, sharex=True, sharey=True)

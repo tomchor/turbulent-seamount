@@ -22,8 +22,8 @@ if basename(__file__) != "00_run_postproc.py":
     simname_base = "seamount"
 
     Rossby_numbers = cycler(Ro_h = [0.2])
-    Froude_numbers = cycler(Fr_h = [0.2])
-    L              = cycler(L = [0, 300])
+    Froude_numbers = cycler(Fr_h = [1.25])
+    L              = cycler(L = [0,])
 
     resolutions    = cycler(dz = [4,])
     closures       = cycler(closure = ["AMD", "AMC", "CSM", "DSM", "NON"])
@@ -81,6 +81,7 @@ for j, config in enumerate(runs):
                            )
     #---
 
+    #+++ Get datasets ready
     #+++ Get rid of slight misalignment in times
     xyzi = adjust_times(xyzi, round_times=True)
     xyii = adjust_times(xyii, round_times=True)
@@ -119,44 +120,29 @@ for j, config in enumerate(runs):
     xyia = xyia.sel(time=t_slice_exclusive, x_caa=x_slice, x_faa=x_slice, y_aca=y_slice, y_afa=y_slice)
     #---
 
-    #+++ Condense tensors
+    #+++ Condense and time-average tensors
     xyza = condense_velocities(xyza, indices=indices)
     #xyza = condense_velocity_gradient_tensor(xyza, indices=indices)
     xyza = condense_reynolds_stress_tensor(xyza, indices=indices)
+    xyza = temporal_average(xyza)
+
     xyia = condense_velocities(xyia, indices=indices)
     xyia = condense_velocity_gradient_tensor(xyia, indices=indices)
     xyia = condense_reynolds_stress_tensor(xyia, indices=indices)
-    #xyia = condense(xyia, ["dbdx", "dbdy", "dbdz"], "∂ⱼb", dimname="j", indices=indices)
+    xyia = temporal_average(xyia)
+    #---
     #---
 
-    #+++ Time average
-    # Here ū and ⟨u⟩ₜ are interchangeable
-    xyia = temporal_average(xyia).rename({"∭⁵εₖdV"  : "∭⁵ε̄ₖdV",
-                                          "∭⁵εₚdV"  : "∭⁵ε̄ₚdV",
-                                          "∭¹⁰εₖdV" : "∭¹⁰ε̄ₖdV",
-                                          "∭¹⁰εₚdV" : "∭¹⁰ε̄ₚdV",
-                                          "∭²⁰εₖdV" : "∭²⁰ε̄ₖdV",
-                                          "∭²⁰εₚdV" : "∭²⁰ε̄ₚdV",
-                                          })
-    xyia = xyia.drop(["uᵢ", "uⱼuᵢ", "b", "wb"])
-
-    xyza = temporal_average_xyza(xyza)
-    #---
-
-    #+++ Get turbulent Reynolds stress tensor
+    #+++ Get turbulent variables
     xyza = get_turbulent_Reynolds_stress_tensor(xyza)
-    #---
-
-    #+++ Get shear production rates
-    xyia = get_SPR(xyia)
-    #---
-
-    #+++ Get buoyancy production rates
+    #xyza = get_SPR(xyza)
     xyza = get_buoyancy_production_rates(xyza)
-    #---
-
-    #+++ Get TKE
     xyza = get_turbulent_kinetic_energy(xyza)
+
+    xyia = get_turbulent_Reynolds_stress_tensor(xyia)
+    xyia = get_SPR(xyia)
+    xyia = get_buoyancy_production_rates(xyia)
+    xyia = get_turbulent_kinetic_energy(xyia)
     #---
 
     #+++ Volume-average/integrate results so far
@@ -185,11 +171,6 @@ for j, config in enumerate(runs):
     for var in ["ε̄ₖ", "1"]:
         int_turb = f"∬ᵋ{var}dxdy"
         xyza[int_turb] = integrate(xyza[var], dV=xyza.ΔxΔyΔz.where(xyza.average_turbulence_mask), dims=("x", "y"))
-    #---
-
-    #+++ Drop unnecessary vars
-    xyza = xyza.drop_vars(["ūⱼūᵢ", "⟨uⱼuᵢ⟩ₜ", "⟨u′ⱼu′ᵢ⟩ₜ", "x_faa", "y_afa", "z_aaf"])
-    xyia = xyia.drop_dims(("x_faa", "y_afa",))
     #---
 
     #+++ Create bulk dataset
@@ -244,6 +225,12 @@ for j, config in enumerate(runs):
     bulk["N∞³L²"] = np.sqrt(bulk.N2_inf)**3 * bulk.L**2
     #---
 
+    #+++ Save Datasets
+    #+++ Drop unnecessary vars
+    xyza = xyza.drop_vars(["ūⱼūᵢ", "⟨uⱼuᵢ⟩ₜ", "⟨u′ⱼu′ᵢ⟩ₜ", "x_faa", "y_afa", "z_aaf"])
+    xyia = xyia.drop_dims(("x_faa", "y_afa",))
+    #---
+
     #+++ Save xyia
     outname = f"data_post/tafields_{simname}.nc"
     with ProgressBar(minimum=5, dt=5):
@@ -267,4 +254,5 @@ for j, config in enumerate(runs):
     with ProgressBar(minimum=2, dt=5):
         print(f"Saving bulk results to {outname}...")
         bulk.to_netcdf(outname)
+    #---
     #---

@@ -148,26 +148,34 @@ def seamount_curve(x, y, p):
 
 #+++ Temporal averaging functions
 def temporal_average(ds, rename_dict=None):
-    """Apply temporal averaging and rename variables with overbar notation"""
+    """
+    Apply temporal averaging and rename variables. Both the overbar and the angles notation mean a time average.
+    That is, ū and ⟨u⟩ₜ are exactly the same.
+    """
     if rename_dict is None:
-        rename_dict = {"uᵢ"   : "ūᵢ",
-                       "b"    : "b̄",
-                       "uⱼuᵢ" : "⟨uⱼuᵢ⟩ₜ",
-                       "wb"   : "⟨wb⟩ₜ",
-                       "∂ⱼuᵢ" : "∂ⱼūᵢ",
-                       "εₖ"   : "ε̄ₖ",
-                       "εₚ"   : "ε̄ₚ",
-                       "ν"    : "ν̄",
-                       "κ"    : "κ̄",
-                       "PV"   : "q̄",
-                       "Ri"   : "R̄i",
-                       "Ro"   : "R̄o",
-                       "ω_y"  : "ω̄_y",
+        rename_dict = {"uᵢ"      : "ūᵢ",
+                       "b"       : "b̄",
+                       "uⱼuᵢ"    : "⟨uⱼuᵢ⟩ₜ",
+                       "wb"      : "⟨wb⟩ₜ",
+                       "∂ⱼuᵢ"    : "∂ⱼūᵢ",
+                       "εₖ"      : "ε̄ₖ",
+                       "εₚ"      : "ε̄ₚ",
+                       "ν"       : "ν̄",
+                       "κ"       : "κ̄",
+                       "PV"      : "q̄",
+                       "Ri"      : "R̄i",
+                       "Ro"      : "R̄o",
+                       "ω_y"     : "ω̄_y",
+                       "∭⁵εₖdV"  : "∭⁵ε̄ₖdV",
+                       "∭⁵εₚdV"  : "∭⁵ε̄ₚdV",
+                       "∭¹⁰εₖdV" : "∭¹⁰ε̄ₖdV",
+                       "∭¹⁰εₚdV" : "∭¹⁰ε̄ₚdV",
+                       "∭²⁰εₖdV" : "∭²⁰ε̄ₖdV",
+                       "∭²⁰εₚdV" : "∭²⁰ε̄ₚdV",
                        }
 
     # Filter rename_dict to only include keys that exist in the dataset
     filtered_rename_dict = {key: value for key, value in rename_dict.items() if key in ds.variables}
-
     ds = ds.mean("time", keep_attrs=True).rename(filtered_rename_dict)
     return ds
 

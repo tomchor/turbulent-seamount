@@ -26,7 +26,7 @@ if basename(__file__) != "00_run_postproc.py":
     Froude_numbers = cycler(Fr_h = [1.25])
     L              = cycler(L = [0, 300])
 
-    resolutions    = cycler(dz = [8,])
+    resolutions    = cycler(dz = [4])
     closures       = cycler(closure = ["AMD", "AMC", "CSM", "DSM", "NON"])
     closures       = cycler(closure = ["DSM"])
 
@@ -38,6 +38,7 @@ if basename(__file__) != "00_run_postproc.py":
 
 #+++ Options
 indices = [1, 2, 3]
+write_xyza = True
 #---
 
 for j, config in enumerate(runs):

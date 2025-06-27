@@ -9,10 +9,10 @@ from aux00_utils import aggregate_parameters
 simname_base = "seamount"
 
 Rossby_numbers = cycler(Ro_h = [0.2, 1.25])
-Froude_numbers = cycler(Fr_h = [0.2, 1.25])
+Froude_numbers = cycler(Fr_h = [1.25])
 L              = cycler(L = [0, 300])
 
-resolutions    = cycler(dz = [8, 4, 2, 1])
+resolutions    = cycler(dz = [8, 4, 2])
 closures       = cycler(closure = ["DSM"])
 
 paramspace = Rossby_numbers * Froude_numbers * L

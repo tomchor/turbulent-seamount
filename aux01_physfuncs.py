@@ -178,18 +178,6 @@ def temporal_average(ds, rename_dict=None):
     filtered_rename_dict = {key: value for key, value in rename_dict.items() if key in ds.variables}
     ds = ds.mean("time", keep_attrs=True).rename(filtered_rename_dict)
     return ds
-
-def temporal_average_xyza(ds):
-    """Apply temporal averaging for xyza datasets"""
-    ds = ds.mean("time", keep_attrs=True).rename({"uᵢ"   : "ūᵢ",
-                                                  "b"    : "b̄",
-                                                  "uⱼuᵢ" : "⟨uⱼuᵢ⟩ₜ",
-                                                  "wb"   : "⟨wb⟩ₜ",
-                                                  "εₖ"   : "ε̄ₖ",
-                                                  "εₚ"   : "ε̄ₚ",
-                                                  "κ"    : "κ̄",
-                                                  })
-    return ds
 #---
 
 #+++ Turbulence calculations
@@ -199,7 +187,7 @@ def get_turbulent_Reynolds_stress_tensor(ds):
     ds["⟨u′ⱼu′ᵢ⟩ₜ"] = ds["⟨uⱼuᵢ⟩ₜ"] - ds["ūⱼūᵢ"]
     return ds
 
-def get_SPR(ds):
+def get_shear_production_rates(ds):
     """Calculate shear production rates"""
     ds["SPR"] = - (ds["⟨u′ⱼu′ᵢ⟩ₜ"] * ds["∂ⱼūᵢ"]).sum("i")
     return ds

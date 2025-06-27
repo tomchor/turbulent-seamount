@@ -316,7 +316,7 @@ model = NonhydrostaticModel(grid = grid, timestepper = :RungeKutta3,
                             hydrostatic_pressure_anomaly = CenterField(grid),
                             )
 @info "" model
-if has_cuda_gpu() show_gpu_status() end
+show_gpu_status()
 
 set!(model, b=(x, y, z) -> b∞(z), v=params.V∞)
 #---
@@ -377,8 +377,8 @@ checkpointer = construct_outputs(simulation;
                                  params = params,
                                  overwrite_existing = overwrite_existing,
                                  interval_2d = 0.1*params.T_advective,
-                                 interval_3d = 1.0*params.T_advective,
-                                 interval_time_avg = 5*params.T_advective,
+                                 interval_3d = 0.5*params.T_advective,
+                                 interval_time_avg = 2*params.T_advective,
                                  write_xyzi = true,
                                  write_xizi = false,
                                  write_xyii = true,
@@ -392,7 +392,7 @@ tock()
 #---
 
 #+++ Run simulations and plot video afterwards
-if has_cuda_gpu() show_gpu_status() end
+show_gpu_status()
 @info "Starting simulation"
 run!(simulation, pickup=write_ckpt)
 #---

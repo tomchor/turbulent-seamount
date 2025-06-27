@@ -227,32 +227,54 @@ end
 #---
 
 #+++ Useful GPU show methods
+"""
+    @CUDAstats ex
+
+A macro that wraps `CUDA.@time` but only executes the timing functionality when CUDA is functional.
+If CUDA is not available or not functional, it simply executes the expression without timing.
+
+This is useful for code that should work both with and without GPU support.
+"""
+macro CUDAstats(ex)
+    quote
+        if functional()
+            CUDA.@time $(esc(ex))
+        else
+            $(esc(ex))
+        end
+    end
+end
+
+function get_gpu_memory_usage(gpu_device)
+    total_mem = totalmem(gpu_device) |> Float64
+    free_mem  = available_memory()
+    used_mem  = total_mem - free_mem
+    return total_mem, free_mem, used_mem
+end
+
 function show_gpu_status()
     # Check if CUDA is available
     if !functional()
-        println("CUDA is not available on this system")
         return
     end
 
     # Get number of available GPUs
     num_devices = length(devices())
 
-    println("=" ^ 70)
+    println("="^70)
     println("GPU Status Report")
-    println("=" ^ 70)
+    println("="^70)
     println("Number of GPUs available: $num_devices")
     println()
 
     # Iterate through all available GPUs
-    for (i, device) in enumerate(devices())
+    for (i, gpu_device) in enumerate(devices())
         # Set current device
-        device!(device)
+        device!(gpu_device)
 
         # Get device information
-        gpu_name  = name(device)
-        total_mem = totalmem(device)
-        free_mem  = available_memory()
-        used_mem  = total_mem - free_mem
+        gpu_name  = name(gpu_device)
+        total_mem, free_mem, used_mem = get_gpu_memory_usage(gpu_device)
 
         # Convert to GB for readability
         used_gb = used_mem / (1024^3)

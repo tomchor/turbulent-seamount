@@ -343,7 +343,7 @@ conjure_time_step_wizard!(simulation, IterationInterval(1), max_change=1.05, cfl
 t_switch = 12 * params.T_advective
 function cfl_changer(sim)
     if sim.model.clock.time > 0
-        @warn "Changing target cfl to $cfl"
+        @warn "Changing target cfl"
         simulation.callbacks[:time_step_wizard].func.cfl = 0.8
     end
 end

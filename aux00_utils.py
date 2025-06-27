@@ -75,6 +75,31 @@ def condense(ds, vlist, varname, dimname="α", indices=None):
     return ds
 #---
 
+#+++ Tensor condensation functions
+def condense_velocities(ds, indices=[1, 2, 3]):
+    """Condense velocity components into tensor form"""
+    return condense(ds, ["u", "v", "w"], "uᵢ", dimname="i", indices=indices)
+
+def condense_velocity_gradient_tensor(ds, indices=[1, 2, 3]):
+    """Condense velocity gradient components into tensor form"""
+    ds = condense(ds, ["∂u∂x", "∂v∂x", "∂w∂x"], "∂₁uᵢ", dimname="i", indices=indices)
+    ds = condense(ds, ["∂u∂y", "∂v∂y", "∂w∂y"], "∂₂uᵢ", dimname="i", indices=indices)
+    ds = condense(ds, ["∂u∂z", "∂v∂z", "∂w∂z"], "∂₃uᵢ", dimname="i", indices=indices)
+    ds = condense(ds, ["∂₁uᵢ", "∂₂uᵢ", "∂₃uᵢ"], "∂ⱼuᵢ", dimname="j", indices=indices)
+    return ds
+
+def condense_reynolds_stress_tensor(ds, indices=[1, 2, 3]):
+    """Condense Reynolds stress components into tensor form"""
+    ds["vu"] = ds.uv
+    ds["wv"] = ds.vw
+    ds["wu"] = ds.uw
+    ds = condense(ds, ["uu",   "uv",   "uw"],   "u₁uᵢ", dimname="i", indices=indices)
+    ds = condense(ds, ["vu",   "vv",   "vw"],   "u₂uᵢ", dimname="i", indices=indices)
+    ds = condense(ds, ["wu",   "wv",   "ww"],   "u₃uᵢ", dimname="i", indices=indices)
+    ds = condense(ds, ["u₁uᵢ", "u₂uᵢ", "u₃uᵢ"], "uⱼuᵢ", dimname="j", indices=indices)
+    return ds
+#---
+
 #+++ Merge datasets into one
 def merge_datasets(runs, base_name = "seamount", dirpath="data_post", add_min_spacings=True, add_simulation_info=True, verbose=False):
     simnames_filtered = list(map(lambda run: form_run_names(base_name, run, sep="_", prefix=""), runs))

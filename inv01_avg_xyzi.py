@@ -5,7 +5,10 @@ import numpy as np
 import xarray as xr
 from cycler import cycler
 import pynanigans as pn
-from aux00_utils import open_simulation, condense, adjust_times, aggregate_parameters
+from aux00_utils import open_simulation, condense, adjust_times, aggregate_parameters, condense_velocities, condense_velocity_gradient_tensor, condense_reynolds_stress_tensor
+from aux01_physfuncs import (temporal_average, temporal_average_xyza,
+                             get_turbulent_Reynolds_stress_tensor, get_SPR,
+                             get_buoyancy_production_rates, get_turbulent_kinetic_energy)
 from colorama import Fore, Back, Style
 from dask.diagnostics import ProgressBar
 xr.set_options(display_width=140, display_max_rows=30)
@@ -101,59 +104,22 @@ for j, config in enumerate(runs):
     #---
 
     #+++ Condense tensors
-    def condense_velocities(ds):
-        return condense(ds, ["u", "v", "w"], "uᵢ", dimname="i", indices=indices)
+    xyza = condense_velocities(xyza, indices=indices)
+    #xyza = condense_velocity_gradient_tensor(xyza, indices=indices)
+    xyza = condense_reynolds_stress_tensor(xyza, indices=indices)
 
-    def condense_velocity_gradient_tensor(ds):
-        ds = condense(ds, ["∂u∂x", "∂v∂x", "∂w∂x"], "∂₁uᵢ", dimname="i", indices=indices)
-        ds = condense(ds, ["∂u∂y", "∂v∂y", "∂w∂y"], "∂₂uᵢ", dimname="i", indices=indices)
-        ds = condense(ds, ["∂u∂z", "∂v∂z", "∂w∂z"], "∂₃uᵢ", dimname="i", indices=indices)
-        ds = condense(ds, ["∂₁uᵢ", "∂₂uᵢ", "∂₃uᵢ"], "∂ⱼuᵢ", dimname="j", indices=indices)
-        return ds
-
-    def condense_reynolds_stress_tensor(ds):
-        ds["vu"] = ds.uv
-        ds["wv"] = ds.vw
-        ds["wu"] = ds.uw
-        ds = condense(ds, ["uu",   "uv",   "uw"],   "u₁uᵢ", dimname="i", indices=indices)
-        ds = condense(ds, ["vu",   "vv",   "vw"],   "u₂uᵢ", dimname="i", indices=indices)
-        ds = condense(ds, ["wu",   "wv",   "ww"],   "u₃uᵢ", dimname="i", indices=indices)
-        ds = condense(ds, ["u₁uᵢ", "u₂uᵢ", "u₃uᵢ"], "uⱼuᵢ", dimname="j", indices=indices)
-        return ds
-
-    xyza = condense_velocities(xyza)
-    #xyza = condense_velocity_gradient_tensor(xyza)
-    xyza = condense_reynolds_stress_tensor(xyza)
-
-    xyia = condense_velocities(xyia)
-    xyia = condense_velocity_gradient_tensor(xyia)
-    xyia = condense_reynolds_stress_tensor(xyia)
+    xyia = condense_velocities(xyia, indices=indices)
+    xyia = condense_velocity_gradient_tensor(xyia, indices=indices)
+    xyia = condense_reynolds_stress_tensor(xyia, indices=indices)
     #xyia = condense(xyia, ["dbdx", "dbdy", "dbdz"], "∂ⱼb", dimname="j", indices=indices)
 
-    xyii = condense_velocities(xyii)
-    xyii = condense_velocity_gradient_tensor(xyii)
-    xyii = condense_reynolds_stress_tensor(xyii)
+    xyii = condense_velocities(xyii, indices=indices)
+    xyii = condense_velocity_gradient_tensor(xyii, indices=indices)
+    xyii = condense_reynolds_stress_tensor(xyii, indices=indices)
     #---
 
     #+++ Time average
     # Here ū and ⟨u⟩ₜ are interchangeable
-    def temporal_average(ds):
-        ds = ds.mean("time", keep_attrs=True).rename({"uᵢ"   : "ūᵢ",
-                                                      "b"    : "b̄",
-                                                      "uⱼuᵢ" : "⟨uⱼuᵢ⟩ₜ",
-                                                      "wb"   : "⟨wb⟩ₜ",
-                                                      "∂ⱼuᵢ"    : "∂ⱼūᵢ",
-                                                      "εₖ"      : "ε̄ₖ",
-                                                      "εₚ"      : "ε̄ₚ",
-                                                      "ν"       : "ν̄",
-                                                      "κ"       : "κ̄",
-                                                      "PV"      : "q̄",
-                                                      "Ri"      : "R̄i",
-                                                      "Ro"      : "R̄o",
-                                                      "ω_y"     : "ω̄_y",
-                                                      })
-        return ds
-
     xyia = temporal_average(xyia).squeeze()
     print(f"Averaging out {len(xyii.time)} time steps: {xyii.time.values}")
     xyit = temporal_average(xyii).squeeze()
@@ -165,22 +131,10 @@ for j, config in enumerate(runs):
             im = xyia[var].pnplot(ax=axes[0], robust=True)
             vmin, vmax = im.get_clim()
             xyit[var].pnplot(ax=axes[1], vmin=vmin, vmax=vmax, cmap=im.get_cmap())
-    xyza = xyza.mean("time", keep_attrs=True).rename({"uᵢ"   : "ūᵢ",
-                                                      "b"    : "b̄",
-                                                      "uⱼuᵢ" : "⟨uⱼuᵢ⟩ₜ",
-                                                      "wb"   : "⟨wb⟩ₜ",
-                                                      "εₖ"   : "ε̄ₖ",
-                                                      "εₚ"   : "ε̄ₚ",
-                                                      "κ"    : "κ̄",
-                                                      })
+    xyza = temporal_average_xyza(xyza)
     #---
 
     #+++ Get turbulent Reynolds stress tensor
-    def get_turbulent_Reynolds_stress_tensor(ds):
-        ds["ūⱼūᵢ"]      = ds["ūᵢ"] * ds["ūᵢ"].rename(i="j")
-        ds["⟨u′ⱼu′ᵢ⟩ₜ"] = ds["⟨uⱼuᵢ⟩ₜ"] - ds["ūⱼūᵢ"]
-        return ds
-
     xyza = get_turbulent_Reynolds_stress_tensor(xyza)
     xyia = get_turbulent_Reynolds_stress_tensor(xyia)
     xyit = get_turbulent_Reynolds_stress_tensor(xyit)
@@ -196,10 +150,6 @@ for j, config in enumerate(runs):
     #---
 
     #+++ Get shear production rates
-    def get_SPR(ds):
-        ds["SPR"] = - (ds["⟨u′ⱼu′ᵢ⟩ₜ"] * ds["∂ⱼūᵢ"]).sum("i")
-        return ds
-
     xyia = get_SPR(xyia)
     xyit = get_SPR(xyit)
 
@@ -213,13 +163,8 @@ for j, config in enumerate(runs):
     #---
 
     #+++ Get buoyancy production rates
-    def get_buoyanct_production_rates(ds):
-        ds["w̄b̄"]      = ds["ūᵢ"].sel(i=3) * ds["b̄"]
-        ds["⟨w′b′⟩ₜ"] = ds["⟨wb⟩ₜ"] - ds["w̄b̄"]
-        return ds
-
-    xyia = get_buoyanct_production_rates(xyia)
-    xyit = get_buoyanct_production_rates(xyit)
+    xyia = get_buoyancy_production_rates(xyia)
+    xyit = get_buoyancy_production_rates(xyit)
 
     if False:
         from matplotlib import pyplot as plt
@@ -230,10 +175,6 @@ for j, config in enumerate(runs):
     #---
 
     #+++ Get TKE
-    def get_turbulent_kinetic_energy(ds):
-        ds["⟨Ek′⟩ₜ"] = (ds["⟨u′ⱼu′ᵢ⟩ₜ"].sel(i=1, j=1) + ds["⟨u′ⱼu′ᵢ⟩ₜ"].sel(i=2, j=2) + ds["⟨u′ⱼu′ᵢ⟩ₜ"].sel(i=3, j=3)) / 2
-        return ds
-
     xyia = get_turbulent_kinetic_energy(xyia)
     xyit = get_turbulent_kinetic_energy(xyit)
 

@@ -145,3 +145,59 @@ def seamount_curve(x, y, p):
     """ Calculates the seamount curve """
     return p.H * np.exp(-(x/p.L)**2 - (y/p.L)**2)
 #---
+
+#+++ Temporal averaging functions
+def temporal_average(ds):
+    """Apply temporal averaging and rename variables with overbar notation"""
+    ds = ds.mean("time", keep_attrs=True).rename({"uᵢ"   : "ūᵢ",
+                                                  "b"    : "b̄",
+                                                  "uⱼuᵢ" : "⟨uⱼuᵢ⟩ₜ",
+                                                  "wb"   : "⟨wb⟩ₜ",
+                                                  "∂ⱼuᵢ"    : "∂ⱼūᵢ",
+                                                  "εₖ"      : "ε̄ₖ",
+                                                  "εₚ"      : "ε̄ₚ",
+                                                  "ν"       : "ν̄",
+                                                  "κ"       : "κ̄",
+                                                  "PV"      : "q̄",
+                                                  "Ri"      : "R̄i",
+                                                  "Ro"      : "R̄o",
+                                                  "ω_y"     : "ω̄_y",
+                                                  })
+    return ds
+
+def temporal_average_xyza(ds):
+    """Apply temporal averaging for xyza datasets"""
+    ds = ds.mean("time", keep_attrs=True).rename({"uᵢ"   : "ūᵢ",
+                                                  "b"    : "b̄",
+                                                  "uⱼuᵢ" : "⟨uⱼuᵢ⟩ₜ",
+                                                  "wb"   : "⟨wb⟩ₜ",
+                                                  "εₖ"   : "ε̄ₖ",
+                                                  "εₚ"   : "ε̄ₚ",
+                                                  "κ"    : "κ̄",
+                                                  })
+    return ds
+#---
+
+#+++ Turbulence calculations
+def get_turbulent_Reynolds_stress_tensor(ds):
+    """Calculate turbulent Reynolds stress tensor"""
+    ds["ūⱼūᵢ"]      = ds["ūᵢ"] * ds["ūᵢ"].rename(i="j")
+    ds["⟨u′ⱼu′ᵢ⟩ₜ"] = ds["⟨uⱼuᵢ⟩ₜ"] - ds["ūⱼūᵢ"]
+    return ds
+
+def get_SPR(ds):
+    """Calculate shear production rates"""
+    ds["SPR"] = - (ds["⟨u′ⱼu′ᵢ⟩ₜ"] * ds["∂ⱼūᵢ"]).sum("i")
+    return ds
+
+def get_buoyancy_production_rates(ds):
+    """Calculate buoyancy production rates"""
+    ds["w̄b̄"]      = ds["ūᵢ"].sel(i=3) * ds["b̄"]
+    ds["⟨w′b′⟩ₜ"] = ds["⟨wb⟩ₜ"] - ds["w̄b̄"]
+    return ds
+
+def get_turbulent_kinetic_energy(ds):
+    """Calculate turbulent kinetic energy"""
+    ds["⟨Ek′⟩ₜ"] = (ds["⟨u′ⱼu′ᵢ⟩ₜ"].sel(i=1, j=1) + ds["⟨u′ⱼu′ᵢ⟩ₜ"].sel(i=2, j=2) + ds["⟨u′ⱼu′ᵢ⟩ₜ"].sel(i=3, j=3)) / 2
+    return ds
+#---

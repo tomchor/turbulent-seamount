@@ -147,22 +147,28 @@ def seamount_curve(x, y, p):
 #---
 
 #+++ Temporal averaging functions
-def temporal_average(ds):
+def temporal_average(ds, rename_dict=None):
     """Apply temporal averaging and rename variables with overbar notation"""
-    ds = ds.mean("time", keep_attrs=True).rename({"uᵢ"   : "ūᵢ",
-                                                  "b"    : "b̄",
-                                                  "uⱼuᵢ" : "⟨uⱼuᵢ⟩ₜ",
-                                                  "wb"   : "⟨wb⟩ₜ",
-                                                  "∂ⱼuᵢ"    : "∂ⱼūᵢ",
-                                                  "εₖ"      : "ε̄ₖ",
-                                                  "εₚ"      : "ε̄ₚ",
-                                                  "ν"       : "ν̄",
-                                                  "κ"       : "κ̄",
-                                                  "PV"      : "q̄",
-                                                  "Ri"      : "R̄i",
-                                                  "Ro"      : "R̄o",
-                                                  "ω_y"     : "ω̄_y",
-                                                  })
+    if rename_dict is None:
+        rename_dict = {"uᵢ"   : "ūᵢ",
+                       "b"    : "b̄",
+                       "uⱼuᵢ" : "⟨uⱼuᵢ⟩ₜ",
+                       "wb"   : "⟨wb⟩ₜ",
+                       "∂ⱼuᵢ" : "∂ⱼūᵢ",
+                       "εₖ"   : "ε̄ₖ",
+                       "εₚ"   : "ε̄ₚ",
+                       "ν"    : "ν̄",
+                       "κ"    : "κ̄",
+                       "PV"   : "q̄",
+                       "Ri"   : "R̄i",
+                       "Ro"   : "R̄o",
+                       "ω_y"  : "ω̄_y",
+                       }
+
+    # Filter rename_dict to only include keys that exist in the dataset
+    filtered_rename_dict = {key: value for key, value in rename_dict.items() if key in ds.variables}
+
+    ds = ds.mean("time", keep_attrs=True).rename(filtered_rename_dict)
     return ds
 
 def temporal_average_xyza(ds):

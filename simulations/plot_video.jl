@@ -42,17 +42,13 @@ const SLICE_DIMS = Dict(
 variables = (:v, :PV, :εₖ, :Ro)
 
 # Get main dataset path
-fpath_xyii = if @isdefined simulation
-    simulation.output_writers[:nc_xyii].filepath
-else
-    "data/xyii.seamount_Ro_h=0.2_Fr_h=1.25_L=0_dz=4_closure=DSM.nc"
-end
+fpath_xyii = (@isdefined simulation) ? simulation.output_writers[:nc_xyii].filepath : "data/xyii.seamount_Ro_h=0.2_Fr_h=1.25_L=0_dz=4_closure=DSM.nc"
 
 @info "Reading primary dataset: $fpath_xyii"
 ds_xyii = RasterStack(fpath_xyii, lazy=true, name=variables)
 
 # Load additional datasets if they exist
-datasets = [(ds_xyii, "xy")]
+datasets = Vector{Tuple}([(ds_xyii, "xy")])
 for (prefix, slice_name) in [("xizi", "xz"), ("iyzi", "yz")]
     fpath = replace(fpath_xyii, "xyii" => prefix)
     if isfile(fpath)

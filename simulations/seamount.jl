@@ -382,9 +382,9 @@ checkpointer = construct_outputs(simulation;
                                  write_xyzi = true,
                                  write_xizi = false,
                                  write_xyii = true,
-                                 write_iyzi = false,
-                                 write_xyza = true,
-                                 write_xyia = true,
+                                 write_iyzi = true,
+                                 write_xyza = false,
+                                 write_xyia = false,
                                  write_ckpt,
                                  debug = false,
                                  )

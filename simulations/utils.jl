@@ -1,7 +1,7 @@
 using Parameters
 using ImageFiltering: imfilter, Kernel
 using Optim: GoldenSection, optimize
-using CUDA: devices, device!, functional, totalmem, name, available_memory, memory_status
+using CUDA: devices, device!, functional, totalmem, name, available_memory, memory_status, @time
 
 #+++ Get good grid size
 """ Rounds `a` to the nearest even number """
@@ -238,7 +238,7 @@ This is useful for code that should work both with and without GPU support.
 macro CUDAstats(ex)
     quote
         if functional()
-            CUDA.@time $(esc(ex))
+            @time $(esc(ex))
         else
             $(esc(ex))
         end

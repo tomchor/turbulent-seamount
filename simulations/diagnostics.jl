@@ -2,8 +2,6 @@ using Oceananigans.AbstractOperations: @at, ∂x, ∂y, ∂z
 using Oceananigans.Units
 using Oceananigans.Grids: Center, Face
 import Oceananigans.TurbulenceClosures: viscosity, diffusivity
-using CUDA  # Add CUDA import
-#using MacroTools  # Add MacroTools for macro writing
 
 using Oceanostics: KineticEnergyDissipationRate,
                    ErtelPotentialVorticity, RossbyNumber, RichardsonNumber,

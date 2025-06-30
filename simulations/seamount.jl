@@ -3,16 +3,16 @@ if ("PBS_JOBID" in keys(ENV))  @info "Job ID" ENV["PBS_JOBID"] end # Print job I
 using InteractiveUtils
 versioninfo()
 using ArgParse
-using Oceananigans
-using Oceananigans: on_architecture
-using Oceananigans.Units
-using Oceananigans.TurbulenceClosures: Smagorinsky, DynamicCoefficient, LagrangianAveraging, DynamicSmagorinsky
+using CUDA: has_cuda_gpu
 using PrettyPrinting: pprintln
 using TickTock: tick, tock
 using NCDatasets: NCDataset
 using Interpolations: LinearInterpolation
 
-using CUDA: @allowscalar, has_cuda_gpu
+using Oceananigans
+using Oceananigans.Units
+using Oceananigans: on_architecture
+using Oceananigans.TurbulenceClosures: Smagorinsky, DynamicCoefficient, LagrangianAveraging, DynamicSmagorinsky
 
 #+++ Parse inital arguments
 "Returns a dictionary of command line arguments."

@@ -352,42 +352,58 @@ add_callback!(simulation, cfl_changer, SpecifiedTimes([t_switch]); name=:cfl_cha
 @info "" simulation
 #---
 
-#+++ Diagnostics
-#+++ Define pickup characteristics
+#+++ Outputs and diagnostics
+include("$rundir/diagnostics.jl")
+
+#+++ Define checkpointer/pickup
 write_ckpt = params.dz < 2
+interval_time_avg = params.T_advective
+
 if write_ckpt
-    if any(startswith("chk.$(params.simname)_iteration"), readdir("data"))
+    checkpointer_prefix = "ckpt.$(params.simname)"
+    if any(startswith(checkpointer_prefix), readdir("data"))
         @warn "Checkpoint for $(params.simname) found. Assuming this is a pick-up simulation! Setting overwrite_existing=false."
         overwrite_existing = false
     else
         @warn "No checkpoint for $(params.simname) found. Setting overwrite_existing=true."
         overwrite_existing = true
     end
+
+    #+++ Construct checkpointer
+    @info "Setting up checkpointer"
+    simulation.output_writers[:ckpt_writer] = checkpointer = @CUDAstats Checkpointer(model;
+                                                                                     dir = "$rundir/data/",
+                                                                                     prefix = checkpointer_prefix,
+                                                                                     schedule = TimeInterval(interval_time_avg),
+                                                                                     overwrite_existing = true,
+                                                                                     cleanup = true,
+                                                                                     )
+    #---
+
 else
     @warn "No checkpointing necessary for this simulation."
     overwrite_existing = true
 end
 #---
 
-include("$rundir/diagnostics.jl")
 tick()
-checkpointer = construct_outputs(simulation;
-                                 simname = params.simname,
-                                 rundir = rundir,
-                                 params = params,
-                                 overwrite_existing = overwrite_existing,
-                                 interval_2d = 0.1*params.T_advective,
-                                 interval_3d = 0.5*params.T_advective,
-                                 interval_time_avg = 2*params.T_advective,
-                                 write_xyzi = true,
-                                 write_xizi = false,
-                                 write_xyii = true,
-                                 write_iyzi = true,
-                                 write_xyza = false,
-                                 write_xyia = false,
-                                 write_ckpt,
-                                 debug = false,
-                                 )
+construct_outputs(simulation;
+                  simname = params.simname,
+                  rundir = rundir,
+                  params = params,
+                  overwrite_existing = overwrite_existing,
+                  interval_2d = 0.1*params.T_advective,
+                  interval_3d = 0.5*params.T_advective,
+                  interval_time_avg,
+                  write_xyzi = true,
+                  write_xizi = false,
+                  write_xyii = true,
+                  write_iyzi = true,
+                  write_xyza = false,
+                  write_xyia = false,
+                  write_ckpt,
+                  debug = false,
+                  )
 tock()
 #---
 

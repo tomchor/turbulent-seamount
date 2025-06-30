@@ -264,22 +264,5 @@ function construct_outputs(simulation;
                                                                       )
     end
     #---
-
-    #+++ Checkpointer
-    if write_ckpt
-        @info "Setting up ckpt writer"
-        simulation.output_writers[:ckpt_writer] = checkpointer = @CUDAstats Checkpointer(model;
-                                                                                         dir="$rundir/data/",
-                                                                                         prefix = "ckpt.$(simname)",
-                                                                                         schedule = TimeInterval(interval_time_avg),
-                                                                                         overwrite_existing = true,
-                                                                                         cleanup = true,
-                                                                                         verbose = debug,
-                                                                                         )
-        return checkpointer
-    else
-        return nothing
-    end
-    #---
 end
 #---

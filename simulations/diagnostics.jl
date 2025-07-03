@@ -119,13 +119,15 @@ dc5  = DistanceCondition(from_bottom=5meters , from_top=params.h_sponge, from_no
 dc10 = DistanceCondition(from_bottom=10meters, from_top=params.h_sponge, from_north=2minimum_yspacing(grid))
 dc20 = DistanceCondition(from_bottom=20meters, from_top=params.h_sponge, from_north=2minimum_yspacing(grid))
 
-outputs_vol_averages = Dict{Symbol, Any}(:∭⁵εₖdV  => Integral(εₖ; condition = dc5),
-                                         :∭⁵εₚdV  => Integral(εₚ; condition = dc5),
-                                         :∭¹⁰εₖdV => Integral(εₖ; condition = dc10),
-                                         :∭¹⁰εₚdV => Integral(εₚ; condition = dc10),
-                                         :∭²⁰εₖdV => Integral(εₖ; condition = dc20),
-                                         :∭²⁰εₚdV => Integral(εₚ; condition = dc20),
-                                         )
+outputs_vol_integrals = Dict{Symbol, Any}(:∭⁵εₖdV  => Integral(εₖ; condition = dc5),
+                                          :∭⁵εₚdV  => Integral(εₚ; condition = dc5),
+                                          :∭¹⁰εₖdV => Integral(εₖ; condition = dc10),
+                                          :∭¹⁰εₚdV => Integral(εₚ; condition = dc10),
+                                          )
+
+outputs_x_integrals = Dict{Symbol, Any}(:∫εₖdx  => Integral(εₖ; dims=1),
+                                        :∫εₚdx  => Integral(εₚ; dims=1),
+                                        )
 
 dcf5  = Field(KernelFunctionOperation{Center, Center, Center}(dc5,  grid, nothing)) |> compute!
 dcf10 = Field(KernelFunctionOperation{Center, Center, Center}(dc10, grid, nothing)) |> compute!
@@ -153,6 +155,7 @@ function construct_outputs(simulation;
                            write_iyzi = false,
                            write_xyza = false,
                            write_xyia = false,
+                           write_aaai = false,
                            write_ckpt = false,
                            debug = false,
                            )
@@ -169,7 +172,8 @@ function construct_outputs(simulation;
     #+++ xyzi SNAPSHOTS
     if write_xyzi
         @info "Setting up xyzi writer"
-        simulation.output_writers[:nc_xyzi] = ow = @CUDAstats NetCDFWriter(model, ScratchedField(outputs_full);
+        outputs_xyzi = merge(ScratchedField(outputs_full), outputs_x_integrals)
+        simulation.output_writers[:nc_xyzi] = ow = @CUDAstats NetCDFWriter(model, outputs_xyzi;
                                                                            filename = "$rundir/data/xyzi.$(simname).nc",
                                                                            schedule = TimeInterval(interval_3d),
                                                                            array_type = Array{eltype(grid)},
@@ -249,7 +253,7 @@ function construct_outputs(simulation;
     #+++ xyia (Time averages)
     if write_xyia
         @info "Setting up xyia writer"
-        outputs_xyia = merge(outputs_full, outputs_vol_averages)
+        outputs_xyia = merge(outputs_full, outputs_vol_integrals)
         indices = (:, :, k_half)
         simulation.output_writers[:nc_xyia] = @CUDAstats NetCDFWriter(model, outputs_xyia;
                                                                       filename = "$rundir/data/xyia.$(simname).nc",
@@ -262,5 +266,17 @@ function construct_outputs(simulation;
                                                                       )
     end
     #---
+
+    #+++ aaai (Time averages)
+    if write_aaai
+        @info "Setting up aaai writer"
+        simulation.output_writers[:nc_aaai] = ow = @CUDAstats NetCDFWriter(model, outputs_vol_integrals;
+                                                                           filename = "$rundir/data/aaai.$(simname).nc",
+                                                                           schedule = TimeInterval(interval_2d),
+                                                                           array_type = Array{eltype(grid)},
+                                                                           verbose = false,
+                                                                           kwargs...
+                                                                           )
+    end
 end
 #---

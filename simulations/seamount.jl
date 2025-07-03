@@ -401,6 +401,7 @@ construct_outputs(simulation;
                   write_iyzi = true,
                   write_xyza = false,
                   write_xyia = false,
+                  write_aaai = true,
                   write_ckpt,
                   debug = false,
                   )

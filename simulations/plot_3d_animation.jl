@@ -19,6 +19,7 @@ xyzi = xyzi[z_aac = 0..1.1*params.H, y_aca = -Inf..6*params.FWHM]
 x_range = extrema(dims(xyzi, :x_caa))
 y_range = extrema(dims(xyzi, :y_aca))
 z_range = extrema(dims(xyzi, :z_aac))
+times = dims(xyzi.PV, :Ti)
 
 # Set PV limits based on data range or physical considerations
 interior_PV = params.N²∞ * params.f₀
@@ -36,7 +37,7 @@ settings_axis3 = (aspect = (Lx, Ly, 5*Lz), azimuth = 0.1π, elevation = 0.2π,
 
 # Create figure
 fig = Figure(size = (1200, 900))
-n = Observable(41)
+n = Observable(length(times))
 
 # Create PV observable
 PVₙ = @lift Array(xyzi.PV)[:,:,:,$n]
@@ -55,8 +56,6 @@ Colorbar(fig, vol, bbox=ax.scene.px_area,
          alignmode = Outside(10), halign = 0.15, valign = 0.02)
 
 # Save a snapshot as png
-times = dims(xyzi.PV, :Ti)
-n[] = length(times)
 save("$(@__DIR__)/../figures/seamount_3d_PV_snapshot.png", fig, px_per_unit=2)
 
 # Create title with time and parameters

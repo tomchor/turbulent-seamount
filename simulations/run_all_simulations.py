@@ -123,7 +123,7 @@ for modifiers in runs:
         cmd1           = very_small_submission_command(scheduler)
     elif Δz >= 2:
         options_string = small_submission_options(scheduler)
-        cmd1           = small_submission_command(scheduler) 
+        cmd1           = small_submission_command(scheduler)
     else:
         options_string = big_submission_options(scheduler)
 

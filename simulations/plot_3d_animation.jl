@@ -32,7 +32,7 @@ Lx = diff(x_range |> collect)[]
 Ly = diff(y_range |> collect)[]
 Lz = diff(z_range |> collect)[]
 settings_axis3 = (aspect = (Lx, Ly, 5*Lz), azimuth = 0.1π, elevation = 0.2π,
-                  perspectiveness=0.8, viewmode=:fitzoom, 
+                  perspectiveness=0.8, viewmode=:fitzoom,
                   xlabel="x [m]", ylabel="y [m]", zlabel="z [m]")
 
 # Create figure

@@ -1,9 +1,71 @@
 import xarray as xr
 import pynanigans as pn
 import numpy as np
+import unicodedata
+
+#+++ Unicode normalization functions
+def normalize_unicode_name(name, form="NFD"):
+    """
+    Normalize a Unicode variable name using unicodedata.normalize
+
+    Parameters
+    ----------
+    name : str
+        The variable name to normalize
+    form : str, optional; default "NFD"
+        The form of Unicode normalization to apply.
+        See https://docs.python.org/3/library/unicodedata.html#unicodedata.normalize
+        and https://en.wikipedia.org/wiki/Unicode_equivalence#Normal_forms
+        for more information.
+
+    Returns
+    -------
+    str
+        The normalized variable name
+    """
+    return unicodedata.normalize(form, name)
+
+def normalize_unicode_names_in_dataset(ds, normalize_unicode=True, form="NFD"):
+    """
+    Normalize all Unicode variable names in a dataset using unicodedata.normalize
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+        The dataset containing variables to normalize
+    normalize_unicode : bool, optional
+        Whether to apply Unicode normalization. Default True.
+
+    Returns
+    -------
+    xarray.Dataset
+        The dataset with normalized variable names
+    """
+    if not normalize_unicode:
+        return ds
+
+    # Get all variable names that contain Unicode characters
+    unicode_vars = []
+    for var_name in ds.variables:
+        if any(ord(char) > 127 for char in var_name):
+            unicode_vars.append(var_name)
+
+    # Create rename dictionary for Unicode variables
+    rename_dict = {}
+    for var_name in unicode_vars:
+        normalized_name = normalize_unicode_name(var_name, form=form)
+        if normalized_name != var_name:
+            rename_dict[var_name] = normalized_name
+
+    # Apply renaming if there are any Unicode variables to normalize
+    if rename_dict:
+        ds = ds.rename(rename_dict)
+
+    return ds
+#---
 
 #+++ Open simulation following the standard way
-def open_simulation(fname, 
+def open_simulation(fname,
                     use_inertial_periods=False,
                     use_cycle_periods=False,
                     use_advective_periods=False,
@@ -16,7 +78,7 @@ def open_simulation(fname,
                     verbose=False,
                     get_grid = True,
                     topology="PPN", **kwargs):
-    
+
     #+++ Open dataset and create grid before squeezing
     if verbose: print(f"\nOpening {fname}... ", end="")
     if load:

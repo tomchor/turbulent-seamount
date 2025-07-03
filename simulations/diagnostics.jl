@@ -141,7 +141,7 @@ outputs_full = merge(outputs_state_vars, outputs_dissip, outputs_misc, outputs_c
 #---
 
 #+++ Construct outputs into simulation
-function construct_outputs(simulation; 
+function construct_outputs(simulation;
                            simname = "TEST",
                            rundir = @__DIR__,
                            params = params,

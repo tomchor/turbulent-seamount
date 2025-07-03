@@ -22,9 +22,9 @@ if basename(__file__) != "00_run_postproc.py":
 
     Rossby_numbers = cycler(Ro_h = [0.2])
     Froude_numbers = cycler(Fr_h = [1.25])
-    L              = cycler(L = [0, 300])
+    L              = cycler(L = [0])
 
-    resolutions    = cycler(dz = [4])
+    resolutions    = cycler(dz = [8])
     closures       = cycler(closure = ["AMD", "AMC", "CSM", "DSM", "NON"])
     closures       = cycler(closure = ["DSM"])
 
@@ -103,8 +103,8 @@ for j, config in enumerate(runs):
 
     xyzi = xyzi.sel(time=t_slice_inclusive, x_caa=x_slice, x_faa=x_slice, y_aca=y_slice, y_afa=y_slice, z_aac=z_slice, z_aaf=z_slice)
     xyii = xyii.sel(time=t_slice_inclusive, x_caa=x_slice, x_faa=x_slice, y_aca=y_slice, y_afa=y_slice)
-    aaai = aaai.sel(time=t_slice_inclusive, x_caa=x_slice, x_faa=x_slice, y_aca=y_slice, y_afa=y_slice)
-    #---
+    aaai = aaai.sel(time=t_slice_inclusive)
+    #----
 
     #+++ Condense and time-average tensors
     xyzi = condense_velocities(xyzi, indices=indices)

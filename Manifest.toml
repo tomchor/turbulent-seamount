@@ -337,12 +337,6 @@ deps = ["Artifacts", "Libdl"]
 uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
 version = "1.1.1+0"
 
-[[deps.CompoundPeriods]]
-deps = ["Dates"]
-git-tree-sha1 = "147d988f6a91fcdd5c07a86b52eb774803477326"
-uuid = "a216cea6-0a8c-5945-ab87-5ade47210022"
-version = "0.5.4"
-
 [[deps.ComputationalResources]]
 git-tree-sha1 = "52cb3ec90e8a8bea0e62e275ba577ad0f74821f7"
 uuid = "ed09eef8-17a6-5b46-8889-db040fac31e3"
@@ -1427,12 +1421,6 @@ version = "1.2.0"
 [[deps.Mmap]]
 uuid = "a63ad114-7e13-5084-954f-fe012c677804"
 
-[[deps.Mocking]]
-deps = ["Compat", "ExprTools"]
-git-tree-sha1 = "2c140d60d7cb82badf06d8783800d0bcd1a7daa2"
-uuid = "78c3b35d-d492-501b-9361-3d52fe80e533"
-version = "0.8.1"
-
 [[deps.ModernGL]]
 deps = ["Libdl"]
 git-tree-sha1 = "ac6cb1d8807a05cf1acc9680e09d2294f9d33956"
@@ -1506,10 +1494,10 @@ uuid = "510215fc-4207-5dde-b226-833fc4488ee2"
 version = "0.5.5"
 
 [[deps.Oceananigans]]
-deps = ["Adapt", "CUDA", "Crayons", "CubedSphere", "Dates", "Distances", "DocStringExtensions", "FFTW", "GPUArrays", "Glob", "InteractiveUtils", "IterativeSolvers", "JLD2", "KernelAbstractions", "Krylov", "KrylovPreconditioners", "LinearAlgebra", "Logging", "MPI", "MuladdMacro", "OffsetArrays", "OrderedCollections", "Pkg", "Printf", "Random", "ReactantCore", "Rotations", "SeawaterPolynomials", "SparseArrays", "StaticArrays", "Statistics", "StructArrays", "TimesDates"]
-git-tree-sha1 = "70faaf8496e806fa82a46d135956c68992b23a81"
+deps = ["Adapt", "CUDA", "Crayons", "CubedSphere", "Dates", "Distances", "DocStringExtensions", "FFTW", "GPUArrays", "Glob", "InteractiveUtils", "IterativeSolvers", "JLD2", "KernelAbstractions", "Krylov", "KrylovPreconditioners", "LinearAlgebra", "Logging", "MPI", "MuladdMacro", "OffsetArrays", "OrderedCollections", "Pkg", "Printf", "Random", "ReactantCore", "Rotations", "SeawaterPolynomials", "SparseArrays", "StaticArrays", "Statistics", "StructArrays"]
+git-tree-sha1 = "af96495374438b175a677bbe7383a8ee3ce8cde4"
 uuid = "9e8cae18-63c1-5223-a75c-80ca9d6e9a09"
-version = "0.96.33"
+version = "0.96.35"
 
     [deps.Oceananigans.extensions]
     OceananigansAMDGPUExt = "AMDGPU"
@@ -2106,12 +2094,6 @@ deps = ["Dates"]
 uuid = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
 version = "1.0.3"
 
-[[deps.TZJData]]
-deps = ["Artifacts"]
-git-tree-sha1 = "72df96b3a595b7aab1e101eb07d2a435963a97e2"
-uuid = "dc5dba14-91b3-4cab-a142-028a31da12f7"
-version = "1.5.0+2025b"
-
 [[deps.TableTraits]]
 deps = ["IteratorInterfaceExtensions"]
 git-tree-sha1 = "c06b2f539df1c6efa794486abfb6ed2022561a39"
@@ -2180,16 +2162,6 @@ git-tree-sha1 = "1176cc31e867217b06928e2f140c90bd1bc88283"
 uuid = "06e1c1a7-607b-532d-9fad-de7d9aa2abac"
 version = "0.5.0"
 
-[[deps.TimeZones]]
-deps = ["Artifacts", "Dates", "Downloads", "InlineStrings", "Mocking", "Printf", "Scratch", "TZJData", "Unicode", "p7zip_jll"]
-git-tree-sha1 = "2c705e96825b66c4a3f25031a683c06518256dd3"
-uuid = "f269a46b-ccf7-5d73-abea-4c690281aa53"
-version = "1.21.3"
-weakdeps = ["RecipesBase"]
-
-    [deps.TimeZones.extensions]
-    TimeZonesRecipesBaseExt = "RecipesBase"
-
 [[deps.TimerOutputs]]
 deps = ["ExprTools", "Printf"]
 git-tree-sha1 = "f57facfd1be61c42321765d3551b3df50f7e09f6"
@@ -2201,12 +2173,6 @@ version = "0.5.28"
 
     [deps.TimerOutputs.weakdeps]
     FlameGraphs = "08572546-2f56-4bcf-ba4e-bab62c3a3f89"
-
-[[deps.TimesDates]]
-deps = ["CompoundPeriods", "Dates", "TimeZones"]
-git-tree-sha1 = "4ca99fd8145f6ae574b6f98e1233148e7b91ac30"
-uuid = "bdfc003b-8df8-5c39-adcd-3a9087f5df4a"
-version = "0.3.1"
 
 [[deps.TranscodingStreams]]
 git-tree-sha1 = "0c45878dcfdcfa8480052b6ab162cdd138781742"

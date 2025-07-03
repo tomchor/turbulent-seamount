@@ -306,7 +306,7 @@ b_sponge = Relaxation(rate=params.sponge_damping_rate, mask=mask_top, target=bâˆ
 #+++ Model and ICs
 @info "Creating model"
 model = NonhydrostaticModel(grid = grid, timestepper = :RungeKutta3,
-                            advection = WENO(grid=grid_base, order=5),
+                            advection = WENO(order=5),
                             buoyancy = BuoyancyTracer(),
                             coriolis = FPlane(params.f_0),
                             tracers = :b,

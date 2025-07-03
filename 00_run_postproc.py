@@ -39,4 +39,6 @@ for config in configs:
     print()
 
 print(Back.LIGHTWHITE_EX + Fore.BLUE + "\nStarting 01 post-processing of results using `configs`", Style.RESET_ALL, configs)
-exec(open("01_energy_transfers.py").read())
+exec(open("01_create_aaaa.py").read())
+exec(open("02_create_xyza_xyia.py").read())
+exec(open("03_turbulent_quantities.py").read())

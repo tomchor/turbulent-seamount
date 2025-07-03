@@ -11,7 +11,7 @@ from aux01_physfuncs import (get_turbulent_Reynolds_stress_tensor, get_shear_pro
 from colorama import Fore, Back, Style
 from dask.diagnostics import ProgressBar
 xr.set_options(display_width=140, display_max_rows=30)
-π = 2*np.pi
+π = np.pi
 
 print("Starting turbulent quantities script")
 

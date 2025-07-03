@@ -414,5 +414,6 @@ run!(simulation, pickup=write_ckpt)
 #---
 
 #+++ Plot video
-include("$rundir/plot_video.jl")
+include("$rundir/plot_2d_animation.jl")
+include("$rundir/plot_3d_animation.jl")
 #---

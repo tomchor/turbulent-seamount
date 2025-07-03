@@ -12,7 +12,7 @@ from aux01_physfuncs import (temporal_average, temporal_average_xyza,
 from colorama import Fore, Back, Style
 from dask.diagnostics import ProgressBar
 xr.set_options(display_width=140, display_max_rows=30)
-π = 2*np.pi
+π = np.pi
 
 print("Starting energy transfer script")
 

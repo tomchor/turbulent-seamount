@@ -10,7 +10,7 @@ from aux02_plotting import RdBu_r, solar, balance, inferno
 from matplotlib import pyplot as plt
 from matplotlib.colors import LogNorm
 xr.set_options(display_width=140, display_max_rows=30)
-π = 2*np.pi
+π = np.pi
 
 #+++ Define directory and simulation name
 if basename(__file__) != "00_run_postproc.py":

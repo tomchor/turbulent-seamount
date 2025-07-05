@@ -378,6 +378,78 @@ def collect_datasets(simnames_filtered, slice_name="xyii", path="./simulations/d
     return dsout
 #---
 
+#+++ Dataset utility functions
+def integrate(da, dV=None, dims=("x", "y", "z")):
+    """
+    Integrate a data array over specified dimensions using volume elements.
+
+    Parameters
+    ----------
+    da : xarray.DataArray
+        The data array to integrate
+    dV : xarray.DataArray, optional
+        Volume elements for integration. If None, will be constructed from grid spacing.
+    dims : tuple of str, optional
+        Dimensions to integrate over. Default ("x", "y", "z")
+
+    Returns
+    -------
+    xarray.DataArray
+        The integrated result
+    """
+    if dV is None:
+        # This function assumes the dataset has the required grid spacing variables
+        # It should be called in a context where these are available
+        raise ValueError("dV must be provided when calling integrate() outside of a dataset context")
+    return (da * dV).pnsum(dims)
+
+def drop_faces(ds, drop_coords=True):
+    """
+    Drop all variables that have face coordinates (x_faa, y_afa, z_aaf)
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+        Dataset to filter
+    drop_coords : bool, optional
+        Whether to also drop coordinates with face dimensions. Default True.
+
+    Returns
+    -------
+    xarray.Dataset
+        Dataset with face variables removed
+    """
+    face_dims = ["x_faa", "y_afa", "z_aaf"]
+
+    # Get variables to drop
+    vars_to_drop = []
+    for var in ds.variables:
+        if any(dim in ds[var].dims for dim in face_dims):
+            if var in ds.coords and not drop_coords:
+                continue
+            vars_to_drop.append(var)
+
+    return ds.drop_vars(vars_to_drop)
+
+def mask_immersed(da, bathymetric_mask):
+    """
+    Mask data array using bathymetric mask.
+
+    Parameters
+    ----------
+    da : xarray.DataArray
+        Data array to mask
+    bathymetric_mask : xarray.DataArray
+        Bathymetric mask (True where masked, False where valid)
+
+    Returns
+    -------
+    xarray.DataArray
+        Masked data array
+    """
+    return da.where(np.logical_not(bathymetric_mask))
+#---
+
 #+++ Downsample / chunk
 def down_chunk(ds, max_time=np.inf, **kwargs):
     ds = ds.sel(time=slice(0, max_time))

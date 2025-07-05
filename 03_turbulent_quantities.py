@@ -5,11 +5,11 @@ import numpy as np
 import xarray as xr
 from cycler import cycler
 import pynanigans as pn
-from aux00_utils import aggregate_parameters, normalize_unicode_names_in_dataset
+from aux00_utils import aggregate_parameters, normalize_unicode_names_in_dataset, integrate, drop_faces, mask_immersed
 from aux01_physfuncs import (get_turbulent_Reynolds_stress_tensor, get_shear_production_rates,
                              get_buoyancy_production_rates, get_turbulent_kinetic_energy)
 from colorama import Fore, Back, Style
-from dask.diagnostics import ProgressBar
+from dask.diagnostics.progress import ProgressBar
 xr.set_options(display_width=140, display_max_rows=30)
 π = np.pi
 
@@ -66,48 +66,6 @@ for j, config in enumerate(runs):
     xyza["ΔxΔyΔz"] = xyza["Δx_caa"] * xyza["Δy_aca"] * xyza["Δz_aac"]
     xyza["ΔxΔy"] = xyza["Δx_caa"] * xyza["Δy_aca"]
     xyza["ΔyΔz"] = xyza["Δy_aca"] * xyza["Δz_aac"]
-
-    #+++ Aux functions
-    def integrate(da, dV = None, dims=("x", "y", "z")):
-        if dV is None:
-            if dims == ("x", "y", "z"):
-                dV = xyza["ΔxΔyΔz"]
-            elif dims == ("x", "y"):
-                dV =  xyza["ΔxΔy"]
-            elif dims == ("y", "z"):
-                dV =  xyza["ΔyΔz"]
-        return (da * dV).pnsum(dims)
-
-    def drop_faces(ds, drop_coords=True):
-        """
-        Drop all variables that have face coordinates (x_faa, y_afa, z_aaf)
-
-        Parameters
-        ----------
-        ds : xarray.Dataset
-            Dataset to filter
-        drop_coords : bool, optional
-            Whether to also drop coordinates with face dimensions. Default True.
-
-        Returns
-        -------
-        xarray.Dataset
-            Dataset with face variables removed
-        """
-        face_dims = ["x_faa", "y_afa", "z_aaf"]
-
-        # Get variables to drop
-        vars_to_drop = []
-        for var in ds.variables:
-            if any(dim in ds[var].dims for dim in face_dims):
-                if var in ds.coords and not drop_coords:
-                    continue
-                vars_to_drop.append(var)
-
-        return ds.drop_vars(vars_to_drop)
-
-    def mask_immersed(da, bathymetric_mask=xyza.peripheral_nodes_ccc):
-        return da.where(np.logical_not(bathymetric_mask))
     #---
 
     xyza = drop_faces(xyza, drop_coords=True).where(xyza.distance_condition_10meters, other=np.nan)
@@ -116,7 +74,7 @@ for j, config in enumerate(runs):
         xyza[int_buf] = integrate(xyza[var], dV=xyza.ΔxΔyΔz)
 
     xyza["average_turbulence_mask"] = xyza["ε̄ₖ"] > 1e-11
-    xyza["1"] = mask_immersed(xr.ones_like(xyza["ε̄ₖ"]))
+    xyza["1"] = mask_immersed(xr.ones_like(xyza["ε̄ₖ"]), xyza.peripheral_nodes_ccc)
     for var in ["ε̄ₖ", "1"]:
         int_turb = f"∭ᵋ{var}dxdy"
         xyza[int_turb] = integrate(xyza[var], dV=xyza.ΔxΔyΔz.where(xyza.average_turbulence_mask))
@@ -130,7 +88,7 @@ for j, config in enumerate(runs):
     bulk["∭⁵⟨w′b′⟩ₜdV"] = xyza["∭⁵⟨w′b′⟩ₜdV"]
     bulk["∭⁵SPRdxdy"]   = xyza["∭⁵SPRdV"]
 
-    bulk["V∞∬⟨Ek′⟩ₜdxdz"] = xyza.attrs["V∞"] * integrate(xyza["⟨Ek′⟩ₜ"].pnsel(y=np.inf, method="nearest"), dV=xyza.Δx_caa*xyza.Δz_aac, dims=["x", "z"])
+    bulk["V∞∬⟨Ek′⟩ₜdxdz"] = xyza.attrs["V∞"] * integrate(xyza["⟨Ek′⟩ₜ"], dV=xyza.Δx_caa*xyza.Δz_aac, dims=["x", "z"]).pnsel(y=np.inf, method="nearest")
 
     bulk["∭ᵋε̄ₖdxdy"] = xyza["∭ᵋε̄ₖdxdy"]
     bulk["⟨ε̄ₖ⟩ᵋ"]    = xyza["∭ᵋε̄ₖdxdy"] / xyza["∭ᵋ1dxdy"]
@@ -161,34 +119,10 @@ for j, config in enumerate(runs):
     bulk["N∞³L²"] = np.sqrt(bulk.N2_inf)**3 * bulk.L**2
     #---
 
-    #+++ Save Datasets
-    #+++ Drop unnecessary vars to speed up calculations
-    xyza = xyza.drop_vars(["ūⱼūᵢ", "⟨uⱼuᵢ⟩ₜ", "⟨u′ⱼu′ᵢ⟩ₜ"])
-    #---
-
-    #+++ Save updated xyza with turbulent quantities
-    outname = f"data_post/xyza_{simname}_turbulent.nc"
-    with ProgressBar(minimum=5, dt=5):
-        print(f"Saving turbulent results to {outname}...")
-        xyza.to_netcdf(outname)
-        print("Done!\n")
-    xyza.close()
-    #---
-
-    #+++ Save updated xyia with turbulent quantities
-    outname = f"data_post/xyia_{simname}_turbulent.nc"
-    with ProgressBar(minimum=5, dt=5):
-        print(f"Saving turbulent results to {outname}...")
-        xyia.to_netcdf(outname)
-        print("Done!\n")
-    xyia.close()
-    #---
-
-    #+++ Save bulkstats
-    outname = f"data_post/bulkstats_{simname}.nc"
+    #+++ Save turbstats
+    outname = f"data_post/turbstats_{simname}.nc"
     with ProgressBar(minimum=2, dt=5):
         print(f"Saving bulk results to {outname}...")
         bulk.to_netcdf(outname)
         print("Done!\n")
-    #---
     #---

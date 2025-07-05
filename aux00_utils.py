@@ -279,8 +279,8 @@ def collect_datasets(simnames_filtered, slice_name="xyii", path="./simulations/d
         #---
 
         #+++ Deal with volume-integrated output
-        elif slice_name == "bulkstats":
-            fname = f"bulkstats_{simname}.nc"
+        elif slice_name == "turbstats":
+            fname = f"turbstats_{simname}.nc"
             print(f"\nOpening {fname}")
             ds = xr.open_dataset(f"data_post/{fname}", chunks=dict(time="auto", L="auto"))
         #---
@@ -362,7 +362,7 @@ def collect_datasets(simnames_filtered, slice_name="xyii", path="./simulations/d
             assert np.allclose(dslist[0].time.values, ds.time.values), "Time coordinates don't match in all datasets"
 
     print("Starting to concatenate everything into one dataset")
-    if slice_name != "tafields" and slice_name != "bulkstats":
+    if slice_name != "tafields" and slice_name != "turbstats":
         for i in range(len(dslist)):
             dslist[i]["time"] = time_values # Prevent double time, e.g. [0, 0.2, 0.2, 0.4, 0.4, 0.6, 0.8] etc. (not sure why this is needed)
     dsout = xr.combine_by_coords(dslist, combine_attrs="drop_conflicts")

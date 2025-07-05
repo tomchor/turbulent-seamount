@@ -247,8 +247,8 @@ for j, config in enumerate(runs):
         xyza.close()
     #---
 
-    #+++ Save bulkstats
-    outname = f"data_post/bulkstats_{simname}.nc"
+    #+++ Save turbstats
+    outname = f"data_post/turbstats_{simname}.nc"
     with ProgressBar(minimum=2, dt=5):
         print(f"Saving bulk results to {outname}...")
         bulk.to_netcdf(outname)

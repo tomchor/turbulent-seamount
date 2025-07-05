@@ -13,6 +13,7 @@ using Oceananigans
 using Oceananigans.Units
 using Oceananigans: on_architecture
 using Oceananigans.TurbulenceClosures: Smagorinsky, DynamicCoefficient, LagrangianAveraging, DynamicSmagorinsky
+using Oceananigans.OutputWriters: write_output!
 
 #+++ Parse inital arguments
 "Returns a dictionary of command line arguments."
@@ -412,6 +413,13 @@ tock()
 show_gpu_status()
 @info "Starting simulation"
 run!(simulation, pickup=write_ckpt)
+#---
+
+#+++ Write final checkpoint to disk if checkpointer exists
+if write_ckpt
+    @info "Writing final checkpoint to disk"
+    write_output!(checkpointer, model)
+end
 #---
 
 #+++ Plot video

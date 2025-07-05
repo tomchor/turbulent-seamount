@@ -123,10 +123,16 @@ outputs_vol_integrals = Dict{Symbol, Any}(:∭⁵εₖdV  => Integral(εₖ; con
                                           :∭⁵εₚdV  => Integral(εₚ; condition = dc5),
                                           :∭¹⁰εₖdV => Integral(εₖ; condition = dc10),
                                           :∭¹⁰εₚdV => Integral(εₚ; condition = dc10),
+                                          :∭²⁰εₖdV => Integral(εₖ; condition = dc20),
+                                          :∭²⁰εₚdV => Integral(εₚ; condition = dc20),
                                           )
 
-outputs_x_integrals = Dict{Symbol, Any}(:∫εₖdx  => Integral(εₖ; dims=1),
-                                        :∫εₚdx  => Integral(εₚ; dims=1),
+outputs_x_integrals = Dict{Symbol, Any}(:∫⁵εₖdx   => Integral(εₖ; condition = dc5, dims=1),
+                                        :∫⁵εₚdx   => Integral(εₚ; condition = dc5, dims=1),
+                                        :∫¹⁰εₖdx  => Integral(εₖ; condition = dc10, dims=1),
+                                        :∫¹⁰εₚdx  => Integral(εₚ; condition = dc10, dims=1),
+                                        :∫²⁰εₖdx  => Integral(εₖ; condition = dc20, dims=1),
+                                        :∫²⁰εₚdx  => Integral(εₚ; condition = dc20, dims=1),
                                         )
 
 dcf5  = Field(KernelFunctionOperation{Center, Center, Center}(dc5,  grid, nothing)) |> compute!
@@ -163,7 +169,7 @@ function construct_outputs(simulation;
     grid = model.grid
 
     #+++ Preamble and common keyword arguments
-    k_half = ceil(Int, params.H / 2params.Δz_min) # Approximately half the seamount height
+    k_xy_slice = ceil(Int, params.H / 3params.Δz_min) # Approximately 1/3 the seamount height
     kwargs = (overwrite_existing = overwrite_existing,
               deflatelevel = 5,
               global_attributes = params)
@@ -190,7 +196,7 @@ function construct_outputs(simulation;
     #+++ xyii SNAPSHOTS
     if write_xyii
         @info "Setting up xyii writer"
-        indices = (:, :, k_half)
+        indices = (:, :, k_xy_slice)
         simulation.output_writers[:nc_xyii] = @CUDAstats NetCDFWriter(model, outputs_full;
                                                                       filename = "$rundir/data/xyii.$(simname).nc",
                                                                       schedule = TimeInterval(interval_2d),
@@ -254,7 +260,7 @@ function construct_outputs(simulation;
     if write_xyia
         @info "Setting up xyia writer"
         outputs_xyia = merge(outputs_full, outputs_vol_integrals)
-        indices = (:, :, k_half)
+        indices = (:, :, k_xy_slice)
         simulation.output_writers[:nc_xyia] = @CUDAstats NetCDFWriter(model, outputs_xyia;
                                                                       filename = "$rundir/data/xyia.$(simname).nc",
                                                                       schedule = AveragedTimeInterval(interval_time_avg, stride=10),

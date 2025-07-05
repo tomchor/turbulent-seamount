@@ -35,9 +35,9 @@ turb = turb.reindex(Ro_h = list(reversed(turb.Ro_h)))
 
 #+++ Define new variables
 #+++ Condense buffers
-distances = [5, 10]
-turb = condense(turb, ["∭⁵ε̄ₚdV", "∭¹⁰ε̄ₚdV",], "∭ᵇε̄ₚdV", dimname="buffer", indices=distances)
-turb = condense(turb, ["∭⁵ε̄ₖdV", "∭¹⁰ε̄ₖdV",], "∭ᵇε̄ₖdV", dimname="buffer", indices=distances)
+distances = [5, 10, 20]
+turb = condense(turb, ["∭⁵ε̄ₚdV", "∭¹⁰ε̄ₚdV", "∭²⁰ε̄ₚdV"], "∭ᵇε̄ₚdV", dimname="buffer", indices=distances)
+turb = condense(turb, ["∭⁵ε̄ₖdV", "∭¹⁰ε̄ₖdV", "∭²⁰ε̄ₖdV"], "∭ᵇε̄ₖdV", dimname="buffer", indices=distances)
 #---
 
 turb["γ"] = turb["∭ᵇε̄ₚdV"] / (turb["∭ᵇε̄ₚdV"] + turb["∭ᵇε̄ₖdV"])
@@ -85,8 +85,14 @@ figs.append(plt.gcf())
 #turb.sel(dz=0, method="nearest").plot.scatter(x="Slope_Bu", y="ℰₚ", hue="L", col="buffer", row="closure", xscale="log", yscale="log", cmap="bwr")
 #figs.append(plt.gcf())
 
-#turb.sel(buffer=5).plot.scatter(x="Slope_Bu", y="ℰₚ", hue="L", col="dz", row="closure", xscale="log", yscale="log", cmap="bwr")
-#figs.append(plt.gcf())
+turb.sel(buffer=5).plot.scatter(x="Slope_Bu", y="ℰₚ", hue="L", col="dz", row="closure", xscale="log", yscale="log", cmap="bwr")
+figs.append(plt.gcf())
+
+turb.sel(buffer=5).plot.scatter(x="Slope_Bu", y="ℰₖ", hue="L", col="dz", row="closure", xscale="log", yscale="log", cmap="bwr")
+figs.append(plt.gcf())
+
+turb.sel(dz=2).plot.scatter(x="Slope_Bu", y="ℰₖ", hue="L", col="buffer", row="closure", xscale="log", yscale="log", cmap="bwr")
+figs.append(plt.gcf())
 
 for fig in figs:
     for ax in fig.axes:

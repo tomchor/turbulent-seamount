@@ -30,13 +30,14 @@ aaaa = merge_datasets(runs, base_name=f"aaaa_{simname_base}", verbose=True, add_
 turb = merge_datasets(runs, base_name=f"turbstats_{simname_base}", verbose=True, add_min_spacings=False,
                       drop_vars=["Δx_min", "Δy_min", "Δz_min", "y_aca",])
 
+turb = xr.merge([aaaa, turb], compat="override")
 turb = turb.reindex(Ro_h = list(reversed(turb.Ro_h)))
 
 #+++ Define new variables
 #+++ Condense buffers
-distances = [5, 10, 20]
-turb = condense(turb, ["∭⁵ε̄ₚdV", "∭¹⁰ε̄ₚdV", "∭²⁰ε̄ₚdV", ], "∭ᵇε̄ₚdV", dimname="buffer", indices=distances)
-turb = condense(turb, ["∭⁵ε̄ₖdV", "∭¹⁰ε̄ₖdV", "∭²⁰ε̄ₖdV", ], "∭ᵇε̄ₖdV", dimname="buffer", indices=distances)
+distances = [5, 10]
+turb = condense(turb, ["∭⁵ε̄ₚdV", "∭¹⁰ε̄ₚdV",], "∭ᵇε̄ₚdV", dimname="buffer", indices=distances)
+turb = condense(turb, ["∭⁵ε̄ₖdV", "∭¹⁰ε̄ₖdV",], "∭ᵇε̄ₖdV", dimname="buffer", indices=distances)
 #---
 
 turb["γ"] = turb["∭ᵇε̄ₚdV"] / (turb["∭ᵇε̄ₚdV"] + turb["∭ᵇε̄ₖdV"])
@@ -44,7 +45,7 @@ turb["γ"] = turb["∭ᵇε̄ₚdV"] / (turb["∭ᵇε̄ₚdV"] + turb["∭ᵇε
 turb["RoFr"] = turb.Ro_h * turb.Fr_h
 
 turb["𝒦ℰ"] = turb["∭⁵⟨Ek′⟩ₜdV"]
-turb["𝒫"] = turb["∬⁵Πdxdy"]
+turb["𝒫"] = turb["∭⁵SPRdxdy"].sum("j")
 turb["ℬ"] = turb["∭⁵⟨w′b′⟩ₜdV"]
 
 turb["ℰₖ"] = turb["∭ᵇε̄ₖdV"] / (turb.attrs["V∞"]**3 * turb.FWHM * turb.H)

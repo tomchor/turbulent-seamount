@@ -163,7 +163,32 @@ def condense_reynolds_stress_tensor(ds, indices=[1, 2, 3]):
 #---
 
 #+++ Merge datasets into one
-def merge_datasets(runs, base_name = "seamount", dirpath="data_post", add_min_spacings=True, add_simulation_info=True, verbose=False):
+def merge_datasets(runs, base_name = "seamount", dirpath="data_post", add_min_spacings=False, add_simulation_info=True, verbose=False, drop_vars=None):
+    """
+    Merge multiple datasets into one.
+
+    Parameters
+    ----------
+    runs : cycler.Cycler
+        Parameter space to iterate over
+    base_name : str, optional
+        Base name for simulation files. Default "seamount"
+    dirpath : str, optional
+        Directory path containing the datasets. Default "data_post"
+    add_min_spacings : bool, optional
+        Whether to add minimum spacing variables. Default False
+    add_simulation_info : bool, optional
+        Whether to add simulation information variables. Default True
+    verbose : bool, optional
+        Whether to print verbose output. Default False
+    drop_vars : list of str, optional
+        List of variable names to drop from each dataset before merging. Default None
+
+    Returns
+    -------
+    xarray.Dataset
+        Merged dataset
+    """
     simnames_filtered = list(map(lambda run: form_run_names(base_name, run, sep="_", prefix=""), runs))
     dslist = []
     for sim_number, simname in enumerate(simnames_filtered):
@@ -171,6 +196,15 @@ def merge_datasets(runs, base_name = "seamount", dirpath="data_post", add_min_sp
         fname = f"{simname}.nc"
         if verbose: print(f"\nOpening {fname}")
         ds = xr.open_dataset(f"{dirpath}/{fname}", chunks=dict(time="auto", L="auto"))
+        #---
+
+        #+++ Drop specified variables if requested
+        if drop_vars is not None:
+            # Only drop variables that exist in the dataset
+            vars_to_drop = [var for var in drop_vars if var in ds.variables]
+            if vars_to_drop:
+                if verbose: print(f"Dropping variables: {vars_to_drop}")
+                ds = ds.drop_vars(vars_to_drop)
         #---
 
         #+++ Create auxiliary variables and organize them into a Dataset

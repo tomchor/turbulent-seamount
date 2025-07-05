@@ -123,4 +123,4 @@ for j, config in enumerate(runs):
             xyza.to_netcdf(outname)
             print("Done!\n")
         xyza.close()
-    #--- 
+    #---

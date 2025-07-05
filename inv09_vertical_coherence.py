@@ -75,7 +75,7 @@ fig, axes = plt.subplots(nrows=3, ncols=len(xyzi_list), figsize=(12, 9),
                          sharex=True, sharey=True, squeeze=True)
 for xyzi, col in zip(xyzi_list, axes.T):
     print("Plotting column")
-    xyzi = xyzi.sel(**sel) 
+    xyzi = xyzi.sel(**sel)
 
     print("  Plotting w")
     mask_immersed(xyzi.w, xyzi.peripheral_nodes_ccc).pnplot(ax=col[0], **(common_opts | w_opts))

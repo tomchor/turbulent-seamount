@@ -52,16 +52,20 @@ aaaa["𝒦⁵"].attrs = dict(long_name=r"Norm buoyancy diffusivity $\mathcal{K}$
 
 figs = []
 
-aaaa.sel(dz=0, method="nearest").plot.scatter(x="Slope_Bu", y="ℰₖ", hue="L", col="buffer", row="closure", xscale="log", yscale="log", cmap="bwr")
-figs.append(plt.gcf())
+#aaaa.sel(dz=0, method="nearest").plot.scatter(x="Slope_Bu", y="ℰₖ", hue="L", col="buffer", row="closure", xscale="log", yscale="log", cmap="bwr")
+#figs.append(plt.gcf())
 
-aaaa.sel(dz=0, method="nearest").plot.scatter(x="Slope_Bu", y="ℰₚ", hue="L", col="buffer", row="closure", xscale="log", yscale="log", cmap="bwr")
-figs.append(plt.gcf())
+#aaaa.sel(dz=0, method="nearest").plot.scatter(x="Slope_Bu", y="ℰₚ", hue="L", col="buffer", row="closure", xscale="log", yscale="log", cmap="bwr")
+#figs.append(plt.gcf())
 
-aaaa.sel(buffer=5).plot.scatter(x="Slope_Bu", y="ℰₚ", hue="L", col="dz", row="closure", xscale="log", yscale="log", cmap="bwr")
-figs.append(plt.gcf())
+#aaaa.sel(buffer=10).plot.scatter(x="Slope_Bu", y="ℰₖ", hue="L", col="dz", row="closure", xscale="log", yscale="log", cmap="bwr")
+#figs.append(plt.gcf())
 
-aaaa.sel(buffer=5).plot.scatter(x="Slope_Bu", y="ℰₖ", hue="L", col="dz", row="closure", xscale="log", yscale="log", cmap="bwr")
+#aaaa.sel(buffer=10).plot.scatter(x="Slope_Bu", y="ℰₚ", hue="L", col="dz", row="closure", xscale="log", yscale="log", cmap="bwr")
+#figs.append(plt.gcf())
+
+low_Slope_Bu = aaaa.where(aaaa.Slope_Bu==0.16, drop=True).squeeze()
+low_Slope_Bu.plot.scatter(y="ℰₖ", col="buffer", x="dz", hue="L", xscale="log", yscale="log", cmap="bwr")
 figs.append(plt.gcf())
 
 for fig in figs:

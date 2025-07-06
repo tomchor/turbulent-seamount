@@ -21,7 +21,7 @@ if basename(__file__) != "00_run_postproc.py":
     Froude_numbers = cycler(Fr_h = [1.25])
     L              = cycler(L = [0, 300])
 
-    resolutions    = cycler(dz = [2,])
+    resolutions    = cycler(dz = [4,])
     closures       = cycler(closure = ["DSM"])
 
     paramspace = Rossby_numbers * Froude_numbers * L
@@ -68,22 +68,24 @@ v_opts = dict(vmin=-1.5*V_inf, vmax=+1.5*V_inf, cmap=RdBu_r)
 uw_opts = dict(vmin=-3e-3, vmax=+3e-3, cmap=RdBu_r)
 shear_opts = dict(vmin=0, vmax=0.03, cmap=solar)
 εp_opts = dict(norm=LogNorm(clip=True), vmin=1e-8, vmax=1e-6, cmap=inferno)
-εk_opts = dict(norm=LogNorm(clip=True), vmin=1e-5, vmax=1e-3, cmap=inferno)
+εk_opts = dict(norm=LogNorm(clip=True), vmin=1e-6, vmax=1e-4, cmap=inferno)
 
-fig, axes = plt.subplots(nrows=3, ncols=len(xyzi_list), figsize=(12, 9),
-                         sharex=True, sharey=True, squeeze=True)
-for xyzi, col in zip(xyzi_list, axes.T):
-    print("Plotting column")
-    xyzi = xyzi.sel(**sel)
+distances = {"⁵":5, "¹⁰":10, "²⁰":20}
+for distance, distance_value in distances.items():
+    fig, axes = plt.subplots(nrows=2, ncols=len(xyzi_list), figsize=(12, 9),
+                             sharex=True, sharey=True, squeeze=True)
+    for xyzi, col in zip(xyzi_list, axes.T):
+        print(f"Plotting column for buffer {distance_value} m")
+        xyzi = xyzi.sel(**sel)
 
-    print("  Plotting w")
-    mask_immersed(xyzi.w, xyzi.peripheral_nodes_ccc).pnplot(ax=col[0], **(common_opts | w_opts))
+        print("  Plotting εₖ")
+        xyzi[f"∫{distance}εₖdx"].pnplot(ax=col[0], **(common_opts | εk_opts))
 
-    print("  Plotting εₖ")
-    xyzi["∫εₖdx"].pnplot(ax=col[1], **(common_opts | εk_opts))
+        print("  Plotting εₚ")
+        xyzi[f"∫{distance}εₚdx"].pnplot(ax=col[1], **(common_opts | εp_opts))
 
-    print("  Plotting εₚ")
-    xyzi["∫εₚdx"].pnplot(ax=col[2], **(common_opts | εp_opts))
+    plt.savefig(f"figures/yz_snapshots_{distance_value}m_dz={config["dz"]}.png")
+    plt.close()
 #---
 
 for ax in axes.flatten():

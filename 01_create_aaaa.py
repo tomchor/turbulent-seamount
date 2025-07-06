@@ -5,7 +5,7 @@ import numpy as np
 import xarray as xr
 from cycler import cycler
 import pynanigans as pn
-from aux00_utils import (open_simulation, aggregate_parameters)
+from aux00_utils import open_simulation, aggregate_parameters, gather_attributes_as_variables
 from aux01_physfuncs import temporal_average
 from dask.diagnostics import ProgressBar
 xr.set_options(display_width=140, display_max_rows=30)
@@ -61,6 +61,7 @@ for j, config in enumerate(runs):
 
     #+++ Save aaaa
     outname = f"data_post/aaaa_{simname}.nc"
+    aaaa = gather_attributes_as_variables(aaaa)
     with ProgressBar(minimum=5, dt=5):
         print(f"Saving results to {outname}...")
         aaaa.to_netcdf(outname)

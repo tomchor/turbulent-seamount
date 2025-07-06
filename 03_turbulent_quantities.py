@@ -5,7 +5,8 @@ import numpy as np
 import xarray as xr
 from cycler import cycler
 import pynanigans as pn
-from aux00_utils import aggregate_parameters, normalize_unicode_names_in_dataset, integrate, drop_faces, mask_immersed
+from aux00_utils import (aggregate_parameters, normalize_unicode_names_in_dataset, integrate,
+                         drop_faces, mask_immersed, gather_attributes_as_variables)
 from aux01_physfuncs import (get_turbulent_Reynolds_stress_tensor, get_shear_production_rates,
                              get_buoyancy_production_rates, get_turbulent_kinetic_energy)
 from colorama import Fore, Back, Style
@@ -95,28 +96,7 @@ for j, config in enumerate(runs):
     bulk["Loᵋ"]      = 2*π * np.sqrt(bulk["⟨ε̄ₖ⟩ᵋ"] / bulk.N2_inf**(3/2))
     bulk["Δz̃"]       = bulk.Δz_min / bulk["Loᵋ"]
 
-    bulk["Ro_h"]     = bulk.Ro_h
-    bulk["Fr_h"]     = bulk.Fr_h
-    bulk["Slope_Bu"] = bulk.Slope_Bu
-    bulk["α"]        = bulk.α
-
-    bulk["Bu_h"] = bulk.Bu_h
-    bulk["Γ"]    = bulk.Γ
-    bulk["c_dz"] = bulk.c_dz
-
-    bulk["f₀"]  = bulk.attrs["f₀"]
-    bulk["N²∞"] = bulk.attrs["N²∞"]
-    bulk["V∞"]  = bulk.attrs["V∞"]
-    bulk["L"]   = bulk.L
-
-    bulk["Δx_min"] = xyza["Δx_caa"].min()
-    bulk["Δy_min"] = xyza["Δy_aca"].min()
-    bulk["Δz_min"] = xyza["Δz_aac"].min()
-
-    bulk["RoFr"]  = bulk.Ro_h * bulk.Fr_h
-    bulk["V∞³÷L"] = bulk.attrs["V∞"]**3 / bulk.L
-    bulk["V∞²N∞"] = bulk.attrs["V∞"]**2 * np.sqrt(bulk.N2_inf)
-    bulk["N∞³L²"] = np.sqrt(bulk.N2_inf)**3 * bulk.L**2
+    bulk = gather_attributes_as_variables(bulk, ds_ref=xyza)
     #---
 
     #+++ Save turbstats

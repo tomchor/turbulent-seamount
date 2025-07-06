@@ -457,3 +457,68 @@ def down_chunk(ds, max_time=np.inf, **kwargs):
     ds = ds.pnchunk(maxsize_4d=1000**2, round_func=np.ceil)
     return ds
 #---
+
+#+++ Transform attributes to variables
+def gather_attributes_as_variables(ds, ds_ref=None, include_derived=True):
+    """
+    Transform dataset attributes to variables and optionally create derived quantities.
+
+    This function converts common attributes like Ro_h, Fr_h, etc. to variables
+    in the dataset, and optionally creates derived quantities like RoFr, V∞³÷L, etc.
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+        The dataset to transform
+    xyza : xarray.Dataset, optional
+        Reference dataset containing grid spacing variables (Δx_caa, Δy_aca, Δz_aac)
+        for calculating minimum resolutions. If None, will use ds itself.
+    include_derived : bool, optional
+        Whether to include derived quantities. Default True.
+
+    Returns
+    -------
+    xarray.Dataset
+        Dataset with attributes converted to variables and optional derived quantities
+    """
+    # Use ds as reference if xyza not provided
+    if ds_ref is None:
+        ds_ref = ds
+
+    #+++ Convert existing variables to new names and attributes to variables
+    for var in ["Ro_h", "Fr_h", "Slope_Bu", "α", "Bu_h", "Γ", "c_dz",
+                "f₀", "N²∞", "V∞", "L"]:
+        if var in ds.variables:
+            ds[var] = ds[var]
+        elif var in ds.attrs:
+            ds[var] = ds.attrs[var]
+    #---
+
+    #+++ Calculate minimum resolutions
+    if "Δx_caa" in ds_ref.variables:
+        ds["Δx_min"] = ds_ref["Δx_caa"].min()
+    if "Δy_aca" in ds_ref.variables:
+        ds["Δy_min"] = ds_ref["Δy_aca"].min()
+    if "Δz_aac" in ds_ref.variables:
+        ds["Δz_min"] = ds_ref["Δz_aac"].min()
+    #---
+
+    #+++ Create derived quantities if requested
+    if include_derived:
+        # Basic derived quantities
+        if "Ro_h" in ds.variables and "Fr_h" in ds.variables:
+            ds["RoFr"] = ds.Ro_h * ds.Fr_h
+
+        # Velocity and stratification derived quantities
+        if "V∞" in ds.variables and "L" in ds.variables:
+            ds["V∞³÷L"] = ds["V∞"]**3 / ds.L
+
+        if "V∞" in ds.variables and "N²∞" in ds.variables:
+            ds["V∞²N∞"] = ds["V∞"]**2 * np.sqrt(ds["N²∞"])
+
+        if "N²∞" in ds.variables and "L" in ds.variables:
+            ds["N∞³L²"] = np.sqrt(ds["N²∞"])**3 * ds.L**2
+    #---
+
+    return ds
+#---

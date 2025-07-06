@@ -5,7 +5,7 @@ import numpy as np
 import xarray as xr
 from cycler import cycler
 import pynanigans as pn
-from aux00_utils import (open_simulation, adjust_times, aggregate_parameters,
+from aux00_utils import (open_simulation, adjust_times, aggregate_parameters, gather_attributes_as_variables,
                          condense_velocities, condense_velocity_gradient_tensor, condense_reynolds_stress_tensor)
 from aux01_physfuncs import temporal_average
 from colorama import Fore, Back, Style
@@ -108,6 +108,7 @@ for j, config in enumerate(runs):
 
     #+++ Save xyia
     outname = f"data_post/xyia_{simname}.nc"
+    xyia = gather_attributes_as_variables(xyia)
     with ProgressBar(minimum=5, dt=5):
         print(f"Saving results to {outname}...")
         xyia.to_netcdf(outname)
@@ -118,6 +119,7 @@ for j, config in enumerate(runs):
     #+++ Save xyza
     if write_xyza:
         outname = f"data_post/xyza_{simname}.nc"
+        xyza = gather_attributes_as_variables(xyza)
         with ProgressBar(minimum=5, dt=5):
             print(f"Saving results to {outname}...")
             xyza.to_netcdf(outname)

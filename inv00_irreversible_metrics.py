@@ -13,11 +13,11 @@ from aux02_plotting import letterize, create_mc, mscatter
 path = "simulations/data/"
 simname_base = "seamount"
 
-Rossby_numbers = cycler(Ro_h = [0.2, 1.25])
-Froude_numbers = cycler(Fr_h = [0.2, 1.25])
+Rossby_numbers = cycler(Ro_h = [0.2])
+Froude_numbers = cycler(Fr_h = [1.25])
 L              = cycler(L = [0, 300])
 
-resolutions    = cycler(dz = [2, 4, 8])
+resolutions    = cycler(dz = [2, 4, 8, 1])
 closures       = cycler(closure = [ "DSM",])
 
 paramspace = Rossby_numbers * Froude_numbers * L
@@ -63,6 +63,10 @@ figs = []
 
 #aaaa.sel(buffer=10).plot.scatter(x="Slope_Bu", y="ℰₚ", hue="L", col="dz", row="closure", xscale="log", yscale="log", cmap="bwr")
 #figs.append(plt.gcf())
+
+low_Slope_Bu = aaaa.where(aaaa.Slope_Bu==0.16, drop=True).squeeze()
+low_Slope_Bu.plot.scatter(y="ℰₚ", col="buffer", x="dz", hue="L", xscale="log", yscale="log", cmap="bwr")
+figs.append(plt.gcf())
 
 low_Slope_Bu = aaaa.where(aaaa.Slope_Bu==0.16, drop=True).squeeze()
 low_Slope_Bu.plot.scatter(y="ℰₖ", col="buffer", x="dz", hue="L", xscale="log", yscale="log", cmap="bwr")

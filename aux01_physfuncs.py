@@ -1,5 +1,6 @@
 import numpy as np
 import xarray as xr
+from aux00_utils import normalize_unicode_names_in_dataset
 π = np.pi
 
 
@@ -44,7 +45,7 @@ def coarsen(da, filter_size, dims=["x_caa", "y_aca"], kernel="gaussian",
 #---
 
 #+++ Calculate filtered PV
-def calculate_filtered_PV(ds, scale_meters = 5, condense_tensors=False, indices = [1,2,3], cleanup=False):
+def calculate_filtered_PV(ds, scale_meters = 5, condense_tensors=False, indices = [1,2,3], cleanup=False, normalize_unicode=True):
     from aux00_utils import condense
     if condense_tensors:
         ds = condense(ds, ["∂u∂x", "∂v∂x", "∂w∂x"], "∂₁uᵢ", dimname="i", indices=indices)
@@ -69,6 +70,9 @@ def calculate_filtered_PV(ds, scale_meters = 5, condense_tensors=False, indices 
 
     if cleanup:
         ds = ds.drop_vars(["∂ⱼũᵢ", "∂ⱼb̃", "q̃ᵢ",])
+
+    # Normalize Unicode names in one place
+    ds = normalize_unicode_names_in_dataset(ds, normalize_unicode)
     return ds
 #---
 
@@ -132,8 +136,8 @@ def get_relevant_attrs(ds):
     Get what are deemed relevant attrs from ds.attrs and return them
     as a dataset
     """
-    wantedkeys = ['Lx', 'Ly', 'Lz', 'N2_inf', 'z_0', 'interval', 
-                  'T_inertial', 'Nx', 'Ny', 'Nz', 'date', 'b_0', 
+    wantedkeys = ['Lx', 'Ly', 'Lz', 'N2_inf', 'z_0', 'interval',
+                  'T_inertial', 'Nx', 'Ny', 'Nz', 'date', 'b_0',
                   'Oceananigans', 'y_0', 'ν_eddy', 'f_0', 'LES',
                   'Ro_s', 'Fr_s', 'δ', 'Rz', 'Re_eddy', 'L', 'H']
     attrs = dict((k, v) for k,v in ds.attrs.items() if k in wantedkeys)
@@ -144,4 +148,79 @@ def get_relevant_attrs(ds):
 def seamount_curve(x, y, p):
     """ Calculates the seamount curve """
     return p.H * np.exp(-(x/p.L)**2 - (y/p.L)**2)
+#---
+
+#+++ Temporal averaging functions
+def temporal_average(ds, rename_dict=None, normalize_unicode=True):
+    """
+    Apply temporal averaging and rename variables. Both the overbar and the angles notation mean a time average.
+    That is, ū and ⟨u⟩ₜ are exactly the same.
+    """
+    if rename_dict is None:
+        rename_dict = {"uᵢ"      : "ūᵢ",
+                       "b"       : "b̄",
+                       "uⱼuᵢ"    : "⟨uⱼuᵢ⟩ₜ",
+                       "wb"      : "⟨wb⟩ₜ",
+                       "∂ⱼuᵢ"    : "∂ⱼūᵢ",
+                       "εₖ"      : "ε̄ₖ",
+                       "εₚ"      : "ε̄ₚ",
+                       "ν"       : "ν̄",
+                       "κ"       : "κ̄",
+                       "PV"      : "q̄",
+                       "Ri"      : "R̄i",
+                       "Ro"      : "R̄o",
+                       "ω_y"     : "ω̄_y",
+                       "∭⁵εₖdV"  : "∭⁵ε̄ₖdV",
+                       "∭⁵εₚdV"  : "∭⁵ε̄ₚdV",
+                       "∭¹⁰εₖdV" : "∭¹⁰ε̄ₖdV",
+                       "∭¹⁰εₚdV" : "∭¹⁰ε̄ₚdV",
+                       "∭²⁰εₖdV" : "∭²⁰ε̄ₖdV",
+                       "∭²⁰εₚdV" : "∭²⁰ε̄ₚdV",
+                       "∫εₖdx"    : "∫ε̄ₖdx",
+                       "∫εₚdx"    : "∫ε̄ₚdx",
+                       }
+
+    # Filter rename_dict to only include keys that exist in the dataset
+    filtered_rename_dict = {key: value for key, value in rename_dict.items() if key in ds.variables}
+    ds = ds.mean("time", keep_attrs=True).rename(filtered_rename_dict)
+
+    # Normalize Unicode names in one place
+    ds = normalize_unicode_names_in_dataset(ds, normalize_unicode)
+    return ds
+#---
+
+#+++ Turbulence calculations
+def get_turbulent_Reynolds_stress_tensor(ds, normalize_unicode=True):
+    """Calculate turbulent Reynolds stress tensor"""
+    ds["ūⱼūᵢ"]      = ds["ūᵢ"] * ds["ūᵢ"].rename(i="j")
+    ds["⟨u′ⱼu′ᵢ⟩ₜ"] = ds["⟨uⱼuᵢ⟩ₜ"] - ds["ūⱼūᵢ"]
+
+    # Normalize Unicode names in one place
+    ds = normalize_unicode_names_in_dataset(ds, normalize_unicode)
+    return ds
+
+def get_shear_production_rates(ds, normalize_unicode=True):
+    """Calculate shear production rates"""
+    ds["SPR"] = - (ds["⟨u′ⱼu′ᵢ⟩ₜ"] * ds["∂ⱼūᵢ"]).sum("i")
+
+    # Normalize Unicode names in one place
+    ds = normalize_unicode_names_in_dataset(ds, normalize_unicode)
+    return ds
+
+def get_buoyancy_production_rates(ds, normalize_unicode=True):
+    """Calculate buoyancy production rates"""
+    ds["w̄b̄"]      = ds["ūᵢ"].sel(i=3) * ds["b̄"]
+    ds["⟨w′b′⟩ₜ"] = ds["⟨wb⟩ₜ"] - ds["w̄b̄"]
+
+    # Normalize Unicode names in one place
+    ds = normalize_unicode_names_in_dataset(ds, normalize_unicode)
+    return ds
+
+def get_turbulent_kinetic_energy(ds, normalize_unicode=True):
+    """Calculate turbulent kinetic energy"""
+    ds["⟨Ek′⟩ₜ"] = (ds["⟨u′ⱼu′ᵢ⟩ₜ"].sel(i=1, j=1) + ds["⟨u′ⱼu′ᵢ⟩ₜ"].sel(i=2, j=2) + ds["⟨u′ⱼu′ᵢ⟩ₜ"].sel(i=3, j=3)) / 2
+
+    # Normalize Unicode names in one place
+    ds = normalize_unicode_names_in_dataset(ds, normalize_unicode)
+    return ds
 #---

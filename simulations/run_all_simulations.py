@@ -8,12 +8,12 @@ from aux00_utils import aggregate_parameters
 #+++ Define run options
 simname_base = "seamount"
 
-Rossby_numbers = cycler(Ro_h = [0.2, 1.25])
-Froude_numbers = cycler(Fr_h = [0.2, 1.25])
+Rossby_numbers = cycler(Ro_h = [0.2])
+Froude_numbers = cycler(Fr_h = [1.25])
 L              = cycler(L = [0, 300])
 
-resolutions    = cycler(dz = [8, 4, 2, 1])
-closures       = cycler(closure = ["AMD", "AMC", "CSM", "DSM", "NON"])
+resolutions    = cycler(dz = [8, 4, 2])
+closures       = cycler(closure = ["DSM"])
 
 paramspace = Rossby_numbers * Froude_numbers * L
 configs    = resolutions * closures
@@ -72,8 +72,7 @@ def small_submission_options(scheduler):
 def big_submission_options(scheduler):
     if scheduler == "pbs":
         options = ["select=1:ncpus=1:ngpus=1",
-                   "cpu_type=milan",
-                   "gpu_type=a100"]
+                   "gpu_type=h100"]
         options_string = "\n".join([ "#PBS -l " + option for option in options ])
 
     elif scheduler == "slurm":
@@ -98,7 +97,7 @@ def small_submission_command(scheduler):
 
 def big_submission_command(scheduler):
     if scheduler == "pbs":
-        cmd1 = f"JID1=`qsub {aux_filename}`; JID2=`qsub -W depend=afterok:$JID1 {aux_filename}`; qrls $JID1"
+        cmd1 = f"JID1=`qsub {aux_filename}`; JID2=`qsub -W depend=afterok:$JID1 {aux_filename}`; JID3=`qsub -W depend=afterok:$JID2 {aux_filename}`; JID4=`qsub -W depend=afterok:$JID3 {aux_filename}`; qrls $JID1"
     elif scheduler == "slurm":
         cmd1 = small_submission_command(scheduler)
     return cmd1
@@ -124,17 +123,14 @@ for modifiers in runs:
         cmd1           = very_small_submission_command(scheduler)
     elif Δz >= 2:
         options_string = small_submission_options(scheduler)
-        cmd1           = small_submission_command(scheduler) 
+        cmd1           = small_submission_command(scheduler)
     else:
         options_string = big_submission_options(scheduler)
 
         if only_one_job:
             cmd1 = small_submission_command(scheduler)
         else:
-            if modifiers["α"] > 0.1:
-                cmd1 = small_submission_command(scheduler)
-            else:
-                cmd1 = big_submission_command(scheduler)
+            cmd1 = big_submission_command(scheduler)
 
     submission_script = template.format(simname_ascii = simname_ascii,
                                         simname = simname,

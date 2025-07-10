@@ -43,26 +43,6 @@ ScratchedField(d::Dict) = Dict( k => ScratchedField(v) for (k, v) in d )
 ScratchedField(n::Number) = ScratchedField(n * CenterField(grid))
 #---
 
-#+++ Auxiliary immersed boundary metrics
-using Oceananigans.Fields: @compute
-import Oceananigans.Grids: znode
-using Adapt
-
-znode(k, grid, ℓz) = znode(1, 1, k, grid, Center(), Center(), ℓz)
-
-@inline z_distance_from_seamount_boundary_ccc(i, j, k, grid) = znode(k, grid, Center()) - grid.immersed_boundary.bottom_height[i, j, 1]
-@compute altitude = Field(KernelFunctionOperation{Center, Center, Center}(z_distance_from_seamount_boundary_ccc, grid))
-
-struct DistanceCondition{FT}
-    distance :: FT
-end
-
-# Necessary for GPU
-Adapt.adapt_structure(to, dc::DistanceCondition) = DistanceCondition(adapt(to, dc.distance))
-
-(dc::DistanceCondition)(i, j, k, grid, co) = z_distance_from_seamount_boundary_ccc(i, j, k, grid) > dc.distance
-#---
-
 #+++ Unpack model variables
 CellCenter = (Center, Center, Center) # Output everything on cell centers to make life easier
 u, v, w = model.velocities
@@ -78,6 +58,7 @@ outputs_state_vars = merge(outputs_vels, Dict{Any, Any}(:b => b))
 #+++ Start calculation of snapshot variables
 @info "Calculating misc diagnostics"
 
+@compute altitude = Field(KernelFunctionOperation{Center, Center, Center}(z_distance_from_seamount_boundary_ccc, grid))
 ω_y = @at CellCenter (∂z(u) - ∂x(w))
 
 if model.closure isa Nothing
@@ -113,7 +94,8 @@ outputs_covs = Dict{Symbol, Any}(:uu => (@at CellCenter u*u),
                                  :ww => (@at CellCenter w*w),
                                  :uv => (@at CellCenter u*v),
                                  :uw => (@at CellCenter u*w),
-                                 :vw => (@at CellCenter v*w),)
+                                 :vw => (@at CellCenter v*w),
+                                 :wb => (@at CellCenter w*b))
 #---
 
 #+++ Define velocity gradient tensor
@@ -129,41 +111,43 @@ outputs_grads = Dict{Symbol, Any}(:∂u∂x => (@at CellCenter ∂x(u)),
                                   :∂w∂z => (@at CellCenter ∂z(w)),)
 #---
 
-#+++ Define other energy budget terms
-@info "Calculating energy budget terms"
-wb = @at CellCenter w * b
-outputs_budget = Dict{Symbol, Any}(:wb => wb,
-                                   :Ek => TurbulentKineticEnergy(model, u, v, w),)
-#---
-
 #+++ Volume averages
 @info "Defining volume averages"
-outputs_vol_averages = Dict{Symbol, Any}(:∭⁵εₖdV  => Integral(εₖ; condition = DistanceCondition(5meters)),
-                                         :∭⁵εₚdV  => Integral(εₚ; condition = DistanceCondition(5meters)),
-                                         :∭⁵wdV   => Integral(w;  condition = DistanceCondition(5meters)),
-                                         :∭⁵bdV   => Integral(b;  condition = DistanceCondition(5meters)),
-                                         :∭⁵wbdV  => Integral(wb; condition = DistanceCondition(5meters)),
-                                         :∭¹⁰εₖdV => Integral(εₖ; condition = DistanceCondition(10meters)),
-                                         :∭¹⁰εₚdV => Integral(εₚ; condition = DistanceCondition(10meters)),
-                                         :∭¹⁰wdV  => Integral(w;  condition = DistanceCondition(10meters)),
-                                         :∭¹⁰bdV  => Integral(b;  condition = DistanceCondition(10meters)),
-                                         :∭¹⁰wbdV => Integral(wb; condition = DistanceCondition(10meters)),
-                                         :∭²⁰εₖdV => Integral(εₖ; condition = DistanceCondition(20meters)),
-                                         :∭²⁰εₚdV => Integral(εₚ; condition = DistanceCondition(20meters)),
-                                         :∭²⁰wdV  => Integral(w;  condition = DistanceCondition(20meters)),
-                                         :∭²⁰bdV  => Integral(b;  condition = DistanceCondition(20meters)),
-                                         :∭²⁰wbdV => Integral(wb; condition = DistanceCondition(20meters)),
-                                         )
+# Define conditions to avoid unresolved bottom, sponge layer, and couple of points closest to the
+# open boundary
+dc5  = DistanceCondition(from_bottom=5meters , from_top=params.h_sponge, from_north=2minimum_yspacing(grid))
+dc10 = DistanceCondition(from_bottom=10meters, from_top=params.h_sponge, from_north=2minimum_yspacing(grid))
+dc20 = DistanceCondition(from_bottom=20meters, from_top=params.h_sponge, from_north=2minimum_yspacing(grid))
+
+outputs_vol_integrals = Dict{Symbol, Any}(:∭⁵εₖdV  => Integral(εₖ; condition = dc5),
+                                          :∭⁵εₚdV  => Integral(εₚ; condition = dc5),
+                                          :∭¹⁰εₖdV => Integral(εₖ; condition = dc10),
+                                          :∭¹⁰εₚdV => Integral(εₚ; condition = dc10),
+                                          :∭²⁰εₖdV => Integral(εₖ; condition = dc20),
+                                          :∭²⁰εₚdV => Integral(εₚ; condition = dc20),
+                                          )
+
+outputs_x_integrals = Dict{Symbol, Any}(:∫⁵εₖdx   => Integral(εₖ; condition = dc5, dims=1),
+                                        :∫⁵εₚdx   => Integral(εₚ; condition = dc5, dims=1),
+                                        :∫¹⁰εₖdx  => Integral(εₖ; condition = dc10, dims=1),
+                                        :∫¹⁰εₚdx  => Integral(εₚ; condition = dc10, dims=1),
+                                        :∫²⁰εₖdx  => Integral(εₖ; condition = dc20, dims=1),
+                                        :∫²⁰εₚdx  => Integral(εₚ; condition = dc20, dims=1),
+                                        )
+
+dcf5  = Field(KernelFunctionOperation{Center, Center, Center}(dc5,  grid, nothing)) |> compute!
+dcf10 = Field(KernelFunctionOperation{Center, Center, Center}(dc10, grid, nothing)) |> compute!
+dcf20 = Field(KernelFunctionOperation{Center, Center, Center}(dc20, grid, nothing)) |> compute!
 #---
 
 #+++ Assemble the "full" outputs tuple
 @info "Assemble diagnostics quantities"
-outputs_full = merge(outputs_state_vars, outputs_dissip, outputs_misc, outputs_covs, outputs_grads, outputs_budget, outputs_diff)
+outputs_full = merge(outputs_state_vars, outputs_dissip, outputs_misc, outputs_covs, outputs_grads, outputs_diff)
 #---
 #---
 
 #+++ Construct outputs into simulation
-function construct_outputs(simulation; 
+function construct_outputs(simulation;
                            simname = "TEST",
                            rundir = @__DIR__,
                            params = params,
@@ -171,144 +155,134 @@ function construct_outputs(simulation;
                            interval_2d = 0.2*params.T_advective,
                            interval_3d = params.T_advective,
                            interval_time_avg = 20*params.T_advective,
-                           write_xyz = false,
-                           write_xiz = true,
-                           write_xyi = false,
-                           write_iyz = false,
-                           write_ttt = false,
-                           write_tti = false,
-                           write_aaa = false,
-                           write_chk = false,
+                           write_xyzi = false,
+                           write_xizi = false,
+                           write_xyii = true,
+                           write_iyzi = false,
+                           write_xyza = false,
+                           write_xyia = false,
+                           write_aaai = false,
+                           write_ckpt = false,
                            debug = false,
                            )
     model = simulation.model
     grid = model.grid
 
     #+++ Preamble and common keyword arguments
-    k_half = ceil(Int, params.H / 2params.Δz_min) # Approximately half the seamount height
+    k_xy_slice = ceil(Int, params.H / 3params.Δz_min) # Approximately 1/3 the seamount height
     kwargs = (overwrite_existing = overwrite_existing,
               deflatelevel = 5,
               global_attributes = params)
     #---
 
-    #+++ xyz SNAPSHOTS
-    if write_xyz
-        @info "Setting up xyz writer"
-        simulation.output_writers[:nc_xyz] = ow = NetCDFWriter(model, ScratchedField(outputs_full);
-                                                               filename = "$rundir/data/xyz.$(simname).nc",
-                                                               schedule = TimeInterval(interval_3d),
-                                                               array_type = Array{eltype(grid)},
-                                                               verbose = debug,
-                                                               kwargs...
-                                                               )
-        @info "Starting to write grid metrics and deltas to xyz"
-        laptimer()
+    #+++ xyzi SNAPSHOTS
+    if write_xyzi
+        @info "Setting up xyzi writer"
+        outputs_xyzi = merge(ScratchedField(outputs_full), outputs_x_integrals)
+        simulation.output_writers[:nc_xyzi] = ow = @CUDAstats NetCDFWriter(model, outputs_xyzi;
+                                                                           filename = "$rundir/data/xyzi.$(simname).nc",
+                                                                           schedule = TimeInterval(interval_3d),
+                                                                           array_type = Array{eltype(grid)},
+                                                                           verbose = debug,
+                                                                           kwargs...
+                                                                           )
         write_to_ds(ow.filepath, "altitude", interior(compute!(Field(altitude))), coords = ("x_caa", "y_aca", "z_aac"))
-        @info "Finished writing grid metrics and deltas to xyz"
-        laptimer()
+        write_to_ds(ow.filepath, "distance_condition_5meters",  interior(dcf5),  coords = ("x_caa", "y_aca", "z_aac"))
+        write_to_ds(ow.filepath, "distance_condition_10meters", interior(dcf10), coords = ("x_caa", "y_aca", "z_aac"))
+        write_to_ds(ow.filepath, "distance_condition_20meters", interior(dcf20), coords = ("x_caa", "y_aca", "z_aac"))
     end
     #---
 
-    #+++ xyi SNAPSHOTS
-    if write_xyi
-        @info "Setting up xyi writer"
-        indices = (:, :, k_half)
-
-        if write_aaa
-            outputs_budget_integrated = Dict( Symbol(:∫∫∫, k, :dxdydz) => Integral(ScratchedField(v))  for (k, v) in outputs_budget )
-            outputs_xyi = merge(outputs_xyi, outputs_budget_integrated)
-        end
-
-        simulation.output_writers[:nc_xyi] = NetCDFWriter(model, outputs_full;
-                                                          filename = "$rundir/data/xyi.$(simname).nc",
-                                                          schedule = TimeInterval(interval_2d),
-                                                          array_type = Array{eltype(grid)},
-                                                          indices = indices,
-                                                          verbose = debug,
-                                                          kwargs...
-                                                          )
+    #+++ xyii SNAPSHOTS
+    if write_xyii
+        @info "Setting up xyii writer"
+        indices = (:, :, k_xy_slice)
+        simulation.output_writers[:nc_xyii] = @CUDAstats NetCDFWriter(model, outputs_full;
+                                                                      filename = "$rundir/data/xyii.$(simname).nc",
+                                                                      schedule = TimeInterval(interval_2d),
+                                                                      array_type = Array{eltype(grid)},
+                                                                      indices = indices,
+                                                                      verbose = debug,
+                                                                      kwargs...
+                                                                      )
     end
     #---
 
-    #+++ xiz SNAPSHOTS
-    if write_xiz
-        @info "Setting up xiz writer"
+    #+++ xizi SNAPSHOTS
+    if write_xizi
+        @info "Setting up xizi writer"
         indices = (:, grid.Ny÷2, :)
-        simulation.output_writers[:nc_xiz] = NetCDFWriter(model, outputs_full;
-                                                          filename = "$rundir/data/xiz.$(simname).nc",
-                                                          schedule = TimeInterval(interval_2d),
-                                                          array_type = Array{eltype(grid)},
-                                                          indices = indices,
-                                                          verbose = debug,
-                                                          kwargs...
-                                                          )
+        simulation.output_writers[:nc_xizi] = @CUDAstats NetCDFWriter(model, outputs_full;
+                                                                      filename = "$rundir/data/xizi.$(simname).nc",
+                                                                      schedule = TimeInterval(interval_2d),
+                                                                      array_type = Array{eltype(grid)},
+                                                                      indices = indices,
+                                                                      verbose = debug,
+                                                                      kwargs...
+                                                                      )
     end
     #---
 
-    #+++ iyz SNAPSHOTS
-    if write_iyz
-        @info "Setting up iyz writer"
+    #+++ iyzi SNAPSHOTS
+    if write_iyzi
+        @info "Setting up iyzi writer"
         indices = (grid.Nx÷2, :, :)
-        simulation.output_writers[:nc_iyz] = NetCDFWriter(model, outputs_full;
-                                                          filename = "$rundir/data/iyz.$(simname).nc",
-                                                          schedule = TimeInterval(interval_2d),
-                                                          array_type = Array{eltype(grid)},
-                                                          indices = indices,
-                                                          verbose = debug,
-                                                          kwargs...
-                                                          )
+        simulation.output_writers[:nc_iyzi] = @CUDAstats NetCDFWriter(model, outputs_full;
+                                                                      filename = "$rundir/data/iyzi.$(simname).nc",
+                                                                      schedule = TimeInterval(interval_2d),
+                                                                      array_type = Array{eltype(grid)},
+                                                                      indices = indices,
+                                                                      verbose = debug,
+                                                                      kwargs...
+                                                                      )
     end
     #---
 
-    #+++ ttt (Time averages)
-    if write_ttt
-        @info "Setting up ttt writer"
-        outputs_ttt = merge(outputs_state_vars, outputs_dissip,)
-        indices = (:, :, :)
-        simulation.output_writers[:nc_ttt] = NetCDFWriter(model, outputs_ttt;
-                                                         filename = "$rundir/data/ttt.$(simname).nc",
-                                                         schedule = AveragedTimeInterval(interval_time_avg, stride=10),
-                                                         array_type = Array{eltype(grid)},
-                                                         with_halos = false,
-                                                         indices = indices,
-                                                         verbose = true,
-                                                         kwargs...
-                                                         )
+    #+++ xyza (Time averages)
+    if write_xyza
+        @info "Setting up xyza writer"
+        outputs_xyza = merge(outputs_state_vars, outputs_dissip, outputs_covs)
+        simulation.output_writers[:nc_xyza] = ow = @CUDAstats NetCDFWriter(model, outputs_xyza;
+                                                                           filename = "$rundir/data/xyza.$(simname).nc",
+                                                                           schedule = AveragedTimeInterval(interval_time_avg, stride=10),
+                                                                           array_type = Array{eltype(grid)},
+                                                                           verbose = true,
+                                                                           kwargs...
+                                                                           )
+        write_to_ds(ow.filepath, "altitude", interior(compute!(Field(altitude))), coords = ("x_caa", "y_aca", "z_aac"))
+        write_to_ds(ow.filepath, "distance_condition_5meters",  interior(dcf5),  coords = ("x_caa", "y_aca", "z_aac"))
+        write_to_ds(ow.filepath, "distance_condition_10meters", interior(dcf10), coords = ("x_caa", "y_aca", "z_aac"))
+        write_to_ds(ow.filepath, "distance_condition_20meters", interior(dcf20), coords = ("x_caa", "y_aca", "z_aac"))
     end
     #---
 
-    #+++ tti (Time averages)
-    if write_tti
-        @info "Setting up tti writer"
-        outputs_tti = merge(outputs_full, outputs_vol_averages)
-        indices = (:, :, k_half)
-        simulation.output_writers[:nc_tti] = NetCDFWriter(model, outputs_tti;
-                                                          filename = "$rundir/data/tti.$(simname).nc",
-                                                          schedule = AveragedTimeInterval(interval_time_avg, stride=10),
-                                                          array_type = Array{eltype(grid)},
-                                                          with_halos = false,
-                                                          indices = indices,
-                                                          verbose = debug,
-                                                          kwargs...
-                                                          )
+    #+++ xyia (Time averages)
+    if write_xyia
+        @info "Setting up xyia writer"
+        outputs_xyia = merge(outputs_full, outputs_vol_integrals)
+        indices = (:, :, k_xy_slice)
+        simulation.output_writers[:nc_xyia] = @CUDAstats NetCDFWriter(model, outputs_xyia;
+                                                                      filename = "$rundir/data/xyia.$(simname).nc",
+                                                                      schedule = AveragedTimeInterval(interval_time_avg, stride=10),
+                                                                      array_type = Array{eltype(grid)},
+                                                                      with_halos = false,
+                                                                      indices = indices,
+                                                                      verbose = debug,
+                                                                      kwargs...
+                                                                      )
     end
     #---
 
-    #+++ Checkpointer
-    @info "Setting up chk writer"
-    if write_chk
-        simulation.output_writers[:chk_writer] = checkpointer = Checkpointer(model;
-                                                                             dir="$rundir/data/",
-                                                                             prefix = "chk.$(simname)",
-                                                                             schedule = TimeInterval(interval_time_avg),
-                                                                             overwrite_existing = true,
-                                                                             cleanup = true,
-                                                                             verbose = debug,
-                                                                             )
-        return checkpointer
-    else
-        return nothing
+    #+++ aaai (Time averages)
+    if write_aaai
+        @info "Setting up aaai writer"
+        simulation.output_writers[:nc_aaai] = ow = @CUDAstats NetCDFWriter(model, outputs_vol_integrals;
+                                                                           filename = "$rundir/data/aaai.$(simname).nc",
+                                                                           schedule = TimeInterval(interval_2d),
+                                                                           array_type = Array{eltype(grid)},
+                                                                           verbose = false,
+                                                                           kwargs...
+                                                                           )
     end
-    #---
 end
 #---

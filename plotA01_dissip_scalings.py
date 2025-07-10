@@ -28,7 +28,7 @@ if basename(__file__) != "00_run_postproc.py":
 #---
 
 simnames_filtered = list(map(lambda run: form_run_names("tokara", run, sep="_", prefix=""), runs))
-bulk = collect_datasets(simnames_filtered, slice_name="bulkstats")
+bulk = collect_datasets(simnames_filtered, slice_name="turbstats")
 bulk = bulk.reindex(Ro_h = list(reversed(bulk.Ro_h)))
 bulk = create_mc(bulk)
 

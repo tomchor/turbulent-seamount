@@ -3,16 +3,17 @@ if ("PBS_JOBID" in keys(ENV))  @info "Job ID" ENV["PBS_JOBID"] end # Print job I
 using InteractiveUtils
 versioninfo()
 using ArgParse
-using Oceananigans
-using Oceananigans: on_architecture
-using Oceananigans.Units
-using Oceananigans.TurbulenceClosures: Smagorinsky, DynamicCoefficient, LagrangianAveraging, DynamicSmagorinsky
-using PrettyPrinting
-using TickTock
+using CUDA: has_cuda_gpu
+using PrettyPrinting: pprintln
+using TickTock: tick, tock
 using NCDatasets: NCDataset
 using Interpolations: LinearInterpolation
 
-using CUDA: @allowscalar, has_cuda_gpu
+using Oceananigans
+using Oceananigans.Units
+using Oceananigans: on_architecture
+using Oceananigans.TurbulenceClosures: Smagorinsky, DynamicCoefficient, LagrangianAveraging, DynamicSmagorinsky
+using Oceananigans.OutputWriters: write_output!
 
 #+++ Parse inital arguments
 "Returns a dictionary of command line arguments."
@@ -39,7 +40,7 @@ function parse_command_line_arguments()
             arg_type = Float64
 
         "--dz"
-            default = 64
+            default = 8
             arg_type = Int
 
         "--V∞"
@@ -56,11 +57,11 @@ function parse_command_line_arguments()
             arg_type = Float64
 
         "--Ro_h"
-            default = 1.4
+            default = 1.25
             arg_type = Float64
 
         "--Fr_h"
-            default = 0.6
+            default = 0.2
             arg_type = Float64
 
         "--Lx_ratio"
@@ -72,7 +73,7 @@ function parse_command_line_arguments()
             arg_type = Float64
 
         "--Lz_ratio"
-            default = 1.2 # Lz / H
+            default = 2 # Lz / H
             arg_type = Float64
 
         "--Rz"
@@ -92,9 +93,9 @@ function parse_command_line_arguments()
             arg_type = Float64
 
         "--T_advective_statistics"
-            default = 20 # Should be a multiple of interval_time_avg
+            default = 10 # Should be a multiple of interval_time_avg
             arg_type = Float64
- 
+
     end
     return parse_args(settings, as_symbols=true)
 end
@@ -108,14 +109,14 @@ if has_cuda_gpu()
     arch = GPU()
 else
     arch = CPU()
+    params = (; params..., dz = 50meters)
 end
 @info "Starting simulation $(params.simname) with a dividing factor of $(params.dz) and a $arch architecture\n"
 #---
 
-#+++ Get bathymetry file and secondary simulation parameters
+#+++ Get bathymetry file, z_coords, and secondary simulation parameters
 ds_bathymetry = NCDataset(joinpath(@__DIR__, "../bathymetry/balanus-bathymetry-preprocessed.nc"))
 
-include("$(@__DIR__)/utils.jl")
 let
     #+++ Geometry
     H_ratio = params.H / ds_bathymetry.attrib["H"]
@@ -129,58 +130,46 @@ let
     y_offset = params.runway_length_fraction_FWHM * FWHM
     #---
 
+    global params = merge(params, Base.@locals)
+end
+
+include("$(@__DIR__)/utils.jl")
+z_coords = create_optimal_z_coordinates(params.dz, params.H, params.Lz, (2, 3, 5),
+                                        initial_stretching_factor = 1.05)
+
+let
     #+++ Simulation size
-    Nx = max(ceil(Int, Lx / (params.aspect * params.dz)), 5)
-    Ny = max(ceil(Int, Ly / (params.aspect * params.dz)), 5)
-    Nz = max(ceil(Int, Lz / params.dz), 2)
+    Nx = max(ceil(Int, params.Lx / (params.aspect * params.dz)), 5)
+    Ny = max(ceil(Int, params.Ly / (params.aspect * params.dz)), 5)
 
     Nx = closest_factor_number((2, 3, 5), Nx)
     Ny = closest_factor_number((2, 3, 5), Ny)
-    Nz = closest_factor_number((2, 3, 5), Nz)
+    Nz = length(z_coords) - 1
     N_total = Nx * Ny * Nz
     #---
 
     #+++ Dynamically-relevant secondary parameters
-    f₀ = f_0 = params.V∞ / (params.Ro_h * FWHM)
+    f₀ = f_0 = params.V∞ / (params.Ro_h * params.FWHM)
     N²∞ = N2_inf = (params.V∞ / (params.Fr_h * params.H))^2
     R1 = √N²∞ * params.H / f₀
     z₀ = z_0 = params.Rz * params.H
     #---
 
     #+++ Diagnostic parameters
-    Γ = α * params.Fr_h # nonhydrostatic parameter (Schar 2002)
+    Γ = params.α * params.Fr_h # nonhydrostatic parameter (Schar 2002)
     Bu_h = (params.Ro_h / params.Fr_h)^2
     Slope_Bu = params.Ro_h / params.Fr_h # approximate slope Burger number
-    @assert Slope_Bu ≈ α * √N²∞ / f₀
+    @assert Slope_Bu ≈ params.α * √N²∞ / f₀
     #---
 
     #+++ Time scales
     T_inertial = 2π / f₀
-    T_cycle = Ly / params.V∞
-    T_advective = FWHM / params.V∞
+    T_cycle = params.Ly / params.V∞
+    T_advective = params.FWHM / params.V∞
     #---
 
     global params = merge(params, Base.@locals)
 end
-
-#+++ Bathymetry visualization
-if false
-    bathymetry2(x, y, z) = seamount(x, y, z)
-
-    xc = xnodes(grid_base, Center())
-    yc = ynodes(grid_base, Center())
-    zc = znodes(grid_base, Center())
-
-    using GLMakie
-
-    volume(xc, yc, zc, bathymetry2,
-           isovalue = 1, isorange = 0.5,
-           algorithm = :iso,
-           axis=(type=Axis3, aspect=(params.Lx, params.Ly, 5params.Lz)))
-    pause
-end
-#---
-
 pprintln(params)
 #---
 
@@ -189,7 +178,7 @@ grid_base = RectilinearGrid(arch; topology = (Periodic, Bounded, Bounded),
                             size = (params.Nx, params.Ny, params.Nz),
                             x = (-params.Lx/2, +params.Lx/2),
                             y = (-params.y_offset, params.Ly - params.y_offset),
-                            z = (0, params.Lz),
+                            z = z_coords,
                             halo = (4, 4, 4),
                             )
 @info grid_base
@@ -220,7 +209,7 @@ final_bathymetry = on_architecture(grid_base.architecture, final_bathymetry_cpu)
 #---
 
 #+++ Immersed boundary
-PCB = PartialCellBottom(final_bathymetry)
+PCB = GridFittedBottom(final_bathymetry)
 
 grid = ImmersedBoundaryGrid(grid_base, PCB)
 @info grid
@@ -255,11 +244,18 @@ v_north = PerturbationAdvectionOpenBoundaryCondition(params.V∞; inflow_timesca
 w_south = w_north = ValueBoundaryCondition(0)
 #---
 
-#+++ Boundary conditions for buoyancy
-b∞(x, y, z, t, p) = p.N²∞ * z
-b∞(x, z, t, p) = b∞(x, 0, z, t, p)
+#+++ Boundary and initial conditions for buoyancy
+struct LinearStratification
+    N²∞ :: Float64 # stratification strength (s⁻²)
+end
 
-b_south = b_north = ValueBoundaryCondition(b∞, parameters = (; params.N²∞))
+(strat::LinearStratification)(z) = strat.N²∞ * z
+(strat::LinearStratification)(x, y, z) = strat(z) # For initial condition
+(strat::LinearStratification)(x, y, z, t) = strat(z) # For the sponge layer
+b∞ = LinearStratification(params.N²∞)
+
+b_boundaries(x, z, t, N²∞) = z * N²∞
+b_south = b_north = ValueBoundaryCondition(b_boundaries, parameters=params.N²∞)
 #---
 
 #+++ Assemble BCs
@@ -292,32 +288,38 @@ else
     throw(ArgumentError("Check options for `closure`"))
 end
 
-if closure isa DynamicSmagorinsky
-    cfl = params.dz >= 4 ? 0.5 : 0.65
-    t_switch = 8 * params.T_advective
-else
-    cfl = 0.9
-    t_switch = 12 * params.T_advective
+#---
+
+#+++ Add top sponge layer
+let
+    h_sponge = 0.2 * params.Lz
+    sponge_damping_rate = max(√params.N²∞, params.α * params.V∞ / h_sponge) / 10
+
+    global params = merge(params, Base.@locals)
 end
+
+mask_top = PiecewiseLinearMask{:z}(center=params.Lz, width=params.h_sponge)
+w_sponge = Relaxation(rate=params.sponge_damping_rate, mask=mask_top, target=0)
+v_sponge = Relaxation(rate=params.sponge_damping_rate, mask=mask_top, target=params.V∞)
+b_sponge = Relaxation(rate=params.sponge_damping_rate, mask=mask_top, target=b∞)
 #---
 
 #+++ Model and ICs
 @info "Creating model"
 model = NonhydrostaticModel(grid = grid, timestepper = :RungeKutta3,
-                            advection = WENO(grid=grid_base, order=5),
+                            advection = WENO(order=5),
                             buoyancy = BuoyancyTracer(),
                             coriolis = FPlane(params.f_0),
                             tracers = :b,
                             closure = closure,
                             boundary_conditions = bcs,
-                            forcing = (; u=Fᵤ),
+                            forcing = (; u=Fᵤ, v=v_sponge, w=w_sponge, b=b_sponge),
                             hydrostatic_pressure_anomaly = CenterField(grid),
                             )
 @info "" model
-if has_cuda_gpu() show_gpu_status() end
+show_gpu_status()
 
-f_params = (; params.H, params.V∞, params.f₀, params.N²∞,)
-set!(model, b=(x, y, z) -> b∞(x, y, z, 0, f_params), v=params.V∞)
+set!(model, b=(x, y, z) -> b∞(z), v=params.V∞)
 #---
 
 #+++ Create simulation
@@ -337,13 +339,13 @@ progress(simulation) = @info (PercentageProgress(with_prefix=false, with_units=f
                               + "step dur = " * walltime_per_timestep)(simulation)
 simulation.callbacks[:progress] = Callback(progress, IterationInterval(40))
 
-initial_cfl = params.dz > 4 ? 0.8 : 0.9
-conjure_time_step_wizard!(simulation, IterationInterval(1), max_change=1.05, cfl=initial_cfl, min_Δt=1e-4, max_Δt=1/√params.N²∞)
+conjure_time_step_wizard!(simulation, IterationInterval(1), max_change=1.05, cfl=0.9, min_Δt=1e-4, max_Δt=1/√params.N²∞)
 
+t_switch = 12 * params.T_advective
 function cfl_changer(sim)
     if sim.model.clock.time > 0
-        @warn "Changing target cfl to $cfl"
-        simulation.callbacks[:time_step_wizard].func.cfl = cfl
+        @warn "Changing target cfl"
+        simulation.callbacks[:time_step_wizard].func.cfl = 0.8
     end
 end
 add_callback!(simulation, cfl_changer, SpecifiedTimes([t_switch]); name=:cfl_changer)
@@ -351,51 +353,76 @@ add_callback!(simulation, cfl_changer, SpecifiedTimes([t_switch]); name=:cfl_cha
 @info "" simulation
 #---
 
-#+++ Diagnostics
-#+++ Define pickup characteristics
-write_chk = params.dz < 2
-if write_chk
-    if any(startswith("chk.$(params.simname)_iteration"), readdir("data"))
+#+++ Outputs and diagnostics
+include("$rundir/diagnostics.jl")
+
+#+++ Define checkpointer/pickup
+write_ckpt = params.dz < 2
+interval_time_avg = params.T_advective
+
+if write_ckpt
+    checkpointer_prefix = "ckpt.$(params.simname)"
+    if any(startswith(checkpointer_prefix), readdir("data"))
         @warn "Checkpoint for $(params.simname) found. Assuming this is a pick-up simulation! Setting overwrite_existing=false."
         overwrite_existing = false
     else
         @warn "No checkpoint for $(params.simname) found. Setting overwrite_existing=true."
         overwrite_existing = true
     end
+
+    #+++ Construct checkpointer
+    @info "Setting up checkpointer"
+    simulation.output_writers[:ckpt_writer] = checkpointer = @CUDAstats Checkpointer(model;
+                                                                                     dir = "$rundir/data/",
+                                                                                     prefix = checkpointer_prefix,
+                                                                                     schedule = TimeInterval(interval_time_avg),
+                                                                                     overwrite_existing = true,
+                                                                                     cleanup = true,
+                                                                                     )
+    #---
+
 else
     @warn "No checkpointing necessary for this simulation."
     overwrite_existing = true
 end
 #---
 
-include("$rundir/diagnostics.jl")
 tick()
-checkpointer = construct_outputs(simulation;
-                                 simname = params.simname,
-                                 rundir = rundir,
-                                 params = params,
-                                 overwrite_existing = overwrite_existing,
-                                 interval_2d = 0.1*params.T_advective,
-                                 interval_3d = 1.0*params.T_advective,
-                                 interval_time_avg = 5*params.T_advective,
-                                 write_xyz = true,
-                                 write_xiz = false,
-                                 write_xyi = true,
-                                 write_iyz = false,
-                                 write_ttt = true,
-                                 write_tti = true,
-                                 write_chk,
-                                 debug = false,
-                                 )
+construct_outputs(simulation;
+                  simname = params.simname,
+                  rundir = rundir,
+                  params = params,
+                  overwrite_existing = overwrite_existing,
+                  interval_2d = 0.1*params.T_advective,
+                  interval_3d = 0.5*params.T_advective,
+                  interval_time_avg,
+                  write_xyzi = true,
+                  write_xizi = false,
+                  write_xyii = true,
+                  write_iyzi = true,
+                  write_xyza = false,
+                  write_xyia = false,
+                  write_aaai = true,
+                  write_ckpt,
+                  debug = false,
+                  )
 tock()
 #---
 
 #+++ Run simulations and plot video afterwards
-if has_cuda_gpu() show_gpu_status() end
+show_gpu_status()
 @info "Starting simulation"
-run!(simulation, pickup=write_chk)
+run!(simulation, pickup=write_ckpt)
+#---
+
+#+++ Write final checkpoint to disk if checkpointer exists
+if write_ckpt
+    @info "Writing final checkpoint to disk"
+    write_output!(checkpointer, model)
+end
 #---
 
 #+++ Plot video
-include("$rundir/plot_video.jl")
+include("$rundir/plot_2d_animation.jl")
+include("$rundir/plot_3d_animation.jl")
 #---

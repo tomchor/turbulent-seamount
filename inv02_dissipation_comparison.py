@@ -37,7 +37,7 @@ for j, modifiers in enumerate(runs):
     simname = f"{simname_base}_" + aggregate_parameters(modifiers, sep="_", prefix="")
 
     #+++ Open dataset and pick time
-    xyz = open_simulation(path+f"xyz.{simname}.nc",
+    xyzi = open_simulation(path+f"xyzi.{simname}.nc",
                           use_inertial_periods = True,
                           topology = "PNN",
                           squeeze = True,
@@ -45,51 +45,51 @@ for j, modifiers in enumerate(runs):
                           open_dataset_kwargs = dict(chunks=dict(y_aca="auto", time="auto")),
                           get_grid = False,
                           )
-    xyz = adjust_times(xyz, round_times=True)
-    xyz = xyz.sel(time=1.5, method="nearest")
+    xyzi = adjust_times(xyzi, round_times=True)
+    xyzi = xyzi.sel(time=1.5, method="nearest")
     #---
 
     opts = dict(norm=LogNorm(clip=True), vmin=1e-10, vmax=1e-7, cmap="inferno")
 
     #+++ Take vertical average
-    xyz["ε̄ₖ"]  = (xyz["εₖ"]  * xyz["Δz_aac"]).pnsum("z") / xyz["Δz_aac"].pnsum("z")
-    xyz["ε̄ₚ"]  = (xyz["εₚ"]  * xyz["Δz_aac"]).pnsum("z") / xyz["Δz_aac"].pnsum("z")
+    xyzi["ε̄ₖ"]  = (xyzi["εₖ"]  * xyzi["Δz_aac"]).pnsum("z") / xyzi["Δz_aac"].pnsum("z")
+    xyzi["ε̄ₚ"]  = (xyzi["εₚ"]  * xyzi["Δz_aac"]).pnsum("z") / xyzi["Δz_aac"].pnsum("z")
 
-    xyz["ℱεₖ"] = xyz["εₖ"].where(xyz.altitude > 4)
-    xyz["ℱεₚ"] = xyz["εₚ"].where(xyz.altitude > 4)
+    xyzi["ℱεₖ"] = xyzi["εₖ"].where(xyzi.altitude > 4)
+    xyzi["ℱεₚ"] = xyzi["εₚ"].where(xyzi.altitude > 4)
 
-    xyz["ℱε̄ₖ"] = (xyz["ℱεₖ"] * xyz["Δz_aac"]).pnsum("z") / xyz["Δz_aac"].pnsum("z")
-    xyz["ℱε̄ₚ"] = (xyz["ℱεₚ"] * xyz["Δz_aac"]).pnsum("z") / xyz["Δz_aac"].pnsum("z")
+    xyzi["ℱε̄ₖ"] = (xyzi["ℱεₖ"] * xyzi["Δz_aac"]).pnsum("z") / xyzi["Δz_aac"].pnsum("z")
+    xyzi["ℱε̄ₚ"] = (xyzi["ℱεₚ"] * xyzi["Δz_aac"]).pnsum("z") / xyzi["Δz_aac"].pnsum("z")
 
-    xyz["γ"] = xyz["ℱε̄ₚ"] / (xyz["ℱε̄ₚ"] + xyz["ℱε̄ₖ"])
+    xyzi["γ"] = xyzi["ℱε̄ₚ"] / (xyzi["ℱε̄ₚ"] + xyzi["ℱε̄ₖ"])
     #---
 
     #+++ Upscale LES results
-    FWMH_tokara = (H_tokara / xyz.H) * xyz.FWMH # m
+    FWMH_tokara = (H_tokara / xyzi.H) * xyzi.FWMH # m
     ℰₖ_tokara = V_tokara**3 / FWMH_tokara
-    ℰₖ_LES = xyz.attrs["V∞"]**3 / (xyz.FWMH)
+    ℰₖ_LES = xyzi.attrs["V∞"]**3 / (xyzi.FWMH)
 
-    xyz["ε̄ₖ_upscaled"]  = xyz["ε̄ₖ"]  * ℰₖ_tokara / ℰₖ_LES
-    xyz["ℱε̄ₖ_upscaled"] = xyz["ℱε̄ₖ"] * ℰₖ_tokara / ℰₖ_LES
+    xyzi["ε̄ₖ_upscaled"]  = xyzi["ε̄ₖ"]  * ℰₖ_tokara / ℰₖ_LES
+    xyzi["ℱε̄ₖ_upscaled"] = xyzi["ℱε̄ₖ"] * ℰₖ_tokara / ℰₖ_LES
 
-    xyz["ε̄ₚ_upscaled"]  = xyz["ε̄ₚ"]  * ℰₖ_tokara / ℰₖ_LES
-    xyz["ℱε̄ₚ_upscaled"] = xyz["ℱε̄ₚ"] * ℰₖ_tokara / ℰₖ_LES
+    xyzi["ε̄ₚ_upscaled"]  = xyzi["ε̄ₚ"]  * ℰₖ_tokara / ℰₖ_LES
+    xyzi["ℱε̄ₚ_upscaled"] = xyzi["ℱε̄ₚ"] * ℰₖ_tokara / ℰₖ_LES
     #---
 
     alpha = alphas[j]
     for i, offset in enumerate(normalized_offsets):
         print(f"Plotting {j}-th run = {simname}, {i}-th offset = {offset}")
         color = plt.rcParams["axes.prop_cycle"].by_key()["color"][i]
-        xyz_line = xyz.sel(x_caa=offset*xyz.FWMH, method="nearest")
+        xyzi_line = xyzi.sel(x_caa=offset*xyzi.FWMH, method="nearest")
 
         label = f"Filtered Vert avg εₖ @ {offset:.1f} FWMH" if j==0 else ""
-        xyz_line["ℱε̄ₖ_upscaled"].plot(ax=axes[0], label=label, color=color, alpha=alpha)
+        xyzi_line["ℱε̄ₖ_upscaled"].plot(ax=axes[0], label=label, color=color, alpha=alpha)
 
         label = f"Filtered Vert avg εₚ @ {offset:.1f} FWMH" if j==0 else ""
-        xyz_line["ℱε̄ₚ_upscaled"].plot(ax=axes[1], label=label, color=color, alpha=alpha)
+        xyzi_line["ℱε̄ₚ_upscaled"].plot(ax=axes[1], label=label, color=color, alpha=alpha)
 
         label = f"Mixing efficiency @ {offset:.1f} FWMH" if j==0 else ""
-        xyz_line["γ"].plot(ax=axes[2], label=label, color=color, alpha=alpha)
+        xyzi_line["γ"].plot(ax=axes[2], label=label, color=color, alpha=alpha)
 
 for i, ax in enumerate(axes):
     if i < 2:

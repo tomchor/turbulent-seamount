@@ -8,6 +8,7 @@ from cmocean import cm
 RdBu_r = plt.cm.RdBu_r; RdBu_r.set_bad("lightgray")
 solar = cm.solar; solar.set_bad("lightgray")
 balance = cm.balance; balance.set_bad("lightgray")
+inferno = plt.cm.inferno; inferno.set_bad("lightgray")
 #---
 
 #+++ Manual FacetGrid plot
@@ -83,7 +84,7 @@ def manual_facetgrid(da, fig, tt=None,
                     Bu_h = (Ro_h/Fr_h)**2
                     ax.text(0.05, 0.9, f"({alphabet.pop(0)})\n$Bu_h=${Bu_h:.3g}", transform=ax.transAxes, bbox=bbox, zorder=1e3, fontsize=7)
     #---
- 
+
     if "label" not in cbar_kwargs.keys():
         label = da.long_name if "long_name" in da.attrs.keys() else da.longname if "longname" in da.attrs else da.name
         label += f" [{da.units}]" if "units" in da.attrs else ""
@@ -234,11 +235,11 @@ def plot_scatter(ds, ax=None, x=None, y=None, hue="simulation", add_guide=True, 
             ax.set_ylabel(yval.name)
         #----
 
-    return 
+    return
 #---
 
 #+++ Letterize plot axes
-def letterize(axes, x, y, coords=True, bbox=dict(boxstyle='round', 
+def letterize(axes, x, y, coords=True, bbox=dict(boxstyle='round',
                                                  facecolor='white', alpha=0.8),
                      **kwargs):
     from string import ascii_lowercase

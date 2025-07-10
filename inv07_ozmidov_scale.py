@@ -32,7 +32,7 @@ configs    = resolutions * closures
 runs = paramspace * configs
 #---
 
-bulk = merge_datasets(runs, base_name=f"bulkstats_{simname_base}", verbose=True)
+bulk = merge_datasets(runs, base_name=f"turbstats_{simname_base}", verbose=True)
 bulk = bulk.rename(Δz_min = "Δz")
 bulk["Δz"].attrs = dict(units="m")
 

@@ -16,13 +16,13 @@ print("Starting h00 script")
 path = "simulations/data/"
 simname_base = "seamount"
 
-Rossby_numbers = cycler(Ro_h = [0.2, 1.25])
-Froude_numbers = cycler(Fr_h = [0.2, 1.25])
+Rossby_numbers = cycler(Ro_h = [0.2])
+Froude_numbers = cycler(Fr_h = [1.25])
 L              = cycler(L = [0, 300])
 
-resolutions    = cycler(dz = [4, 2])
+resolutions    = cycler(dz = [8, 4, 2])
 closures       = cycler(closure = ["AMD", "AMC", "CSM", "DSM", "NON"])
-closures       = cycler(closure = ["AMD", "CSM",])
+closures       = cycler(closure = ["DSM",])
 
 paramspace = Rossby_numbers * Froude_numbers * L
 configs    = resolutions * closures
@@ -35,8 +35,10 @@ for config in configs:
     config_suffix = aggregate_parameters(config, sep="_", prefix="")
     simnames = [ simname_base + "_" + aggregate_parameters(params, sep="_", prefix="") + "_" + config_suffix for params in paramspace ]
     print(simnames)
-    check_simulation_completion(simnames, slice_name="tti", path="simulations/data/", verbose=False)
+    check_simulation_completion(simnames, slice_name="xyzi", path="simulations/data/", verbose=False)
     print()
 
 print(Back.LIGHTWHITE_EX + Fore.BLUE + "\nStarting 01 post-processing of results using `configs`", Style.RESET_ALL, configs)
-exec(open("01_energy_transfers.py").read())
+exec(open("01_create_aaaa.py").read())
+exec(open("02_create_xyza_xyia.py").read())
+exec(open("03_turbulent_quantities.py").read())

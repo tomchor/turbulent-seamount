@@ -65,26 +65,23 @@ if model.closure isa Nothing
     εₖ = @at CellCenter CenterField(grid)
     εₚ = @at CellCenter CenterField(grid)
 
-    ν = CenterField(grid)
     κ = CenterField(grid)
 
 else
     εₖ = @at CellCenter KineticEnergyDissipationRate(model)
     εₚ = @at CellCenter TracerVarianceDissipationRate(model, :b)/(2params.N2_inf)
 
-    ν = viscosity(model)
     κ = diffusivity(model, Val(:b))
 end
+
+εₛ = @at CellCenter KineticEnergyForcingTerm(model)
 
 Ri = @at CellCenter RichardsonNumber(model, u, v, w, b)
 Ro = @at CellCenter RossbyNumber(model)
 PV = @at CellCenter ErtelPotentialVorticity(model, u, v, w, b, model.coriolis)
 
-outputs_dissip = Dict(pairs((; εₖ, εₚ, κ)))
-
+outputs_dissip = Dict(pairs((; εₖ, εₚ, κ, εₛ)))
 outputs_misc = Dict(pairs((; ω_y, Ri, Ro, PV,)))
-
-outputs_diff = Dict(pairs((; ν, κ)))
 #---
 
 #+++ Define covariances
@@ -142,7 +139,7 @@ dcf20 = Field(KernelFunctionOperation{Center, Center, Center}(dc20, grid, nothin
 
 #+++ Assemble the "full" outputs tuple
 @info "Assemble diagnostics quantities"
-outputs_full = merge(outputs_state_vars, outputs_dissip, outputs_misc, outputs_covs, outputs_grads, outputs_diff)
+outputs_full = merge(outputs_state_vars, outputs_dissip, outputs_misc, outputs_covs, outputs_grads)
 #---
 #---
 

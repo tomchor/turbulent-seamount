@@ -23,7 +23,7 @@ times = dims(xyzi.PV, :Ti)
 
 # Set PV limits based on data range or physical considerations
 interior_PV = params.N²∞ * params.f₀
-isovalue_abs = 1.4 * interior_PV  # Adjust this based on your data
+isovalue_abs = 1.4 * interior_PV  # Adjust this based on data
 isorange_abs = isovalue_abs/10
 PV_lims = 1.2 .* (-isovalue_abs, +isovalue_abs)
 
@@ -68,7 +68,7 @@ fig[0, 1] = Label(fig, title, fontsize=18, tellwidth=false, height=8)
 resize_to_layout!(fig)
 
 GLMakie.record(fig, "$(@__DIR__)/../anims/3d_$(params.simname).mp4", 1:length(times),
-               framerate=14, compression=30, px_per_unit=1) do frame
+               framerate=12, compression=30, px_per_unit=1) do frame
     @info "Frame $frame / $(length(times))"
     n[] = frame
 end

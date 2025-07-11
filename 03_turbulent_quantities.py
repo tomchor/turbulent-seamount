@@ -42,13 +42,11 @@ for j, config in enumerate(runs):
     print(f"\nLoading time-averaged data for {simname}")
     xyza = xr.open_dataset(f"data_post/xyza_{simname}.nc", chunks="auto")
     xyia = xr.open_dataset(f"data_post/xyia_{simname}.nc", chunks="auto")
-    aaaa = xr.open_dataset(f"data_post/aaaa_{simname}.nc", chunks="auto")
     #---
 
     #+++ Normalize Unicode variable names
     xyza = normalize_unicode_names_in_dataset(xyza)
     xyia = normalize_unicode_names_in_dataset(xyia)
-    aaaa = normalize_unicode_names_in_dataset(aaaa)
     #---
 
     #+++ Get turbulent variables

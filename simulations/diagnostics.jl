@@ -3,9 +3,9 @@ using Oceananigans.Units
 using Oceananigans.Grids: Center, Face
 import Oceananigans.TurbulenceClosures: viscosity, diffusivity
 
-using Oceanostics: KineticEnergyDissipationRate,
+using Oceanostics: KineticEnergyDissipationRate, KineticEnergyForcingTerm,
                    ErtelPotentialVorticity, RossbyNumber, RichardsonNumber,
-                   TracerVarianceDissipationRate, TurbulentKineticEnergy
+                   TracerVarianceDissipationRate
 
 viscosity(model)           = viscosity(model.closure, model.diffusivity_fields)
 diffusivity(model, tracer) = diffusivity(model.closure, model.diffusivity_fields, tracer)

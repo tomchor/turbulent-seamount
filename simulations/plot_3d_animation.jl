@@ -31,7 +31,7 @@ isovalue_ε1 = 5e-9
 isovalue_ε2 = 1e-7
 ε_range = (isovalue_ε1, isovalue_ε2)
 isorange_ε1 = isovalue_ε1/2
-isorange_ε2 = isovalue_ε2/3
+isorange_ε2 = isovalue_ε2/2
 
 # 3D plot settings
 Lx = diff(x_range |> collect)[]
@@ -60,7 +60,7 @@ end
 #endregion
 
 #region PV plot
-vol1_kwargs = (algorithm = :iso, isorange=isorange_q, colormap=:balance, colorrange=PV_range)
+vol1_kwargs = (algorithm = :iso, colormap=:balance, transparency = true, isorange=isorange_q, colorrange=PV_range)
 vol1 = volume!(ax1, x_range, y_range, z_range, PVₙ, isovalue=-isovalue_q; alpha=0.9, vol1_kwargs...)
 vol1 = volume!(ax1, x_range, y_range, z_range, PVₙ, isovalue=+isovalue_q; alpha=0.7, vol1_kwargs...)
 Colorbar(fig, vol1, bbox=ax1.scene.viewport,
@@ -69,10 +69,9 @@ Colorbar(fig, vol1, bbox=ax1.scene.viewport,
 #endregion
 
 #region εₖ plot
-vol2_kwargs1 = (algorithm = :iso, colormap=Reverse(:roma), colorrange=ε_range)
-vol2_kwargs2 = (algorithm = :iso, colormap=Reverse(:roma), colorrange=ε_range)
-#vol2 = volume!(ax2, x_range, y_range, z_range, εₙ, isovalue=isovalue_ε1, isorange=isorange_ε1, alpha=0.5; vol2_kwargs1...)
-vol2 = volume!(ax2, x_range, y_range, z_range, εₙ, isovalue=isovalue_ε2, isorange=isorange_ε2, alpha=0.9; vol2_kwargs2...)
+vol2_kwargs = (algorithm = :iso, colormap=Reverse(:roma), transparency = true, colorrange=ε_range)
+vol2 = volume!(ax2, x_range, y_range, z_range, εₙ, isovalue=isovalue_ε1, isorange=isorange_ε1, alpha=0.5; vol2_kwargs...)
+vol2 = volume!(ax2, x_range, y_range, z_range, εₙ, isovalue=isovalue_ε2, isorange=isorange_ε2; alpha=0.9, vol2_kwargs...)
 Colorbar(fig, vol2, bbox=ax2.scene.viewport,
          label="εₖ", height=15, width=Relative(0.5), vertical=false,
          alignmode = Outside(10), halign = 0.75, valign = 1.02)

@@ -95,13 +95,14 @@ Colorbar(fig, vol3, bbox=ax3.scene.viewport,
          alignmode = Outside(10), halign = 0.85, valign = 1.02)
 #---
 
-# Save a snapshot as png
-save("$(@__DIR__)/../figures/seamount_3d_PV_snapshot.png", fig, px_per_unit=2)
 
 # Create title with time and parameters
 title = @lift "Roₕ = $(params.Ro_h), Frₕ = $(params.Fr_h), L = $(params.L) m, dz = $(params.dz) m;    " *
               "Time = $(@sprintf "%s" prettytime(times[$n]))"
 fig[0, 1:3] = Label(fig, title, fontsize=18, tellwidth=false, height=8)
+
+# Save a snapshot as png
+save("$(@__DIR__)/../figures/seamount_3d_PV_snapshot.png", fig, px_per_unit=2)
 
 # Record animation
 @info "Recording animation with $(length(times)) frames"

@@ -10,7 +10,7 @@ from aux00_utils import merge_datasets, condense
 from aux02_plotting import letterize, create_mc, mscatter
 plt.rcParams["figure.constrained_layout.use"] = True
 
-#region Define directory and simulation name
+#+++ Define directory and simulation name
 path = "simulations/data/"
 simname_base = "seamount"
 
@@ -25,17 +25,17 @@ paramspace = Rossby_numbers * Froude_numbers * L
 configs    = resolutions * closures
 
 runs = paramspace * configs
-#endregion
+#---
 
 aaaa = merge_datasets(runs, base_name=f"aaaa_{simname_base}", verbose=True, add_min_spacings=False)
 aaaa = aaaa.reindex(Ro_h = list(reversed(aaaa.Ro_h)))
 
-#region Define new variables
-#region Condense buffers
+#+++ Define new variables
+#+++ Condense buffers
 distances = [5, 10, 20]
 aaaa = condense(aaaa, ["∭⁵ε̄ₚdV", "∭¹⁰ε̄ₚdV", "∭²⁰ε̄ₚdV"], "∭ᵇε̄ₚdV", dimname="buffer", indices=distances)
 aaaa = condense(aaaa, ["∭⁵ε̄ₖdV", "∭¹⁰ε̄ₖdV", "∭²⁰ε̄ₖdV"], "∭ᵇε̄ₖdV", dimname="buffer", indices=distances)
-#endregion
+#---
 
 aaaa["γ"] = aaaa["∭ᵇε̄ₚdV"] / (aaaa["∭ᵇε̄ₚdV"] + aaaa["∭ᵇε̄ₖdV"])
 
@@ -45,11 +45,11 @@ aaaa["ℰₖ"] = aaaa["∭ᵇε̄ₖdV"] / (aaaa.attrs["V∞"]**3 * aaaa.FWHM * 
 aaaa["ℰₚ"] = aaaa["∭ᵇε̄ₚdV"] / (aaaa.attrs["V∞"]**3 * aaaa.FWHM * aaaa.H)
 
 aaaa["𝒦⁵"] = (aaaa["∭ᵇε̄ₚdV"] / aaaa["N²∞"]) / (aaaa["V∞"] * aaaa.FWHM**2 * aaaa.H**2)
-#endregion
+#---
 
-#region Make it legible
+#+++ Make it legible
 aaaa["𝒦⁵"].attrs = dict(long_name=r"Norm buoyancy diffusivity $\mathcal{K}$")
-#endregion
+#---
 
 aaaa = aaaa.where(aaaa.Slope_Bu==0.16, drop=True).squeeze()
 

@@ -7,7 +7,6 @@ import xarray as xr
 from cycler import cycler
 from matplotlib import pyplot as plt
 from aux00_utils import merge_datasets, condense
-from aux02_plotting import letterize, create_mc, mscatter
 plt.rcParams["figure.constrained_layout.use"] = True
 
 #+++ Define directory and simulation name

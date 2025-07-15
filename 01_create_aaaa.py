@@ -50,6 +50,7 @@ for j, config in enumerate(runs):
     t_slice_inclusive = slice(aaai.T_advective_spinup, np.inf) # For snapshots, we want to include t=T_advective_spinup
     aaai = aaai.sel(time=t_slice_inclusive)
 
+    aaai["Ĥ"] = aaai.bottom_height.max()
     aaai = aaai.drop(["peripheral_nodes_ccc", "peripheral_nodes_ccf", "peripheral_nodes_cfc", "peripheral_nodes_fcc",
                       "x_caa", "x_faa", "y_aca", "y_afa", "z_aac", "z_aaf",
                       "Δx_caa", "Δx_faa", "Δy_aca", "Δy_afa", "Δz_aac", "Δz_aaf", "bottom_height"])

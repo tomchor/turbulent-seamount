@@ -61,16 +61,13 @@ aaai["S_h"] = xrft.isotropic_power_spectrum(aaai.bottom_height,
 
 #---
 
-#+++ Compute characteristic length scale of bottom height and Gaussian seamount
-k_cm = (aaai.S_h * aaai.S_h.freq_r).sum("freq_r") / aaai.S_h.sum("freq_r")
-aaai["L_cm"] = 1/k_cm
-#---
-
 #+++ Plot results
 fig, axes = plt.subplots(ncols=2, figsize=(12, 5))
 
 aaai.bottom_height.sel(x_caa=0, method="nearest").plot(hue="L", ax=axes[0])
+axes[0].legend_.texts[-1].set_text(f"Gaussian (FWHM={aaai.FWHM:.2f} m)")
 
-aaai.S_h.plot(hue="L", ax=axes[1], xscale="log", yscale="log")
+# Plot spectra and get the line colors for matching k_cm lines
+spectra_plot = aaai.S_h.plot(hue="L", ax=axes[1], xscale="log", yscale="log")
 axes[1].axvline(1/aaai.FWHM, color="black", linestyle="--", label="FWHM")
-axes[1].axvline(2*np.pi/aaai.FWHM, color="black", linestyle="--", label="FWHM/2$\pi$")
+#---

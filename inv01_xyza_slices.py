@@ -34,12 +34,13 @@ xyza = xyza.squeeze()
 
 Ĥ = xyza.bottom_height.pnmax(("x", "y")) # Actual height of seamount
 q_scale = 5 * xyza.N2_inf * xyza.f_0
-xyia = xyza.sel(z_aac=Ĥ/5, method="nearest")
+xyia = xyza.sel(z_aac=Ĥ/5, method="nearest").sel(L = [0, 40, 320])
 #---
 
 #+++ Plot
 print("Plotting")
-xyia["q̄"].pnplot(x="x", col="L", vmin=-q_scale, vmax=q_scale, cmap="RdBu_r")
-xyia["ε̄ₖ"].pnplot(x="x", col="L", norm=LogNorm(vmin=1e-10, vmax=1e-8))
-xyia["ε̄ₚ"].pnplot(x="x", col="L", norm=LogNorm(vmin=1e-11, vmax=1e-9))
+xyia["q̄"].pnplot(x="x", col="L", col_wrap=3, vmin=-q_scale, vmax=q_scale, cmap="RdBu_r")
+xyia["ε̄ₖ"].pnplot(x="x", col="L", col_wrap=3, norm=LogNorm(vmin=1e-10, vmax=1e-8))
+xyia["ε̄ₚ"].pnplot(x="x", col="L", col_wrap=3, norm=LogNorm(vmin=1e-11, vmax=1e-9))
+xyia["R̄o"].pnplot(x="x", col="L", col_wrap=3, vmin=-3, vmax=3, cmap="bwr")
 #---

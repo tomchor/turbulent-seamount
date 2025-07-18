@@ -29,6 +29,10 @@ runs = paramspace * configs
 aaaa = merge_datasets(runs, base_name=f"aaaa_{simname_base}", verbose=True, add_min_spacings=False)
 aaaa = aaaa.reindex(Ro_h = list(reversed(aaaa.Ro_h)))
 
+fit_filename = f'data_post/bathymetry_powerlaw_fits_{simname_base}.nc'
+ds_fit = xr.open_dataset(fit_filename).sel(L=slice(0, 400))
+aaaa = xr.merge([aaaa, ds_fit])
+
 #+++ Define new variables
 #+++ Condense buffers
 distances = [5, 10, 20]
@@ -40,8 +44,10 @@ aaaa["γ"] = aaaa["∭ᵇε̄ₚdV"] / (aaaa["∭ᵇε̄ₚdV"] + aaaa["∭ᵇε
 
 aaaa["RoFr"] = aaaa.Ro_h * aaaa.Fr_h
 
-aaaa["ℰₖ"] = aaaa["∭ᵇε̄ₖdV"] / (aaaa.attrs["V∞"]**3 * aaaa.FWHM * aaaa.H)
-aaaa["ℰₚ"] = aaaa["∭ᵇε̄ₚdV"] / (aaaa.attrs["V∞"]**3 * aaaa.FWHM * aaaa.H)
+hor_scale = 1/aaaa.transition_wavenumber
+hor_scale = aaaa.FWHM
+aaaa["ℰₖ"] = aaaa["∭ᵇε̄ₖdV"] / (aaaa.attrs["V∞"]**3 * aaaa.FWHM**2 * aaaa.H / hor_scale)
+aaaa["ℰₚ"] = aaaa["∭ᵇε̄ₚdV"] / (aaaa.attrs["V∞"]**3 * aaaa.FWHM**2 * aaaa.H / hor_scale)
 
 aaaa["𝒦⁵"] = (aaaa["∭ᵇε̄ₚdV"] / aaaa["N²∞"]) / (aaaa["V∞"] * aaaa.FWHM**2 * aaaa.H**2)
 #---

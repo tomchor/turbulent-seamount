@@ -1,6 +1,7 @@
 import numpy as np
 import xarray as xr
 from aux00_utils import normalize_unicode_names_in_dataset
+from scipy.optimize import curve_fit
 π = np.pi
 
 
@@ -123,7 +124,7 @@ def get_topography_masks(ds, buffers_in_meters=[0, 5, 10, 30], get_buffered_volu
     #---
 
     if load:
-        from dask.diagnostics import ProgressBar
+        from dask.diagnostics.progress import ProgressBar
         with ProgressBar(minimum=3, dt=1):
             ds.water_mask_buffered.load()
             ds.dV_water_mask_buffered.load()
@@ -187,6 +188,136 @@ def temporal_average(ds, rename_dict=None, normalize_unicode=True):
     # Normalize Unicode names in one place
     ds = normalize_unicode_names_in_dataset(ds, normalize_unicode)
     return ds
+#---
+
+
+#+++ Spectral analysis functions
+def piecewise_powerlaw(k, amp, alpha, k_transition):
+    """
+    Piecewise function: power law k^alpha for k < k_transition, constant for k >= k_transition,
+    with continuity at k_transition
+    """
+    # Compute constant to ensure continuity at k_transition
+    constant = amp * k_transition**alpha
+    return np.where(k < k_transition,
+                    amp * k**alpha,
+                    constant)
+
+def piecewise_powerlaw_log(log_k, log_amp, alpha, log_k_transition):
+    """
+    Piecewise function in log-log space:
+    log(S) = log_amp + alpha * log_k for log_k < log_k_transition
+    log(S) = log_amp + alpha * log_k_transition for log_k >= log_k_transition
+    """
+    # Constant part in log space
+    log_constant = log_amp + alpha * log_k_transition
+    return np.where(log_k < log_k_transition,
+                    log_amp + alpha * log_k,
+                    log_constant)
+
+def fit_piecewise_powerlaw_spectrum(k, S, initial_k_transition=None, alpha_0=-2.0, debug=False):
+    """
+    Fit a piecewise power law to a spectrum in log-log space.
+
+    Parameters:
+    -----------
+    k : array_like
+        Wavenumber array
+    S : array_like
+        Spectrum values
+    initial_k_transition : float, optional
+        Initial guess for transition wavenumber. If None, uses median of k range.
+    alpha_0 : float, optional
+        Initial guess for power law exponent. Default -2.0.
+    debug : bool, optional
+        If True, create debug plots. Default False.
+
+    Returns:
+    --------
+    dict
+        Dictionary containing fit results:
+        - 'amp': amplitude parameter
+        - 'alpha': power law exponent
+        - 'k_transition': transition wavenumber
+        - 'fit_success': whether fit succeeded
+        - 'fitted_spectrum': fitted spectrum values on original k grid
+    """
+
+    # Remove zero or negative values for log fitting
+    valid_mask = (S > 0) & (k > 0)
+    k_fit = k[valid_mask]
+    S_fit = S[valid_mask]
+
+    if len(k_fit) < 3:
+        return {
+            'amp': np.nan,
+            'alpha': np.nan,
+            'k_transition': np.nan,
+            'fit_success': False,
+            'fitted_spectrum': np.nan * k
+        }
+
+    # Convert to log space
+    log_k = np.log(k_fit)
+    log_S = np.log(S_fit)
+
+    # Initial parameter guesses in log space
+    if initial_k_transition is None:
+        initial_k_transition = np.median(k_fit)
+
+    log_amp_0 = np.log(S_fit[0]) - alpha_0 * log_k[0]  # Consistent with power law at first point
+    log_k_trans_0 = np.log(initial_k_transition)
+    p0 = [log_amp_0, alpha_0, log_k_trans_0]
+
+    # Bounds in log space: log_amp (any), alpha<0 (decay), log_k_transition (within data range)
+    bounds = ([-np.inf, -10, log_k[0]],
+              [np.inf, 0, log_k[-1]])
+
+    try:
+        # Fit the piecewise function in log-log space
+        popt_log, pcov_log = curve_fit(piecewise_powerlaw_log, log_k, log_S,
+                                       p0=p0, bounds=bounds, method="dogbox")
+
+        # Convert back to linear space parameters
+        log_amp, alpha, log_k_transition = popt_log
+        amp = np.exp(log_amp)
+        k_transition = np.exp(log_k_transition)
+
+        # Generate fitted spectrum for plotting on original k grid
+        fitted_spectrum = piecewise_powerlaw(k, amp, alpha, k_transition)
+
+        # Debug plotting
+        if debug:
+            import matplotlib.pyplot as plt
+            plt.figure()
+            plt.loglog(k_fit, S_fit, 'k-', label='Original (valid points)')
+            plt.loglog(k, fitted_spectrum, 'r--', label='Fitted (full grid)')
+            plt.axvline(k_transition, color='g', linestyle=':', label='Transition')
+            plt.legend()
+            plt.xlabel('Wavenumber k')
+            plt.ylabel('Spectrum S')
+            plt.title('Piecewise Power Law Fit (Log-log space)')
+            plt.show()
+
+        return {
+            'amp': amp,
+            'alpha': alpha,
+            'k_transition': k_transition,
+            'fit_success': True,
+            'fitted_spectrum': fitted_spectrum
+        }
+
+    except Exception as e:
+        if debug:
+            print(f"Fit failed: {e}")
+
+        return {
+            'amp': np.nan,
+            'alpha': np.nan,
+            'k_transition': np.nan,
+            'fit_success': False,
+            'fitted_spectrum': np.nan * k
+        }
 #---
 
 #+++ Turbulence calculations

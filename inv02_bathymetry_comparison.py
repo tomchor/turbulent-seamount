@@ -6,8 +6,8 @@ import xarray as xr
 from cycler import cycler
 from matplotlib import pyplot as plt
 from aux00_utils import merge_datasets
+from aux01_physfuncs import fit_piecewise_powerlaw_spectrum
 import xrft
-from scipy.optimize import curve_fit
 
 plt.rcParams["figure.constrained_layout.use"] = True
 
@@ -62,31 +62,7 @@ aaai["S_h"] = xrft.isotropic_power_spectrum(aaai.bottom_height,
 
 #---
 
-#+++ Define and fit piecewise power law function
-def piecewise_powerlaw(k, amp, alpha, k_transition):
-    """
-    Piecewise function: power law k^alpha for k < k_transition, constant for k >= k_transition,
-    with continuity at k_transition
-    """
-    # Compute constant to ensure continuity at k_transition
-    constant = amp * k_transition**alpha
-    return np.where(k < k_transition,
-                    amp * k**alpha,
-                    constant)
-
-def piecewise_powerlaw_log(log_k, log_amp, alpha, log_k_transition):
-    """
-    Piecewise function in log-log space:
-    log(S) = log_amp + alpha * log_k for log_k < log_k_transition
-    log(S) = log_amp + alpha * log_k_transition for log_k >= log_k_transition
-    """
-    # Constant part in log space
-    log_constant = log_amp + alpha * log_k_transition
-    return np.where(log_k < log_k_transition,
-                    log_amp + alpha * log_k,
-                    log_constant)
-
-# Fit piecewise power law to each spectrum
+#+++ Fit piecewise power law to each spectrum using function from aux01_physfuncs
 fit_results = {}
 fitted_spectra = {}
 
@@ -96,61 +72,22 @@ for L_val in aaai.L.values:
     k = spectrum.freq_r.values
     S = spectrum.values
 
-    # Remove zero or negative values for log fitting
-    valid_mask = (S > 0) & (k > 0)
-    k_fit = k[valid_mask]
-    S_fit = S[valid_mask]
-
-    # Convert to log space
-    log_k = np.log(k_fit)
-    log_S = np.log(S_fit)
-
-    # Initial parameter guesses in log space
-    # log_amp: log amplitude, alpha: power law exponent, log_k_transition: log transition wavenumber
-    alpha_0 = -2
-    log_amp_0 = np.log(S_fit[0]) - alpha_0 * log_k[0]  # Consistent with power law at first point
-    log_k_trans_0 = np.log(1/aaai.FWHM)
-    p0 = [log_amp_0, alpha_0, log_k_trans_0]
-
-    # Bounds in log space: log_amp (any), alpha<0 (decay), log_k_transition (within data range)
-    bounds = ([-np.inf, -10, log_k[0]],
-              [np.inf, 0, log_k[-1]])
-
-    # Fit the piecewise function in log-log space
-    popt_log, pcov_log = curve_fit(piecewise_powerlaw_log, log_k, log_S, p0=p0, bounds=bounds, method="dogbox")
-
-    # Convert back to linear space parameters
-    log_amp, alpha, log_k_transition = popt_log
-    amp = np.exp(log_amp)
-    k_transition = np.exp(log_k_transition)
-
-    # Store linear space parameters for compatibility
-    popt = [amp, alpha, k_transition]
+    # Use the function from aux01_physfuncs to fit the spectrum
+    result = fit_piecewise_powerlaw_spectrum(
+        k, S,
+        initial_k_transition=1/aaai.FWHM,  # Use FWHM as initial guess
+        alpha_0=-2.0,
+        debug=False  # Set to True for debugging individual fits
+    )
 
     # Store results
-    fit_results[L_val] = {
-        'amp': popt[0],
-        'alpha': popt[1],
-        'k_transition': popt[2],
-        'fit_success': True
-    }
+    fit_results[L_val] = result
+    fitted_spectra[L_val] = result['fitted_spectrum']
 
-    # Generate fitted spectrum for plotting on original k grid (all points including zeros)
-    fitted_spectra[L_val] = piecewise_powerlaw(k, *popt)
-
-    if False:
-        # Plot original and fitted spectra for debugging
-        plt.figure()
-        plt.loglog(k_fit, S_fit, 'k-', label='Original (valid points)')
-        plt.loglog(k, fitted_spectra[L_val], 'r--', label='Fitted (full grid)')
-        plt.axvline(k_transition, color='g', linestyle=':', label='Transition')
-        plt.legend()
-        plt.xlabel('Wavenumber k')
-        plt.ylabel('Spectrum S')
-        plt.title(f'L = {L_val} (Log-log fit)')
-        plt.show()
-
-    print(f"L={L_val}: α={popt[1]:.2f}, k_trans={popt[2]:.4f} (fitted in log-log space)")
+    if result['fit_success']:
+        print(f"L={L_val}: α={result['alpha']:.2f}, k_trans={result['k_transition']:.4f} (fitted in log-log space)")
+    else:
+        print(f"L={L_val}: Fit failed")
 
 #---
 

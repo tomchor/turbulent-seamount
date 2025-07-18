@@ -137,10 +137,10 @@ def get_relevant_attrs(ds):
     Get what are deemed relevant attrs from ds.attrs and return them
     as a dataset
     """
-    wantedkeys = ['Lx', 'Ly', 'Lz', 'N2_inf', 'z_0', 'interval',
-                  'T_inertial', 'Nx', 'Ny', 'Nz', 'date', 'b_0',
-                  'Oceananigans', 'y_0', 'ν_eddy', 'f_0', 'LES',
-                  'Ro_s', 'Fr_s', 'δ', 'Rz', 'Re_eddy', 'L', 'H']
+    wantedkeys = ["Lx", "Ly", "Lz", "N2_inf", "z_0", "interval",
+                  "T_inertial", "Nx", "Ny", "Nz", "date", "b_0",
+                  "Oceananigans", "y_0", "ν_eddy", "f_0", "LES",
+                  "Ro_s", "Fr_s", "δ", "Rz", "Re_eddy", "L", "H"]
     attrs = dict((k, v) for k,v in ds.attrs.items() if k in wantedkeys)
     return attrs
 #---
@@ -236,11 +236,11 @@ def fit_piecewise_powerlaw_spectrum(k, S, initial_k_transition=None, alpha_0=-2.
     --------
     dict
         Dictionary containing fit results:
-        - 'amp': amplitude parameter
-        - 'alpha': power law exponent
-        - 'k_transition': transition wavenumber
-        - 'fit_success': whether fit succeeded
-        - 'fitted_spectrum': fitted spectrum values on original k grid
+        - "amp": amplitude parameter
+        - "alpha": power law exponent
+        - "k_transition": transition wavenumber
+        - "fit_success": whether fit succeeded
+        - "fitted_spectrum": fitted spectrum values on original k grid
     """
 
     # Remove zero or negative values for log fitting
@@ -250,11 +250,11 @@ def fit_piecewise_powerlaw_spectrum(k, S, initial_k_transition=None, alpha_0=-2.
 
     if len(k_fit) < 3:
         return {
-            'amp': np.nan,
-            'alpha': np.nan,
-            'k_transition': np.nan,
-            'fit_success': False,
-            'fitted_spectrum': np.nan * k
+            "amp": np.nan,
+            "alpha": np.nan,
+            "k_transition": np.nan,
+            "fit_success": False,
+            "fitted_spectrum": np.nan * k
         }
 
     # Convert to log space
@@ -290,21 +290,21 @@ def fit_piecewise_powerlaw_spectrum(k, S, initial_k_transition=None, alpha_0=-2.
         if debug:
             import matplotlib.pyplot as plt
             plt.figure()
-            plt.loglog(k_fit, S_fit, 'k-', label='Original (valid points)')
-            plt.loglog(k, fitted_spectrum, 'r--', label='Fitted (full grid)')
-            plt.axvline(k_transition, color='g', linestyle=':', label='Transition')
+            plt.loglog(k_fit, S_fit, "k-", label="Original (valid points)")
+            plt.loglog(k, fitted_spectrum, "r--", label="Fitted (full grid)")
+            plt.axvline(k_transition, color="g", linestyle=":", label="Transition")
             plt.legend()
-            plt.xlabel('Wavenumber k')
-            plt.ylabel('Spectrum S')
-            plt.title('Piecewise Power Law Fit (Log-log space)')
+            plt.xlabel("Wavenumber k")
+            plt.ylabel("Spectrum S")
+            plt.title("Piecewise Power Law Fit (Log-log space)")
             plt.show()
 
         return {
-            'amp': amp,
-            'alpha': alpha,
-            'k_transition': k_transition,
-            'fit_success': True,
-            'fitted_spectrum': fitted_spectrum
+            "amp": amp,
+            "alpha": alpha,
+            "k_transition": k_transition,
+            "fit_success": True,
+            "fitted_spectrum": fitted_spectrum
         }
 
     except Exception as e:
@@ -312,11 +312,11 @@ def fit_piecewise_powerlaw_spectrum(k, S, initial_k_transition=None, alpha_0=-2.
             print(f"Fit failed: {e}")
 
         return {
-            'amp': np.nan,
-            'alpha': np.nan,
-            'k_transition': np.nan,
-            'fit_success': False,
-            'fitted_spectrum': np.nan * k
+            "amp": np.nan,
+            "alpha": np.nan,
+            "k_transition": np.nan,
+            "fit_success": False,
+            "fitted_spectrum": np.nan * k
         }
 #---
 

@@ -74,6 +74,18 @@ def piecewise_powerlaw(k, amp, alpha, k_transition):
                     amp * k**alpha,
                     constant)
 
+def piecewise_powerlaw_log(log_k, log_amp, alpha, log_k_transition):
+    """
+    Piecewise function in log-log space:
+    log(S) = log_amp + alpha * log_k for log_k < log_k_transition
+    log(S) = log_amp + alpha * log_k_transition for log_k >= log_k_transition
+    """
+    # Constant part in log space
+    log_constant = log_amp + alpha * log_k_transition
+    return np.where(log_k < log_k_transition,
+                    log_amp + alpha * log_k,
+                    log_constant)
+
 # Fit piecewise power law to each spectrum
 fit_results = {}
 fitted_spectra = {}
@@ -84,17 +96,36 @@ for L_val in aaai.L.values:
     k = spectrum.freq_r.values
     S = spectrum.values
 
-    # Initial parameter guesses
-    # amp: amplitude, alpha: power law exponent, k_transition: transition wavenumber
+    # Remove zero or negative values for log fitting
+    valid_mask = (S > 0) & (k > 0)
+    k_fit = k[valid_mask]
+    S_fit = S[valid_mask]
+
+    # Convert to log space
+    log_k = np.log(k_fit)
+    log_S = np.log(S_fit)
+
+    # Initial parameter guesses in log space
+    # log_amp: log amplitude, alpha: power law exponent, log_k_transition: log transition wavenumber
     alpha_0 = -2
-    p0 = [S[0] * k[0]**(-alpha_0), alpha_0, 1/aaai.FWHM]
+    log_amp_0 = np.log(S_fit[0]) - alpha_0 * log_k[0]  # Consistent with power law at first point
+    log_k_trans_0 = np.log(1/aaai.FWHM)
+    p0 = [log_amp_0, alpha_0, log_k_trans_0]
 
-    # Bounds: amp>0, alpha<0 (decay), k_transition>0, constant>0
-    bounds = ([1e-10, -10, k[0]],
-              [np.inf, 0, k[-1]])
+    # Bounds in log space: log_amp (any), alpha<0 (decay), log_k_transition (within data range)
+    bounds = ([-np.inf, -10, log_k[0]],
+              [np.inf, 0, log_k[-1]])
 
-    # Fit the piecewise function
-    popt, pcov = curve_fit(piecewise_powerlaw, k, S, p0=p0, bounds=bounds, method="dogbox")
+    # Fit the piecewise function in log-log space
+    popt_log, pcov_log = curve_fit(piecewise_powerlaw_log, log_k, log_S, p0=p0, bounds=bounds, method="dogbox")
+
+    # Convert back to linear space parameters
+    log_amp, alpha, log_k_transition = popt_log
+    amp = np.exp(log_amp)
+    k_transition = np.exp(log_k_transition)
+
+    # Store linear space parameters for compatibility
+    popt = [amp, alpha, k_transition]
 
     # Store results
     fit_results[L_val] = {
@@ -104,20 +135,22 @@ for L_val in aaai.L.values:
         'fit_success': True
     }
 
-    # Generate fitted spectrum for plotting
+    # Generate fitted spectrum for plotting on original k grid (all points including zeros)
     fitted_spectra[L_val] = piecewise_powerlaw(k, *popt)
 
     if False:
-        # Plot original and fitted spectra
+        # Plot original and fitted spectra for debugging
         plt.figure()
-        plt.loglog(k, S, 'k-', label='Original')
-        plt.loglog(k, fitted_spectra[L_val], 'r--', label='Fitted')
+        plt.loglog(k_fit, S_fit, 'k-', label='Original (valid points)')
+        plt.loglog(k, fitted_spectra[L_val], 'r--', label='Fitted (full grid)')
+        plt.axvline(k_transition, color='g', linestyle=':', label='Transition')
         plt.legend()
         plt.xlabel('Wavenumber k')
         plt.ylabel('Spectrum S')
-        plt.title(f'L = {L_val}')
+        plt.title(f'L = {L_val} (Log-log fit)')
+        plt.show()
 
-    print(f"L={L_val}: α={popt[1]:.2f}, k_trans={popt[2]:.4f}")
+    print(f"L={L_val}: α={popt[1]:.2f}, k_trans={popt[2]:.4f} (fitted in log-log space)")
 
 #---
 
@@ -145,17 +178,17 @@ axes[1].axvline(1/aaai.FWHM, color="black", linestyle="--", label="FWHM")
 
 # Create custom legend entries for the fit lines
 import matplotlib.lines as mlines
-fit_line = mlines.Line2D([], [], color='gray', linestyle='--', label='Piecewise fits')
+fit_line = mlines.Line2D([], [], color='gray', linestyle='--', label='Piecewise fits (log-log)')
 trans_line = mlines.Line2D([], [], color='gray', linestyle=':', label='Transition points')
 
 # Get existing legend and add new entries
 handles, labels = axes[1].get_legend_handles_labels()
 handles.extend([fit_line, trans_line])
-labels.extend(['Piecewise fits', 'Transition points'])
+labels.extend(['Piecewise fits (log-log)', 'Transition points'])
 axes[1].legend(handles=handles, labels=labels)
 
 # Print fit summary
-print("\n=== Fit Results Summary ===")
+print("\n=== Fit Results Summary (Log-log space fitting) ===")
 for L_val in aaai.L.values:
     if fit_results[L_val]['fit_success']:
         result = fit_results[L_val]

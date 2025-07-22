@@ -23,7 +23,7 @@ times = dims(xyzi.PV, :Ti)
 
 #region Set limits based on data range or physical considerations
 interior_q = params.N²∞ * params.f₀
-isovalue_q = 1.4 * interior_q  # Adjust this based on your data
+isovalue_q = 1.4 * interior_q  # Adjust this based on data
 isorange_q = isovalue_q/10
 PV_range = 1.2 .* (-isovalue_q, +isovalue_q)
 
@@ -109,7 +109,7 @@ save("$(@__DIR__)/../figures/seamount_3d_PV_snapshot.png", fig, px_per_unit=2)
 resize_to_layout!(fig)
 
 GLMakie.record(fig, "$(@__DIR__)/../anims/3d_$(params.simname).mp4", 1:length(times),
-               framerate=14, compression=30, px_per_unit=2) do frame
+               framerate=12, compression=30, px_per_unit=1) do frame
     @info "Frame $frame / $(length(times))"
     n[] = frame
 end

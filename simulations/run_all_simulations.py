@@ -10,7 +10,7 @@ simname_base = "seamount"
 
 Rossby_numbers = cycler(Ro_h = [0.2])
 Froude_numbers = cycler(Fr_h = [1.25])
-L              = cycler(L = [0, 300])
+L              = cycler(L = [0, 20, 40, 80, 160, 320])
 
 resolutions    = cycler(dz = [8, 4, 2])
 closures       = cycler(closure = ["DSM"])
@@ -97,7 +97,7 @@ def small_submission_command(scheduler):
 
 def big_submission_command(scheduler):
     if scheduler == "pbs":
-        cmd1 = f"JID1=`qsub {aux_filename}`; JID2=`qsub -W depend=afterok:$JID1 {aux_filename}`; JID3=`qsub -W depend=afterok:$JID2 {aux_filename}`; JID4=`qsub -W depend=afterok:$JID3 {aux_filename}`; qrls $JID1"
+        cmd1 = f"JID1=`qsub {aux_filename}`; JID2=`qsub -W depend=afterok:$JID1 {aux_filename}`; JID3=`qsub -W depend=afterok:$JID2 {aux_filename}`; qrls $JID1"
     elif scheduler == "slurm":
         cmd1 = small_submission_command(scheduler)
     return cmd1

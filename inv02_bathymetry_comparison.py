@@ -35,7 +35,9 @@ runs = paramspace * configs
 
 #+++ Load aaai datasets
 print("Loading aaai datasets...")
-aaai = merge_datasets(runs, base_name=f"aaai.{simname_base}", dirpath=path, verbose=True, add_min_spacings=False).squeeze()
+aaai = merge_datasets(runs, base_name=f"aaai.{simname_base}", dirpath=path, verbose=True, add_min_spacings=False,
+                      open_dataset_kwargs = dict(decode_times=False, chunks=dict(time="auto", L="auto")),
+                      adjust_times_before_merge=True).squeeze()
 aaai = aaai[["bottom_height"]]
 #---
 
@@ -241,7 +243,7 @@ for L_val in aaai.L.values:
     if fit_results[L_val]["fit_success"]:
         result = fit_results[L_val]
         label = "Gaussian" if L_val == aaai.L.values[-1] else f"L={L_val}"
-        print(f"{label:>12}: α={result["alpha"]:>6.2f}, k_trans={result["k_transition"]:>8.4f}")
+        print(f"{label:>12}: α={result['alpha']:>6.2f}, k_trans={result['k_transition']:>8.4f}")
 
 print(f"\nProcessing completed:")
 print(f"  - Plotting: {"✓" if plot_results else "✗"}")

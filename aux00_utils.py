@@ -163,7 +163,17 @@ def condense_reynolds_stress_tensor(ds, indices=[1, 2, 3]):
 #---
 
 #+++ Merge datasets into one
-def merge_datasets(runs, base_name = "seamount", dirpath="data_post", add_min_spacings=False, add_simulation_info=True, verbose=False, drop_vars=None):
+def merge_datasets(
+        runs,
+        base_name="seamount",
+        dirpath="data_post",
+        add_min_spacings=False,
+        add_simulation_info=True,
+        verbose=False,
+        drop_vars=None,
+        open_dataset_kwargs={},
+        combine_by_coords_kwargs={"combine_attrs": "drop_conflicts"},
+        adjust_times_before_merge=False):
     """
     Merge multiple datasets into one.
 
@@ -183,6 +193,13 @@ def merge_datasets(runs, base_name = "seamount", dirpath="data_post", add_min_sp
         Whether to print verbose output. Default False
     drop_vars : list of str, optional
         List of variable names to drop from each dataset before merging. Default None
+    open_dataset_kwargs : dict, optional
+        Additional keyword arguments to pass to xr.open_dataset. Default {}
+    combine_by_coords_kwargs : dict, optional
+        Additional keyword arguments to pass to xr.combine_by_coords.
+        Default {"combine_attrs": "drop_conflicts"}
+    adjust_times_before_merge : bool, optional
+        Whether to call adjust_times() on each dataset before merging. Default False
 
     Returns
     -------
@@ -191,11 +208,13 @@ def merge_datasets(runs, base_name = "seamount", dirpath="data_post", add_min_sp
     """
     simnames_filtered = list(map(lambda run: form_run_names(base_name, run, sep="_", prefix=""), runs))
     dslist = []
+
+
     for sim_number, simname in enumerate(simnames_filtered):
         #+++ Open volume-integrated output
         fname = f"{simname}.nc"
         if verbose: print(f"\nOpening {fname}")
-        ds = xr.open_dataset(f"{dirpath}/{fname}", chunks=dict(time="auto", L="auto"))
+        ds = xr.open_dataset(f"{dirpath}/{fname}", **open_dataset_kwargs)
         #---
 
         #+++ Drop specified variables if requested
@@ -221,10 +240,16 @@ def merge_datasets(runs, base_name = "seamount", dirpath="data_post", add_min_sp
             if dim not in ds.variables: # if `dim` is not a variable, make it one
                 ds = ds.expand_dims((dim,))
             ds = ds.assign_coords({dim : [ds.attrs[dim]]})
+
+        #+++ Optionally adjust times before merging
+        if adjust_times_before_merge:
+            ds = adjust_times(ds)
+        #---
+
         dslist.append(ds)
         #---
 
-    return xr.combine_by_coords(dslist, combine_attrs="drop_conflicts")
+    return xr.combine_by_coords(dslist, **combine_by_coords_kwargs)
 #---
 
 #+++ Time adjustment

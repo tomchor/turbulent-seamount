@@ -416,10 +416,10 @@ run!(simulation, pickup=write_ckpt)
 #---
 
 #+++ Write final checkpoint to disk if checkpointer exists
-if write_ckpt
-    @info "Writing final checkpoint to disk"
-    write_output!(checkpointer, model)
-end
+# if write_ckpt
+#     @info "Writing final checkpoint to disk"
+#     write_output!(checkpointer, model)
+# end
 #---
 
 #+++ Plot video

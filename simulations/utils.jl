@@ -76,7 +76,7 @@ end
 #---
 
 #+++ Smooth bathymetry
-function smooth_bathymetry(elevation; window_size_x, window_size_y, bc_x="circular", bc_y="replicate")
+function smooth_bathymetry(elevation; window_size_x, window_size_y, bc_x="circular", bc_y="replicate", target_height=nothing)
     # Create separate Gaussian kernels for x and y directions
     kernel_x = Kernel.gaussian((window_size_x, 0))
     kernel_y = Kernel.gaussian((0, window_size_y))
@@ -87,10 +87,19 @@ function smooth_bathymetry(elevation; window_size_x, window_size_y, bc_x="circul
     # Then smooth in y direction
     smoothed = imfilter(smoothed_x, kernel_y, bc_y)
 
+    # Rescale height if target_height is specified
+    if target_height !== nothing
+        current_max_height = maximum(smoothed)
+        if current_max_height > 0
+            scaling_factor = target_height / current_max_height
+            smoothed = smoothed .* scaling_factor
+        end
+    end
+
     return smoothed
 end
 
-function smooth_bathymetry(elevation, grid; scale_x, scale_y, bc_x="circular", bc_y="replicate")
+function smooth_bathymetry(elevation, grid; scale_x, scale_y, bc_x="circular", bc_y="replicate", target_height=nothing)
     # Get minimum grid spacing in x and y directions
     Δx_min = minimum_xspacing(grid)
     Δy_min = minimum_yspacing(grid)
@@ -103,7 +112,7 @@ function smooth_bathymetry(elevation, grid; scale_x, scale_y, bc_x="circular", b
     window_size_y = scale_y / (2 * Δy_min)
 
     # Call the original method with calculated window sizes
-    return smooth_bathymetry(elevation; window_size_x, window_size_y, bc_x, bc_y)
+    return smooth_bathymetry(elevation; window_size_x, window_size_y, bc_x, bc_y, target_height)
 end
 #---
 

@@ -203,7 +203,9 @@ if params.L == 0
     final_bathymetry_cpu = interpolated_bathymetry_cpu
 else
     @warn "Smoothing bathymetry with length scale $(params.L)"
-    final_bathymetry_cpu = smooth_bathymetry(interpolated_bathymetry_cpu, grid_base, scale_x=params.L, scale_y=params.L, bc_x="circular", bc_y="replicate")
+    final_bathymetry_cpu = smooth_bathymetry(interpolated_bathymetry_cpu, grid_base,
+                                             scale_x=params.L, scale_y=params.L, bc_x="circular", bc_y="replicate",
+                                             target_height=params.H)
 end
 
 final_bathymetry = on_architecture(grid_base.architecture, final_bathymetry_cpu)

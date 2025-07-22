@@ -20,7 +20,7 @@ Rossby_numbers = cycler(Ro_h = [0.2])
 Froude_numbers = cycler(Fr_h = [1.25])
 L              = cycler(L = [0, 20, 40, 80, 160, 320])
 
-resolutions    = cycler(dz = [8, 4, 2])
+resolutions    = cycler(dz = [8, 4])
 closures       = cycler(closure = ["AMD", "AMC", "CSM", "DSM", "NON"])
 closures       = cycler(closure = ["DSM",])
 

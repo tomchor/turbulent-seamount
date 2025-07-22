@@ -215,7 +215,7 @@ def piecewise_powerlaw_log(log_k, log_amp, alpha, log_k_transition):
                     log_amp + alpha * log_k,
                     log_constant)
 
-def fit_piecewise_powerlaw_spectrum(k, S, initial_k_transition=None, alpha_0=-2.0, debug=False):
+def fit_piecewise_powerlaw_spectrum(k, S, initial_k_transition=None, alpha_0=-2.0, debug=False, mask_arrays=False):
     """
     Fit a piecewise power law to a spectrum in log-log space.
 
@@ -243,10 +243,15 @@ def fit_piecewise_powerlaw_spectrum(k, S, initial_k_transition=None, alpha_0=-2.
         - "fitted_spectrum": fitted spectrum values on original k grid
     """
 
-    # Remove zero or negative values for log fitting
-    valid_mask = (S > 0) & (k > 0)
-    k_fit = k[valid_mask]
-    S_fit = S[valid_mask]
+    #+++ Remove zero or negative values for log fitting
+    if mask_arrays:
+        valid_mask = (S > 0) & (k > 0)
+        k_fit = k[valid_mask]
+        S_fit = S[valid_mask]
+    else:
+        k_fit = k
+        S_fit = S
+    #---
 
     if len(k_fit) < 3:
         return {

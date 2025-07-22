@@ -195,8 +195,7 @@ itp = LinearInterpolation((shrunk_x, shrunk_y), shrunk_elevation,  extrapolation
 
 x_grid = xnodes(grid_base, Center(), Center(), Center())
 y_grid = ynodes(grid_base, Center(), Center(), Center())
-#interpolated_bathymetry_cpu = itp.(reshape(x_grid, (grid_base.Nx, 1)), reshape(y_grid, (1, grid_base.Ny)))
-interpolated_bathymetry_cpu = itp.(reshape(y_grid, (1, grid_base.Ny)), reshape(x_grid, (grid_base.Nx, 1)))
+interpolated_bathymetry_cpu = itp.(reshape(x_grid, (grid_base.Nx, 1)), reshape(y_grid, (1, grid_base.Ny)))
 
 if params.L == 0
     @warn "No smoothing performed on the bathymetry"

@@ -10,9 +10,9 @@ simname_base = "seamount"
 
 Rossby_numbers = cycler(Ro_h = [0.2])
 Froude_numbers = cycler(Fr_h = [1.25])
-L              = cycler(L = [0, 20, 40, 80, 160, 320])
+L              = cycler(L = [0])
 
-resolutions    = cycler(dz = [8, 4, 2])
+resolutions    = cycler(dz = [8])
 closures       = cycler(closure = ["DSM"])
 
 paramspace = Rossby_numbers * Froude_numbers * L
@@ -106,8 +106,7 @@ def big_submission_command(scheduler):
 for modifiers in runs:
     run_options = aggregate_parameters(modifiers)
     simname = f"{simname_base}_" + aggregate_parameters(modifiers, sep="_", prefix="")
-    simname_ascii = simname.replace("=", "")
-    print(simname_ascii)
+    print(simname)
 
     #+++ Remove previous checkpoints
     if remove_checkpoints:
@@ -132,8 +131,8 @@ for modifiers in runs:
         else:
             cmd1 = big_submission_command(scheduler)
 
-    submission_script = template.format(simname_ascii = simname_ascii,
-                                        simname = simname,
+    submission_script = template.format(simname = simname,
+                                        simname_ascii = simname,
                                         julia_script = julia_script,
                                         run_options = run_options,
                                         options_string = options_string,)

@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --account=m4740_g
-#SBATCH --job-name={simname_ascii}
-#SBATCH --output=logs/{simname_ascii}.log
-#SBATCH --error=logs/{simname_ascii}.log
+#SBATCH --job-name={simname}
+#SBATCH --output=logs/{simname}.log
+#SBATCH --error=logs/{simname}.log
 #SBATCH --qos=regular
 #SBATCH --gpus-per-node=1
 #SBATCH --mem=48GB
@@ -15,7 +15,7 @@ export SLURM_CPU_BIND="cores"
 echo $CUDA_VISIBLE_DEVICES
 
 cd $SCRATCH/tokara-strait/simulations/
-time julia --project --pkgimages=no {julia_script} {run_options} --simname={simname} 2>&1 | tee logs/{simname_ascii}.out
+time julia --project --pkgimages=no {julia_script} {run_options} --simname={simname} 2>&1 | tee logs/{simname}.out
 
-#scontrol show job $PBS_JOBID >> logs/{simname_ascii}.log
-#scontrol show job $PBS_JOBID >> logs/{simname_ascii}.out
+#scontrol show job $PBS_JOBID >> logs/{simname}.log
+#scontrol show job $PBS_JOBID >> logs/{simname}.out

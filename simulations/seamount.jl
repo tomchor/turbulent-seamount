@@ -53,6 +53,11 @@ function parse_command_line_arguments()
             default = 110meters
             arg_type = Float64
 
+        "--FWHM"
+            help = "Full width at half maximum of the seamount"
+            default = 1000meters
+            arg_type = Float64
+
         "--L"
             help = "Scale for smoothing the bathymetry (as a ratio of FWHM)"
             default = 0.2
@@ -127,13 +132,16 @@ if params.L == 0
 else
     @warn "Smoothing bathymetry with length scale L/FWHM=$(params.L)"
     smoothed_elevation = smooth_bathymetry(ds_bathymetry["periodic_elevation"], x, y;
-                                           scale_x = params.L * ds_bathymetry.attrib["FWHM"],
-                                           scale_y = params.L * ds_bathymetry.attrib["FWHM"],
+                                           scale_x = params.L * ds_bathymetry.attrib["FWHM"], # Based on the data's FWHM
+                                           scale_y = params.L * ds_bathymetry.attrib["FWHM"], # Based on the data's FWHM
                                            bc_x="circular",
                                            bc_y="replicate",)
 end
+# There has been no rescaling of the bathymetry up until this point.
+# This is where we do it:
 
-params = (; params..., H_ratio = params.H / maximum(smoothed_elevation))
+params = (; params..., H_ratio = params.H / maximum(smoothed_elevation), # How much do we rescale in the vertical?
+                       FWHM_ratio = params.FWHM / ds_bathymetry.attrib["FWHM"]) # How much do we rescale in the horizontal?
 
 shrunk_smoothed_elevation = smoothed_elevation .* params.H_ratio
 shrunk_x = x .* params.H_ratio
@@ -146,15 +154,14 @@ bathymetry_itp = LinearInterpolation((shrunk_x, shrunk_y), shrunk_smoothed_eleva
 #+++ Get domain sizes, z_coords, and secondary simulation parameters
 let
     #+++ Geometry
-    FWHM = ds_bathymetry.attrib["FWHM"] * params.H_ratio
-    α = params.H / FWHM
+    α = params.H / params.FWHM
 
-    Lx = params.Lx_ratio * FWHM
-    Ly = params.Ly_ratio * FWHM
+    Lx = params.Lx_ratio * params.FWHM
+    Ly = params.Ly_ratio * params.FWHM
     Lz = params.Lz_ratio * params.H
 
-    y_offset = params.runway_length_fraction_FWHM * FWHM
-    L_meters = params.L * FWHM  # Convert dimensionless L to meters
+    y_offset = params.runway_length_fraction_FWHM * params.FWHM
+    L_meters = params.L * params.FWHM  # Convert dimensionless L to meters
     #---
 
     global params = merge(params, Base.@locals)

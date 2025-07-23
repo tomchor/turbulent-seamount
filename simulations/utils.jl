@@ -99,10 +99,10 @@ function smooth_bathymetry(elevation; window_size_x, window_size_y, bc_x="circul
     return smoothed
 end
 
-function smooth_bathymetry(elevation, grid; scale_x, scale_y, bc_x="circular", bc_y="replicate", target_height=nothing)
-    # Get minimum grid spacing in x and y directions
-    Δx_min = minimum_xspacing(grid)
-    Δy_min = minimum_yspacing(grid)
+function smooth_bathymetry(elevation, x, y; scale_x, scale_y, bc_x="circular", bc_y="replicate", target_height=nothing)
+    # Get minimum grid spacing in x and y directions from coordinate arrays
+    Δx_min = minimum(diff(x))
+    Δy_min = minimum(diff(y))
 
     # Convert physical scales to window sizes
     # We use ceil to ensure we have enough points to cover the scale

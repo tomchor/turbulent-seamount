@@ -16,7 +16,7 @@ simname_base = "seamount"
 
 Rossby_numbers = cycler(Ro_h = [0.2])
 Froude_numbers = cycler(Fr_h = [1.25])
-L              = cycler(L = [0, 20, 40, 80, 160, 320])
+L              = cycler(L = [0, 0.125, 0.25, 0.5, 1])
 
 resolutions    = cycler(dz = [2])
 closures       = cycler(closure = [ "DSM",])
@@ -34,7 +34,7 @@ xyza = xyza.squeeze()
 
 Ĥ = xyza.bottom_height.pnmax(("x", "y")) # Actual height of seamount
 q_scale = 5 * xyza.N2_inf * xyza.f_0
-xyia = xyza.sel(z_aac=Ĥ/5, method="nearest").sel(L = [0, 40, 320])
+xyia = xyza.sel(z_aac=Ĥ/5, method="nearest").sel(L = [0, 0.25, 1])
 #---
 
 #+++ Plot

@@ -52,8 +52,8 @@ function parse_command_line_arguments()
             arg_type = Float64
 
         "--L"
-            help = "Scale for smoothing the bathymetry"
-            default = 0meters
+            help = "Scale for smoothing the bathymetry (as a ratio of FWHM)"
+            default = 0
             arg_type = Float64
 
         "--Ro_h"
@@ -128,6 +128,7 @@ let
     Lz = params.Lz_ratio * params.H
 
     y_offset = params.runway_length_fraction_FWHM * FWHM
+    L_meters = params.L * FWHM  # Convert dimensionless L to meters
     #---
 
     global params = merge(params, Base.@locals)
@@ -202,9 +203,9 @@ if params.L == 0
     @warn "No smoothing performed on the bathymetry"
     final_bathymetry_cpu = interpolated_bathymetry_cpu
 else
-    @warn "Smoothing bathymetry with length scale $(params.L)"
+    @warn "Smoothing bathymetry with length scale L=$(params.L) (L_meters=$(params.L_meters))"
     final_bathymetry_cpu = smooth_bathymetry(interpolated_bathymetry_cpu, grid_base,
-                                             scale_x=params.L, scale_y=params.L, bc_x="circular", bc_y="replicate",
+                                             scale_x=params.L_meters, scale_y=params.L_meters, bc_x="circular", bc_y="replicate",
                                              target_height=params.H)
 end
 

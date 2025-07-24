@@ -10,9 +10,9 @@ simname_base = "seamount"
 
 Rossby_numbers = cycler(Ro = [0.2])
 Froude_numbers = cycler(Fr = [1.25])
-L              = cycler(L = [0])
+L              = cycler(L = [0, 20, 40, 80, 160, 320])
 
-resolutions    = cycler(dz = [8])
+resolutions    = cycler(dz = [8, 4, 2])
 
 paramspace = Rossby_numbers * Froude_numbers * L
 configs    = resolutions

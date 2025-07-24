@@ -104,7 +104,7 @@ def big_submission_command(scheduler):
 #---
 
 for modifiers in runs:
-    run_options = aggregate_parameters(modifiers)
+    run_options = aggregate_parameters(modifiers, use_equals=True)
     simname = f"{simname_base}_" + aggregate_parameters(modifiers, sep="_", prefix="")
     print(simname)
 

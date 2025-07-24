@@ -88,7 +88,7 @@ function parse_command_line_arguments()
             arg_type = Float64
 
         "--closure"
-            default = "AMD"
+            default = "DSM"
             arg_type = String
 
         "--runway_length_fraction_FWHM"

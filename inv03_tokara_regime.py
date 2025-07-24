@@ -28,7 +28,7 @@ tokara = open_simulation(path + "xyzi.tokara_res=2_α=0.2_Ro_h=1.4_Fr_h=0.6.nc",
                          open_dataset_kwargs = dict(chunks=dict(y_aca="auto", time="auto")),
                          get_grid = False,
                          )
-depths = np.linspace(0.1, 0.9, 5) * tokara.H 
+depths = np.linspace(0.1, 0.9, 5) * tokara.H
 
 coupled = open_simulation(path + "xyzi.tokara_res=2_α=0.2_Ro_h=0.08_Fr_h=1.25_closure=AMD_bounded=0.nc",
                           use_inertial_periods = True,

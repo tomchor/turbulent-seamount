@@ -7,7 +7,7 @@ using CUDA: has_cuda_gpu
 using PrettyPrinting: pprintln
 using TickTock: tick, tock
 using NCDatasets: NCDataset
-using Interpolations: LinearInterpolation
+using Interpolations: LinearInterpolation, Flat
 
 using Oceananigans
 using Oceananigans.Units
@@ -42,7 +42,7 @@ function parse_command_line_arguments()
             arg_type = Float64
 
         "--dz"
-            default = 8
+            default = 8meters
             arg_type = Int
 
         "--V∞"
@@ -50,12 +50,12 @@ function parse_command_line_arguments()
             arg_type = Float64
 
         "--H"
-            default = 110meters
+            default = 100meters
             arg_type = Float64
 
         "--FWHM"
             help = "Full width at half maximum of the seamount"
-            default = 1000meters
+            default = 300meters
             arg_type = Float64
 
         "--L"
@@ -64,11 +64,11 @@ function parse_command_line_arguments()
             arg_type = Float64
 
         "--Ro_h"
-            default = 1.25
+            default = 0.2
             arg_type = Float64
 
         "--Fr_h"
-            default = 0.2
+            default = 1.25
             arg_type = Float64
 
         "--Lx_ratio"
@@ -144,11 +144,11 @@ params = (; params..., H_ratio = params.H / maximum(smoothed_elevation), # How m
                        FWHM_ratio = params.FWHM / ds_bathymetry.attrib["FWHM"]) # How much do we rescale in the horizontal?
 
 shrunk_smoothed_elevation = smoothed_elevation .* params.H_ratio
-shrunk_x = x .* params.H_ratio
-shrunk_y = y .* params.H_ratio
+shrunk_x = x .* params.FWHM_ratio
+shrunk_y = y .* params.FWHM_ratio
 
 @info "Interpolating bathymetry"
-bathymetry_itp = LinearInterpolation((shrunk_x, shrunk_y), shrunk_smoothed_elevation,  extrapolation_bc=0)
+bathymetry_itp = LinearInterpolation((shrunk_x, shrunk_y), shrunk_smoothed_elevation, extrapolation_bc=Flat())
 #---
 
 #+++ Get domain sizes, z_coords, and secondary simulation parameters

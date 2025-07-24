@@ -12,22 +12,21 @@ from aux02_plotting import letterize, create_mc, mscatter
 #+++ Define directory and simulation name
 if basename(__file__) != "00_run_postproc.py":
     path = "simulations/data/"
-    simname_base = "tokara"
+    simname_base = "seamount"
 
     slopes = cycler(α = [0.2,])
     Rossby_numbers = cycler(Ro_h = [0.08, 0.2, 0.5, 1.25])
     Froude_numbers = cycler(Fr_h = [0.08, 0.2, 0.5, 1.25])
 
     resolutions = cycler(dz = [2,])
-    closures       = cycler(closure = ["CSM"])
 
     paramspace = slopes * Rossby_numbers * Froude_numbers
-    configs    = resolutions * closures
+    configs    = resolutions
 
     runs = paramspace * configs
 #---
 
-simnames_filtered = list(map(lambda run: form_run_names("tokara", run, sep="_", prefix=""), runs))
+simnames_filtered = list(map(lambda run: form_run_names(simname_base, run, sep="_", prefix=""), runs))
 bulk = collect_datasets(simnames_filtered, slice_name="turbstats")
 bulk = bulk.reindex(Ro_h = list(reversed(bulk.Ro_h)))
 bulk = create_mc(bulk)

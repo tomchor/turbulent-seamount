@@ -16,16 +16,14 @@ print("Starting h00 script")
 path = "simulations/data/"
 simname_base = "seamount"
 
-Rossby_numbers = cycler(Ro_h = [0.2])
-Froude_numbers = cycler(Fr_h = [1.25])
+Rossby_numbers = cycler(Ro = [0.2])
+Froude_numbers = cycler(Fr = [1.25])
 L              = cycler(L = [0, 20, 40, 80, 160, 320])
 
 resolutions    = cycler(dz = [8, 4, 2])
-closures       = cycler(closure = ["AMD", "AMC", "CSM", "DSM", "NON"])
-closures       = cycler(closure = ["DSM",])
 
 paramspace = Rossby_numbers * Froude_numbers * L
-configs    = resolutions * closures
+configs    = resolutions
 
 runs = paramspace * configs
 #---

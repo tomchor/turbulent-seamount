@@ -3,7 +3,7 @@ using Oceananigans.Units
 using Oceananigans.Grids: Center, Face
 import Oceananigans.TurbulenceClosures: viscosity, diffusivity
 
-using Oceanostics: KineticEnergyDissipationRate, KineticEnergyForcingTerm,
+using Oceanostics: KineticEnergyDissipationRate, KineticEnergyForcing,
                    ErtelPotentialVorticity, RossbyNumber, RichardsonNumber,
                    TracerVarianceDissipationRate
 
@@ -74,7 +74,7 @@ else
     κ = diffusivity(model, Val(:b))
 end
 
-εₛ = @at CellCenter KineticEnergyForcingTerm(model)
+εₛ = @at CellCenter KineticEnergyForcing(model)
 
 Ri = @at CellCenter RichardsonNumber(model, u, v, w, b)
 Ro = @at CellCenter RossbyNumber(model)

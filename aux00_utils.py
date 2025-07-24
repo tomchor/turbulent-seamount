@@ -283,8 +283,36 @@ def check_simulation_completion(simnames, slice_name="xyza", path="./simulations
 #---
 
 #+++ Aggregate parameters into strings
-def aggregate_parameters(parameters, sep=" ", prefix="--"):
-    written_out_list = [ f"{prefix}{key}={val}" for key, val in parameters.items() ]
+def aggregate_parameters(parameters, sep=" ", prefix="--", use_equals=False):
+    """
+    Aggregate parameters into a string representation.
+
+    Parameters
+    ----------
+    parameters : dict
+        Dictionary of parameters to aggregate
+    sep : str, optional
+        Separator between parameters. Default " "
+    prefix : str, optional
+        Prefix for each parameter. Default "--"
+    use_equals : bool, optional
+        Whether to use equals signs in parameter formatting.
+        If None, will use equals signs when prefix is "--" (command line style),
+        but not when prefix is "" (filename style). Default None.
+
+    Returns
+    -------
+    str
+        Aggregated parameter string
+    """
+    if use_equals is None:
+        # Default behavior: use equals for command line (prefix="--"), not for filenames (prefix="")
+        use_equals = (prefix == "--")
+
+    if use_equals:
+        written_out_list = [ f"{prefix}{key}={val}" for key, val in parameters.items() ]
+    else:
+        written_out_list = [ f"{prefix}{key}{val}" for key, val in parameters.items() ]
     return sep.join(written_out_list)
 
 def form_run_names(superprefix, *args, **kwargs):

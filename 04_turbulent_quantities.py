@@ -38,8 +38,8 @@ for j, config in enumerate(runs):
 
     #+++ Load time-averaged datasets
     print(f"\nLoading time-averaged data for {simname}")
-    xyza = xr.open_dataset(f"data_post/xyza_{simname}.nc", chunks="auto")
-    xyia = xr.open_dataset(f"data_post/xyia_{simname}.nc", chunks="auto")
+    xyza = xr.open_dataset(f"data_post/xyza.{simname}.nc", chunks="auto")
+    xyia = xr.open_dataset(f"data_post/xyia.{simname}.nc", chunks="auto")
     #---
 
     #+++ Normalize Unicode variable names
@@ -63,7 +63,6 @@ for j, config in enumerate(runs):
     xyza["ΔxΔyΔz"] = xyza["Δx_caa"] * xyza["Δy_aca"] * xyza["Δz_aac"]
     xyza["ΔxΔy"] = xyza["Δx_caa"] * xyza["Δy_aca"]
     xyza["ΔyΔz"] = xyza["Δy_aca"] * xyza["Δz_aac"]
-    #---
 
     xyza = drop_faces(xyza, drop_coords=True).where(xyza.distance_condition_10meters, other=np.nan)
     for var in ["ε̄ₚ", "ε̄ₖ", "⟨Ek′⟩ₜ", "⟨w′b′⟩ₜ", "SPR"]:

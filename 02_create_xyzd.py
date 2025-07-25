@@ -6,8 +6,9 @@ import xarray as xr
 from cycler import cycler
 import pynanigans as pn
 from src.aux00_utils import (open_simulation, adjust_times, aggregate_parameters, gather_attributes_as_variables,
-                             condense_velocities, condense_velocity_gradient_tensor, condense_reynolds_stress_tensor)
-from src.aux01_physfuncs import temporal_average
+                             condense_velocities, condense_reynolds_stress_tensor_diagonal, integrate)
+from src.aux01_physfuncs import (temporal_average, get_turbulent_Reynolds_stress_tensor_diagonal,
+                                 get_buoyancy_production_rates, get_turbulent_kinetic_energy)
 from colorama import Fore, Back, Style
 from dask.diagnostics import ProgressBar
 xr.set_options(display_width=140, display_max_rows=30)
@@ -48,27 +49,18 @@ for j, config in enumerate(runs):
                            get_grid = False,
                            open_dataset_kwargs = dict(chunks="auto"),
                            )
-    print(f"Opening {simname} xyii")
-    xyii = open_simulation(path+f"xyii.{simname}.nc",
-                           use_advective_periods = True,
-                           squeeze = True,
-                           load = False,
-                           get_grid = False,
-                           open_dataset_kwargs = dict(chunks="auto"),
-                           )
     #---
 
     #+++ Get datasets ready
     #+++ Get rid of slight misalignment in times
     xyzi = adjust_times(xyzi, round_times=True)
-    xyii = adjust_times(xyii, round_times=True)
     #---
 
     #+++ Preliminary definitions and checks
     print("Doing prelim checks")
     Δt = xyzi.time.diff("time").median()
     Δt_tol = Δt/100
-    if np.all(xyii.time.diff("time") > Δt_tol):
+    if np.all(xyzi.time.diff("time") > Δt_tol):
         print(Fore.GREEN + f"Δt is consistent for {simname}", Style.RESET_ALL)
     else:
         print(f"Δt is inconsistent for {simname}")
@@ -77,50 +69,57 @@ for j, config in enumerate(runs):
         tslice1 = slice(0.0, None, None)
         xyzi = xyzi.sel(time=tslice1)
 
-        xyii = xyii.reindex(dict(time=np.arange(0, xyzi.time[-1]+1e-5, Δt)), method="nearest", tolerance=Δt/Δt_tol)
         xyzi = xyzi.reindex(dict(time=np.arange(0, xyzi.time[-1]+1e-5, Δt)), method="nearest", tolerance=Δt/Δt_tol)
     #---
 
     #+++ Trimming domain
-    t_slice_inclusive = slice(xyii.T_advective_spinup, np.inf) # For snapshots, we want to include t=T_advective_spinup
-    t_slice_exclusive = slice(xyii.T_advective_spinup + 0.01, np.inf) # For time-averaged outputs, we want to exclude t=T_advective_spinup
+    t_slice_inclusive = slice(xyzi.T_advective_spinup, np.inf) # For snapshots, we want to include t=T_advective_spinup
+    t_slice_exclusive = slice(xyzi.T_advective_spinup + 0.01, np.inf) # For time-averaged outputs, we want to exclude t=T_advective_spinup
     x_slice = slice(None, np.inf)
     y_slice = slice(None, xyzi.y_afa[-2] - 2*xyzi.Δy_afa.values.max()) # Cut off last two points
-    z_slice = slice(None, xyzi.z_aaf[-1] - xyii.h_sponge) # Cut off top sponge
+    z_slice = slice(None, xyzi.z_aaf[-1] - xyzi.h_sponge) # Cut off top sponge
 
     xyzi = xyzi.sel(time=t_slice_inclusive, x_caa=x_slice, x_faa=x_slice, y_aca=y_slice, y_afa=y_slice, z_aac=z_slice, z_aaf=z_slice)
-    xyii = xyii.sel(time=t_slice_inclusive, x_caa=x_slice, x_faa=x_slice, y_aca=y_slice, y_afa=y_slice)
+    #---
+
+    #+++ Get mean variablesfor turbulent variables calculation
+    xyzd = xyzi[["u", "v", "w", "uu", "vv", "ww", "b", "wb"]]
+    xyzd = condense_velocities(xyzd, indices=indices)
+    xyzd = condense_reynolds_stress_tensor_diagonal(xyzd, indices=indices)
     #---
 
     #+++ Condense and time-average tensors
-    xyzi = condense_velocities(xyzi, indices=indices)
-    xyzi = condense_velocity_gradient_tensor(xyzi, indices=indices)
-    xyzi = condense_reynolds_stress_tensor(xyzi, indices=indices)
-    xyza = temporal_average(xyzi)
-
-    xyii = condense_velocities(xyii, indices=indices)
-    xyii = condense_velocity_gradient_tensor(xyii, indices=indices)
-    xyii = condense_reynolds_stress_tensor(xyii, indices=indices)
-    xyia = temporal_average(xyii)
+    xyzd = temporal_average(xyzd)
     #---
 
-    #+++ Save xyia
-    outname = f"data_post/xyia_{simname}.nc"
-    xyia = gather_attributes_as_variables(xyia)
+    #+++ Get turbulent variables
+    xyzd = get_turbulent_Reynolds_stress_tensor_diagonal(xyzd)
+    xyzd = get_buoyancy_production_rates(xyzd)
+    xyzd = get_turbulent_kinetic_energy(xyzd)
+    #---
+
+    #+++ Volume-average/integrate results so far
+    xyzd["ΔxΔyΔz"] = xyzi["Δx_caa"] * xyzi["Δy_aca"] * xyzi["Δz_aac"]
+    xyzd["ΔxΔy"] = xyzi["Δx_caa"] * xyzi["Δy_aca"]
+    xyzd["ΔxΔz"] = xyzi["Δx_caa"] * xyzi["Δz_aac"]
+    xyzd["ΔyΔz"] = xyzi["Δy_aca"] * xyzi["Δz_aac"]
+
+    for var in ["⟨Ek′⟩ₜ", "⟨w′b′⟩ₜ"]:
+        int_buf = f"∭⁵{var}dV"
+        masked_var = xyzd[var].where(xyzi.distance_condition_10meters)
+        xyzd[int_buf] = integrate(masked_var, dV=xyzd.ΔxΔyΔz)
+    #---
+
+    #+++ Calculate flux of turbulent kinetic energy out of the domain
+    xyzd["V∞∬⟨Ek′⟩ₜdxdz"] = xyzd.attrs["V∞"] * integrate(xyzd["⟨Ek′⟩ₜ"], dV=xyzd.ΔxΔz, dims=["x", "z"]).pnsel(y=np.inf, method="nearest")
+    #---
+
+    #+++ Save xyzd
+    outname = f"data_post/xyzd.{simname}.nc"
+    xyzd = gather_attributes_as_variables(xyzd)
     with ProgressBar(minimum=5, dt=5):
         print(f"Saving results to {outname}...")
-        xyia.to_netcdf(outname)
+        xyzd.to_netcdf(outname)
         print("Done!\n")
-    xyia.close()
-    #---
-
-    #+++ Save xyza
-    if write_xyza:
-        outname = f"data_post/xyza_{simname}.nc"
-        xyza = gather_attributes_as_variables(xyza)
-        with ProgressBar(minimum=5, dt=5):
-            print(f"Saving results to {outname}...")
-            xyza.to_netcdf(outname)
-            print("Done!\n")
-        xyza.close()
+    xyzd.close()
     #---

@@ -72,7 +72,7 @@ for j, config in enumerate(runs):
         xyzi = xyzi.reindex(dict(time=np.arange(0, xyzi.time[-1]+1e-5, Δt)), method="nearest", tolerance=Δt/Δt_tol)
     #---
 
-    #+++ Trimming domain
+    #+++ Trim domain
     t_slice_inclusive = slice(xyzi.T_advective_spinup, np.inf) # For snapshots, we want to include t=T_advective_spinup
     t_slice_exclusive = slice(xyzi.T_advective_spinup + 0.01, np.inf) # For time-averaged outputs, we want to exclude t=T_advective_spinup
     x_slice = slice(None, np.inf)
@@ -114,7 +114,9 @@ for j, config in enumerate(runs):
     xyzd["V∞∬⟨Ek′⟩ₜdxdz"] = xyzd.attrs["V∞"] * integrate(xyzd["⟨Ek′⟩ₜ"], dV=xyzd.ΔxΔz, dims=["x", "z"]).pnsel(y=np.inf, method="nearest")
     #---
 
-    #+++ Save xyzd
+    #+++ Drop variables that are not needed and save xyzd
+    xyzd = xyzd.drop(["ūᵢ", "b̄", "⟨uᵢuᵢ⟩ₜ", "⟨wb⟩ₜ"])
+
     outname = f"data_post/xyzd.{simname}.nc"
     xyzd = gather_attributes_as_variables(xyzd)
     with ProgressBar(minimum=5, dt=5):

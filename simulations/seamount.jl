@@ -126,24 +126,24 @@ ds_bathymetry = NCDataset(joinpath(@__DIR__, "../bathymetry/balanus-bathymetry-p
 x = ds_bathymetry["x"]
 y = ds_bathymetry["y"]
 
+params = (; params..., H_ratio = params.H / maximum(ds_bathymetry["periodic_elevation"]), # How much do we rescale in the vertical?
+                       FWHM_ratio = params.FWHM / ds_bathymetry.attrib["FWHM"]) # How much do we rescale in the horizontal?
+shrunk_elevation = ds_bathymetry["periodic_elevation"] .* params.H_ratio # Rescale the elevation to the new height
+
 if params.L == 0
     @warn "No smoothing performed on the bathymetry"
-    smoothed_elevation = ds_bathymetry["periodic_elevation"]
+    shrunk_smoothed_elevation = shrunk_elevation
 else
     @warn "Smoothing bathymetry with length scale L/FWHM=$(params.L)"
-    smoothed_elevation = smooth_bathymetry(ds_bathymetry["periodic_elevation"], x, y;
-                                           scale_x = params.L * ds_bathymetry.attrib["FWHM"], # Based on the data's FWHM
-                                           scale_y = params.L * ds_bathymetry.attrib["FWHM"], # Based on the data's FWHM
-                                           bc_x="circular",
-                                           bc_y="replicate",)
+    shrunk_smoothed_elevation = smooth_bathymetry(shrunk_elevation, x, y;
+                                                  scale_x = params.L * ds_bathymetry.attrib["FWHM"], # Based on the data's FWHM
+                                                  scale_y = params.L * ds_bathymetry.attrib["FWHM"], # Based on the data's FWHM
+                                                  bc_x="circular",
+                                                  bc_y="replicate",)
 end
-# There has been no rescaling of the bathymetry up until this point.
-# This is where we do it:
 
-params = (; params..., H_ratio = params.H / maximum(smoothed_elevation), # How much do we rescale in the vertical?
-                       FWHM_ratio = params.FWHM / ds_bathymetry.attrib["FWHM"]) # How much do we rescale in the horizontal?
-
-shrunk_smoothed_elevation = smoothed_elevation .* params.H_ratio
+# Rescale the horizontal dimensions to the new FWHM.
+# Note that the smoothed bathymetry is likely a bit shorter than the original, and we do not correct for that on purpose.
 shrunk_x = x .* params.FWHM_ratio
 shrunk_y = y .* params.FWHM_ratio
 

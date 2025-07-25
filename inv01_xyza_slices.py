@@ -27,7 +27,7 @@ runs = paramspace * configs
 #---
 
 #+++ Read and pre-process datasets
-xyza = merge_datasets(runs, base_name=f"xyza_{simname_base}", verbose=True, add_min_spacings=False)
+xyza = merge_datasets(runs, base_name=f"xyza.{simname_base}", verbose=True, add_min_spacings=False)
 xyza = xyza.reindex(Ro_h = list(reversed(xyza.Ro_h)))
 xyza = xyza.squeeze()
 

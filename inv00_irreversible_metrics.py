@@ -25,7 +25,7 @@ configs    = resolutions
 runs = paramspace * configs
 #---
 
-aaaa = merge_datasets(runs, base_name=f"aaaa_{simname_base}", verbose=True, add_min_spacings=False)
+aaaa = merge_datasets(runs, base_name=f"aaaa.{simname_base}", verbose=True, add_min_spacings=False)
 aaaa = aaaa.reindex(Ro_h = list(reversed(aaaa.Ro_h)))
 
 fit_filename = f'data_post/bathymetry_powerlaw_fits_{simname_base}.nc'

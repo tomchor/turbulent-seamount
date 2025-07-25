@@ -7,11 +7,11 @@ import xarray as xr
 from cycler import cycler
 from matplotlib import pyplot as plt
 from matplotlib.colors import LogNorm
-from src.aux00_utils import collect_datasets, merge_datasets
-from src.aux02_plotting import letterize, create_mc, mscatter
+from ..src.aux00_utils import collect_datasets, merge_datasets
+from ..src.aux02_plotting import letterize, create_mc, mscatter
 
 #+++ Define directory and simulation name
-path = "simulations/data/"
+path = "../simulations/data/"
 simname_base = "seamount"
 
 Rossby_numbers = cycler(Ro_h = [0.2, 1.25])

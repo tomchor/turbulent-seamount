@@ -5,10 +5,10 @@ import pynanigans as pn
 import xarray as xr
 from cycler import cycler
 from matplotlib import pyplot as plt
-from src.aux00_utils import open_simulation
+from ..src.aux00_utils import open_simulation
 from cmocean import cm
 
-path = "simulations/data/"
+path = "../simulations/data/"
 #iyz = open_simulation(path + "iyz.tokara_res=2_α=0.2_Ro_h=1.4_Fr_h=0.6.nc",
 #                      use_inertial_periods = True,
 #                      topology = "PNN",

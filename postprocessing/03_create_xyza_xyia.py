@@ -5,10 +5,10 @@ import numpy as np
 import xarray as xr
 from cycler import cycler
 import pynanigans as pn
-from src.aux00_utils import (open_simulation, adjust_times, aggregate_parameters, gather_attributes_as_variables,
+from ..src.aux00_utils import (open_simulation, adjust_times, aggregate_parameters, gather_attributes_as_variables,
                              condense_velocities, condense_velocity_gradient_tensor, condense_reynolds_stress_tensor,
                              condense_reynolds_stress_tensor_diagonal)
-from src.aux01_physfuncs import temporal_average
+from ..src.aux01_physfuncs import temporal_average
 from colorama import Fore, Back, Style
 from dask.diagnostics import ProgressBar
 xr.set_options(display_width=140, display_max_rows=30)
@@ -17,7 +17,7 @@ print("Starting xyza and xyia dataset creation script")
 
 #+++ Define directory and simulation name
 if basename(__file__) != "00_run_postproc.py":
-    path = "simulations/data/"
+    path = "../simulations/data/"
     simname_base = "seamount"
 
     Rossby_numbers = cycler(Ro_h = [0.2])

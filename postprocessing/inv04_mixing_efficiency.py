@@ -6,11 +6,11 @@ import pynanigans as pn
 import xarray as xr
 from cycler import cycler
 from matplotlib import pyplot as plt
-from src.aux00_utils import merge_datasets, condense
-from src.aux02_plotting import letterize, create_mc, mscatter
+from ..src.aux00_utils import merge_datasets, condense
+from ..src.aux02_plotting import letterize, create_mc, mscatter
 
 #+++ Define directory and simulation name
-path = "simulations/data/"
+path = "../simulations/data/"
 simname_base = "seamount"
 
 Rossby_numbers = cycler(Ro_h = [0.2])

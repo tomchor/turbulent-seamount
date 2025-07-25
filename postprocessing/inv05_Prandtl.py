@@ -7,7 +7,7 @@ import xarray as xr
 from matplotlib import pyplot as plt
 from matplotlib.colors import LogNorm
 
-path = "simulations/data/"
+path = "../simulations/data/"
 simname_base = "seamount"
 
 #xyia = xr.open_dataset(path + f"xyia.{simname_base}_α=0.05_Ro_h=0.5_Fr_h=0.2_res=2_closure=AMD_bounded=0.nc", decode_times=False).squeeze()

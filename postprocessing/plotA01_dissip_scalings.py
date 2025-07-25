@@ -6,12 +6,12 @@ import pynanigans as pn
 import xarray as xr
 from cycler import cycler
 from matplotlib import pyplot as plt
-from src.aux00_utils import collect_datasets, form_run_names
-from src.aux02_plotting import letterize, create_mc, mscatter
+from ..src.aux00_utils import collect_datasets, form_run_names
+from ..src.aux02_plotting import letterize, create_mc, mscatter
 
 #+++ Define directory and simulation name
 if basename(__file__) != "00_run_postproc.py":
-    path = "simulations/data/"
+    path = "../simulations/data/"
     simname_base = "seamount"
 
     slopes = cycler(α = [0.2,])
@@ -90,6 +90,6 @@ for ax in axesf:
     ax.set_xlabel("$S_h$")
 
 letterize(axesf, x=0.05, y=0.9, fontsize=14)
-fig.savefig(f"figures/dissip_scalings.png")
+fig.savefig(f"../figures/dissip_scalings.png")
 #---
 

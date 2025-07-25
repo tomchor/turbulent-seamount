@@ -16,7 +16,7 @@ simname_base = "seamount"
 
 Rossby_numbers = cycler(Ro_h = [0.2])
 Froude_numbers = cycler(Fr_h = [1.25])
-L              = cycler(L = [0, 20, 40, 80, 160, 320])
+L              = cycler(L = [0, 0.05, 0.1, 0.2, 0.4, 0.8])
 
 resolutions    = cycler(dz = [2])
 
@@ -27,13 +27,13 @@ runs = paramspace * configs
 #---
 
 #+++ Read and pre-process datasets
-xyza = merge_datasets(runs, base_name=f"xyza_{simname_base}", verbose=True, add_min_spacings=False)
+xyza = merge_datasets(runs, base_name=f"xyza.{simname_base}", verbose=True, add_min_spacings=False)
 xyza = xyza.reindex(Ro_h = list(reversed(xyza.Ro_h)))
 xyza = xyza.squeeze()
 
 Ĥ = xyza.bottom_height.pnmax(("x", "y")) # Actual height of seamount
 q_scale = 5 * xyza.N2_inf * xyza.f_0
-xyia = xyza.sel(z_aac=Ĥ/5, method="nearest").sel(L = [0, 40, 320])
+xyia = xyza.sel(z_aac=Ĥ/5, method="nearest").sel(L = [0, 0.25, 1])
 #---
 
 #+++ Plot

@@ -15,7 +15,7 @@ simname_base = "seamount"
 
 Rossby_numbers = cycler(Ro_h = [0.2])
 Froude_numbers = cycler(Fr_h = [1.25])
-L              = cycler(L = [0, 20, 40, 80, 160, 320])
+L              = cycler(L = [0, 0.05, 0.1, 0.2, 0.4, 0.8])
 
 resolutions    = cycler(dz = [8, 4, 2])
 
@@ -25,7 +25,7 @@ configs    = resolutions
 runs = paramspace * configs
 #---
 
-aaaa = merge_datasets(runs, base_name=f"aaaa_{simname_base}", verbose=True, add_min_spacings=False)
+aaaa = merge_datasets(runs, base_name=f"aaaa.{simname_base}", verbose=True, add_min_spacings=False)
 aaaa = aaaa.reindex(Ro_h = list(reversed(aaaa.Ro_h)))
 
 fit_filename = f'data_post/bathymetry_powerlaw_fits_{simname_base}.nc'
@@ -34,9 +34,9 @@ aaaa = xr.merge([aaaa, ds_fit])
 
 #+++ Define new variables
 #+++ Condense buffers
-distances = [5, 10, 20]
-aaaa = condense(aaaa, ["∭⁵ε̄ₚdV", "∭¹⁰ε̄ₚdV", "∭²⁰ε̄ₚdV"], "∭ᵇε̄ₚdV", dimname="buffer", indices=distances)
-aaaa = condense(aaaa, ["∭⁵ε̄ₖdV", "∭¹⁰ε̄ₖdV", "∭²⁰ε̄ₖdV"], "∭ᵇε̄ₖdV", dimname="buffer", indices=distances)
+distances = [5, 10]
+aaaa = condense(aaaa, ["∭⁵ε̄ₚdV", "∭¹⁰ε̄ₚdV"], "∭ᵇε̄ₚdV", dimname="buffer", indices=distances)
+aaaa = condense(aaaa, ["∭⁵ε̄ₖdV", "∭¹⁰ε̄ₖdV"], "∭ᵇε̄ₖdV", dimname="buffer", indices=distances)
 #---
 
 aaaa["γ"] = aaaa["∭ᵇε̄ₚdV"] / (aaaa["∭ᵇε̄ₚdV"] + aaaa["∭ᵇε̄ₖdV"])
@@ -76,5 +76,5 @@ figs.append(plt.gcf())
 for fig in figs:
     for ax in fig.axes[:1]:
         ax.grid(True)
-        ax.axvline(x=aaaa.FWHM, color="black", linestyle="--", label="Seamount horz scale FWHM")
+        ax.axvline(x=1, color="black", linestyle="--", label="Seamount horz scale FWHM")
     ax.legend(loc="upper right")

@@ -1,4 +1,4 @@
-name = "seamount"
+name = "turbulent-seamount"
 authors = ["tomchor <tomaschor@gmail.com>"]
 
 [deps]

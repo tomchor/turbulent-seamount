@@ -7,13 +7,15 @@ using CUDA: has_cuda_gpu
 using PrettyPrinting: pprintln
 using TickTock: tick, tock
 using NCDatasets: NCDataset
-using Interpolations: LinearInterpolation
+using Interpolations: LinearInterpolation, Flat
 
 using Oceananigans
 using Oceananigans.Units
 using Oceananigans: on_architecture
 using Oceananigans.TurbulenceClosures: Smagorinsky, DynamicCoefficient, LagrangianAveraging, DynamicSmagorinsky
 using Oceananigans.OutputWriters: write_output!
+
+include("$(@__DIR__)/utils.jl")
 
 #+++ Parse inital arguments
 "Returns a dictionary of command line arguments."
@@ -40,7 +42,7 @@ function parse_command_line_arguments()
             arg_type = Float64
 
         "--dz"
-            default = 8
+            default = 8meters
             arg_type = Int
 
         "--V∞"
@@ -48,20 +50,25 @@ function parse_command_line_arguments()
             arg_type = Float64
 
         "--H"
-            default = 110meters
+            default = 100meters
+            arg_type = Float64
+
+        "--FWHM"
+            help = "Full width at half maximum of the seamount"
+            default = 300meters
             arg_type = Float64
 
         "--L"
-            help = "Scale for smoothing the bathymetry"
-            default = 0meters
+            help = "Scale for smoothing the bathymetry (as a ratio of FWHM)"
+            default = 0.2
             arg_type = Float64
 
         "--Ro_h"
-            default = 1.25
+            default = 0.2
             arg_type = Float64
 
         "--Fr_h"
-            default = 0.2
+            default = 1.25
             arg_type = Float64
 
         "--Lx_ratio"
@@ -114,28 +121,53 @@ end
 @info "Starting simulation $(params.simname) with a dividing factor of $(params.dz) and a $arch architecture\n"
 #---
 
-#+++ Get bathymetry file, z_coords, and secondary simulation parameters
+#+++ Create interpolant for (and maybe smooth) bathymetry
 ds_bathymetry = NCDataset(joinpath(@__DIR__, "../bathymetry/balanus-bathymetry-preprocessed.nc"))
+x = ds_bathymetry["x"]
+y = ds_bathymetry["y"]
 
+params = (; params..., H_ratio = params.H / maximum(ds_bathymetry["periodic_elevation"]), # How much do we rescale in the vertical?
+                       FWHM_ratio = params.FWHM / ds_bathymetry.attrib["FWHM"]) # How much do we rescale in the horizontal?
+shrunk_elevation = ds_bathymetry["periodic_elevation"] .* params.H_ratio # Rescale the elevation to the new height
+
+if params.L == 0
+    @warn "No smoothing performed on the bathymetry"
+    shrunk_smoothed_elevation = shrunk_elevation
+else
+    @warn "Smoothing bathymetry with length scale L/FWHM=$(params.L)"
+    shrunk_smoothed_elevation = smooth_bathymetry(shrunk_elevation, x, y;
+                                                  scale_x = params.L * ds_bathymetry.attrib["FWHM"], # Based on the data's FWHM
+                                                  scale_y = params.L * ds_bathymetry.attrib["FWHM"], # Based on the data's FWHM
+                                                  bc_x="circular",
+                                                  bc_y="replicate",)
+end
+
+# Rescale the horizontal dimensions to the new FWHM.
+# Note that the smoothed bathymetry is likely a bit shorter than the original, and we do not correct for that on purpose.
+shrunk_x = x .* params.FWHM_ratio
+shrunk_y = y .* params.FWHM_ratio
+
+@info "Interpolating bathymetry"
+bathymetry_itp = LinearInterpolation((shrunk_x, shrunk_y), shrunk_smoothed_elevation, extrapolation_bc=Flat())
+#---
+
+#+++ Get domain sizes, z_coords, and secondary simulation parameters
 let
     #+++ Geometry
-    H_ratio = params.H / ds_bathymetry.attrib["H"]
-    FWHM = ds_bathymetry.attrib["FWHM"] * H_ratio
-    α = params.H / FWHM
+    α = params.H / params.FWHM
 
-    Lx = params.Lx_ratio * FWHM
-    Ly = params.Ly_ratio * FWHM
+    Lx = params.Lx_ratio * params.FWHM
+    Ly = params.Ly_ratio * params.FWHM
     Lz = params.Lz_ratio * params.H
 
-    y_offset = params.runway_length_fraction_FWHM * FWHM
+    y_offset = params.runway_length_fraction_FWHM * params.FWHM
+    L_meters = params.L * params.FWHM  # Convert dimensionless L to meters
     #---
 
     global params = merge(params, Base.@locals)
 end
 
-include("$(@__DIR__)/utils.jl")
-z_coords = create_optimal_z_coordinates(params.dz, params.H, params.Lz, (2, 3, 5),
-                                        initial_stretching_factor = 1.05)
+z_coords = create_optimal_z_coordinates(params.dz, params.H, params.Lz, (2, 3, 5), initial_stretching_factor = 1.05)
 
 let
     #+++ Simulation size
@@ -170,6 +202,7 @@ let
 
     global params = merge(params, Base.@locals)
 end
+
 pprintln(params)
 #---
 
@@ -185,34 +218,13 @@ grid_base = RectilinearGrid(arch; topology = (Periodic, Bounded, Bounded),
 params = (; params..., Δz_min = minimum_zspacing(grid_base))
 #---
 
-#+++ Interpolate (and maybe smooth) bathymetry
-shrunk_elevation = ds_bathymetry["periodic_elevation"] * params.H_ratio
-shrunk_x = ds_bathymetry["x"] * params.H_ratio
-shrunk_y = ds_bathymetry["y"] * params.H_ratio
-
-@info "Interpolating bathymetry"
-itp = LinearInterpolation((shrunk_x, shrunk_y), shrunk_elevation,  extrapolation_bc=0)
-
+#+++ Interpolate bathymetry and create immersed boundary grid
 x_grid = xnodes(grid_base, Center(), Center(), Center())
 y_grid = ynodes(grid_base, Center(), Center(), Center())
-#interpolated_bathymetry_cpu = itp.(reshape(x_grid, (grid_base.Nx, 1)), reshape(y_grid, (1, grid_base.Ny)))
-interpolated_bathymetry_cpu = itp.(reshape(y_grid, (1, grid_base.Ny)), reshape(x_grid, (grid_base.Nx, 1)))
+interpolated_bathymetry_cpu = bathymetry_itp.(reshape(x_grid, (grid_base.Nx, 1)), reshape(y_grid, (1, grid_base.Ny)))
+interpolated_bathymetry = on_architecture(grid_base.architecture, interpolated_bathymetry_cpu)
 
-if params.L == 0
-    @warn "No smoothing performed on the bathymetry"
-    final_bathymetry_cpu = interpolated_bathymetry_cpu
-else
-    @warn "Smoothing bathymetry with length scale $(params.L)"
-    final_bathymetry_cpu = smooth_bathymetry(interpolated_bathymetry_cpu, grid_base, scale_x=params.L, scale_y=params.L, bc_x="circular", bc_y="replicate")
-end
-
-final_bathymetry = on_architecture(grid_base.architecture, final_bathymetry_cpu)
-#---
-
-#+++ Immersed boundary
-PCB = GridFittedBottom(final_bathymetry)
-
-grid = ImmersedBoundaryGrid(grid_base, PCB)
+grid = ImmersedBoundaryGrid(grid_base, GridFittedBottom(interpolated_bathymetry))
 @info grid
 #---
 

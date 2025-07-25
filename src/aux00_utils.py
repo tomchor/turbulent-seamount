@@ -160,6 +160,10 @@ def condense_reynolds_stress_tensor(ds, indices=[1, 2, 3]):
     ds = condense(ds, ["wu",   "wv",   "ww"],   "u₃uᵢ", dimname="i", indices=indices)
     ds = condense(ds, ["u₁uᵢ", "u₂uᵢ", "u₃uᵢ"], "uⱼuᵢ", dimname="j", indices=indices)
     return ds
+
+def condense_reynolds_stress_tensor_diagonal(ds, indices=[1, 2, 3]):
+    """Condense Reynolds stress components into tensor form"""
+    return condense(ds, ["uu", "vv", "ww"], "uᵢuᵢ", dimname="i", indices=indices)
 #---
 
 #+++ Merge datasets into one

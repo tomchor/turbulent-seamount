@@ -110,7 +110,7 @@ def get_orientation(ds):
 
 #+++ Define seamount-plotting function
 def fill_seamount_yz(ax, ds, color="silver"):
-    from aux01_physfuncs import seamount_curve
+    from .aux01_physfuncs import seamount_curve
     ax.fill_between(ds.y_aca, seamount_curve(ds.x_caa, ds.y_aca, ds), color=color)
     return
 

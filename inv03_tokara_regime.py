@@ -5,7 +5,7 @@ import pynanigans as pn
 import xarray as xr
 from cycler import cycler
 from matplotlib import pyplot as plt
-from aux00_utils import open_simulation
+from src.aux00_utils import open_simulation
 from cmocean import cm
 
 path = "simulations/data/"

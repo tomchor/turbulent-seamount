@@ -5,8 +5,8 @@ import numpy as np
 import xarray as xr
 from cycler import cycler
 import pynanigans as pn
-from aux00_utils import open_simulation, adjust_times, aggregate_parameters
-from aux02_plotting import RdBu_r, solar, balance, inferno
+from src.aux00_utils import open_simulation, adjust_times, aggregate_parameters
+from src.aux02_plotting import RdBu_r, solar, balance, inferno
 from matplotlib import pyplot as plt
 from matplotlib.colors import LogNorm
 xr.set_options(display_width=140, display_max_rows=30)
@@ -17,8 +17,8 @@ if basename(__file__) != "00_run_postproc.py":
     path = "simulations/data/"
     simname_base = "seamount"
 
-    Rossby_numbers = cycler(Ro = [0.2,])
-    Froude_numbers = cycler(Fr = [1.25])
+    Rossby_numbers = cycler(Ro_h = [0.2,])
+    Froude_numbers = cycler(Fr_h = [1.25])
     L              = cycler(L = [0, 300])
 
     resolutions    = cycler(dz = [1,])

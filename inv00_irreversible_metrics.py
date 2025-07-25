@@ -6,7 +6,7 @@ import pynanigans as pn
 import xarray as xr
 from cycler import cycler
 from matplotlib import pyplot as plt
-from aux00_utils import merge_datasets, condense
+from src.aux00_utils import merge_datasets, condense
 plt.rcParams["figure.constrained_layout.use"] = True
 
 #+++ Define directory and simulation name
@@ -18,10 +18,9 @@ Froude_numbers = cycler(Fr_h = [1.25])
 L              = cycler(L = [0, 20, 40, 80, 160, 320])
 
 resolutions    = cycler(dz = [8, 4, 2])
-closures       = cycler(closure = ["DSM"])
 
 paramspace = Rossby_numbers * Froude_numbers * L
-configs    = resolutions * closures
+configs    = resolutions
 
 runs = paramspace * configs
 #---

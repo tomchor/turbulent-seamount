@@ -5,8 +5,8 @@ import numpy as np
 import xarray as xr
 from cycler import cycler
 import pynanigans as pn
-from aux00_utils import open_simulation, aggregate_parameters, gather_attributes_as_variables
-from aux01_physfuncs import temporal_average
+from src.aux00_utils import open_simulation, aggregate_parameters, gather_attributes_as_variables
+from src.aux01_physfuncs import temporal_average
 from dask.diagnostics import ProgressBar
 xr.set_options(display_width=140, display_max_rows=30)
 π = np.pi
@@ -18,8 +18,8 @@ if basename(__file__) != "00_run_postproc.py":
     path = "simulations/data/"
     simname_base = "seamount"
 
-    Rossby_numbers = cycler(Ro = [0.2])
-    Froude_numbers = cycler(Fr = [1.25])
+    Rossby_numbers = cycler(Ro_h = [0.2])
+    Froude_numbers = cycler(Fr_h = [1.25])
     L              = cycler(L = [0])
 
     resolutions    = cycler(dz = [8])

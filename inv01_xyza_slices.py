@@ -7,7 +7,7 @@ import xarray as xr
 from cycler import cycler
 from matplotlib import pyplot as plt
 from matplotlib.colors import LogNorm
-from aux00_utils import merge_datasets
+from src.aux00_utils import merge_datasets
 plt.rcParams["figure.constrained_layout.use"] = True
 
 #+++ Define directory and simulation name
@@ -19,10 +19,9 @@ Froude_numbers = cycler(Fr_h = [1.25])
 L              = cycler(L = [0, 0.05, 0.1, 0.2, 0.4, 0.8])
 
 resolutions    = cycler(dz = [2])
-closures       = cycler(closure = [ "DSM",])
 
 paramspace = Rossby_numbers * Froude_numbers * L
-configs    = resolutions * closures
+configs    = resolutions
 
 runs = paramspace * configs
 #---

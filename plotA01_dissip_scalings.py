@@ -6,8 +6,8 @@ import pynanigans as pn
 import xarray as xr
 from cycler import cycler
 from matplotlib import pyplot as plt
-from aux00_utils import collect_datasets, form_run_names
-from aux02_plotting import letterize, create_mc, mscatter
+from src.aux00_utils import collect_datasets, form_run_names
+from src.aux02_plotting import letterize, create_mc, mscatter
 
 #+++ Define directory and simulation name
 if basename(__file__) != "00_run_postproc.py":

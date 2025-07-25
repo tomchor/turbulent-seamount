@@ -5,8 +5,8 @@ import numpy as np
 import xarray as xr
 import pynanigans as pn
 from cycler import cycler
-from aux00_utils import check_simulation_completion, aggregate_parameters
-from aux01_physfuncs import get_topography_masks
+from src.aux00_utils import check_simulation_completion, aggregate_parameters
+from src.aux01_physfuncs import get_topography_masks
 from colorama import Fore, Back, Style
 from dask.diagnostics import ProgressBar
 

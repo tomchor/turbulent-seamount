@@ -7,8 +7,7 @@ from cycler import cycler
 import pynanigans as pn
 from src.aux00_utils import (aggregate_parameters, normalize_unicode_names_in_dataset, integrate,
                              drop_faces, mask_immersed, gather_attributes_as_variables)
-from src.aux01_physfuncs import (get_turbulent_Reynolds_stress_tensor, get_shear_production_rates,
-                                 get_buoyancy_production_rates, get_turbulent_kinetic_energy)
+from src.aux01_physfuncs import (get_turbulent_Reynolds_stress_tensor, get_shear_production_rates)
 from colorama import Fore, Back, Style
 from dask.diagnostics.progress import ProgressBar
 xr.set_options(display_width=140, display_max_rows=30)
@@ -40,6 +39,7 @@ for j, config in enumerate(runs):
     print(f"\nLoading time-averaged data for {simname}")
     xyza = xr.open_dataset(f"data_post/xyza.{simname}.nc", chunks="auto")
     xyia = xr.open_dataset(f"data_post/xyia.{simname}.nc", chunks="auto")
+    xyzd = xr.open_dataset(f"data_post/xyzd.{simname}.nc", chunks="auto")
     #---
 
     #+++ Normalize Unicode variable names
@@ -47,16 +47,12 @@ for j, config in enumerate(runs):
     xyia = normalize_unicode_names_in_dataset(xyia)
     #---
 
-    #+++ Get turbulent variables
+    #+++ Get turbulent variables (only those not already calculated in xyzd)
     xyza = get_turbulent_Reynolds_stress_tensor(xyza)
     xyza = get_shear_production_rates(xyza)
-    xyza = get_buoyancy_production_rates(xyza)
-    xyza = get_turbulent_kinetic_energy(xyza)
 
     xyia = get_turbulent_Reynolds_stress_tensor(xyia)
     xyia = get_shear_production_rates(xyia)
-    xyia = get_buoyancy_production_rates(xyia)
-    xyia = get_turbulent_kinetic_energy(xyia)
     #---
 
     #+++ Volume-average/integrate results so far
@@ -65,7 +61,7 @@ for j, config in enumerate(runs):
     xyza["ΔyΔz"] = xyza["Δy_aca"] * xyza["Δz_aac"]
 
     xyza = drop_faces(xyza, drop_coords=True).where(xyza.distance_condition_10meters, other=np.nan)
-    for var in ["ε̄ₚ", "ε̄ₖ", "⟨Ek′⟩ₜ", "⟨w′b′⟩ₜ", "SPR"]:
+    for var in ["ε̄ₚ", "ε̄ₖ", "SPR"]:
         int_buf = f"∭⁵{var}dV"
         xyza[int_buf] = integrate(xyza[var], dV=xyza.ΔxΔyΔz)
 
@@ -80,11 +76,12 @@ for j, config in enumerate(runs):
     bulk = xr.Dataset()
     bulk.attrs = xyza.attrs
 
-    bulk["∭⁵⟨Ek′⟩ₜdV"]  = xyza["∭⁵⟨Ek′⟩ₜdV"]
-    bulk["∭⁵⟨w′b′⟩ₜdV"] = xyza["∭⁵⟨w′b′⟩ₜdV"]
+    # Use pre-calculated values from xyzd dataset
+    bulk["∭⁵⟨Ek′⟩ₜdV"]  = xyzd["∭⁵⟨Ek′⟩ₜdV"]
+    bulk["∭⁵⟨w′b′⟩ₜdV"] = xyzd["∭⁵⟨w′b′⟩ₜdV"]
     bulk["∭⁵SPRdxdy"]   = xyza["∭⁵SPRdV"]
 
-    bulk["V∞∬⟨Ek′⟩ₜdxdz"] = xyza.attrs["V∞"] * integrate(xyza["⟨Ek′⟩ₜ"], dV=xyza.Δx_caa*xyza.Δz_aac, dims=["x", "z"]).pnsel(y=np.inf, method="nearest")
+    bulk["V∞∬⟨Ek′⟩ₜdxdz"] = xyzd["V∞∬⟨Ek′⟩ₜdxdz"]
 
     bulk["∭ᵋε̄ₖdxdy"] = xyza["∭ᵋε̄ₖdxdy"]
     bulk["⟨ε̄ₖ⟩ᵋ"]    = xyza["∭ᵋε̄ₖdxdy"] / xyza["∭ᵋ1dxdy"]

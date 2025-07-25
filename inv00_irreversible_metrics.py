@@ -34,9 +34,9 @@ aaaa = xr.merge([aaaa, ds_fit])
 
 #+++ Define new variables
 #+++ Condense buffers
-distances = [5, 10, 20]
-aaaa = condense(aaaa, ["∭⁵ε̄ₚdV", "∭¹⁰ε̄ₚdV", "∭²⁰ε̄ₚdV"], "∭ᵇε̄ₚdV", dimname="buffer", indices=distances)
-aaaa = condense(aaaa, ["∭⁵ε̄ₖdV", "∭¹⁰ε̄ₖdV", "∭²⁰ε̄ₖdV"], "∭ᵇε̄ₖdV", dimname="buffer", indices=distances)
+distances = [5, 10]
+aaaa = condense(aaaa, ["∭⁵ε̄ₚdV", "∭¹⁰ε̄ₚdV"], "∭ᵇε̄ₚdV", dimname="buffer", indices=distances)
+aaaa = condense(aaaa, ["∭⁵ε̄ₖdV", "∭¹⁰ε̄ₖdV"], "∭ᵇε̄ₖdV", dimname="buffer", indices=distances)
 #---
 
 aaaa["γ"] = aaaa["∭ᵇε̄ₚdV"] / (aaaa["∭ᵇε̄ₚdV"] + aaaa["∭ᵇε̄ₖdV"])
@@ -76,5 +76,5 @@ figs.append(plt.gcf())
 for fig in figs:
     for ax in fig.axes[:1]:
         ax.grid(True)
-        ax.axvline(x=aaaa.FWHM, color="black", linestyle="--", label="Seamount horz scale FWHM")
+        ax.axvline(x=1, color="black", linestyle="--", label="Seamount horz scale FWHM")
     ax.legend(loc="upper right")

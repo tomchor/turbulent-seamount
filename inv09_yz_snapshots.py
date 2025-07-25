@@ -69,7 +69,7 @@ shear_opts = dict(vmin=0, vmax=0.03, cmap=solar)
 εp_opts = dict(norm=LogNorm(clip=True), vmin=1e-8, vmax=1e-6, cmap=inferno)
 εk_opts = dict(norm=LogNorm(clip=True), vmin=1e-6, vmax=1e-4, cmap=inferno)
 
-distances = {"⁵":5, "¹⁰":10, "²⁰":20}
+distances = {"⁵":5, "¹⁰":10}
 for distance, distance_value in distances.items():
     fig, axes = plt.subplots(nrows=2, ncols=len(xyzi_list), figsize=(12, 9),
                              sharex=True, sharey=True, squeeze=True)

@@ -13,7 +13,7 @@ using Oceananigans
 using Oceananigans.Units
 using Oceananigans: on_architecture
 using Oceananigans.TurbulenceClosures: Smagorinsky, DynamicCoefficient, LagrangianAveraging, DynamicSmagorinsky
-using Oceananigans.OutputWriters: write_output!
+using Oceananigans.Solvers: ConjugateGradientPoissonSolver, fft_poisson_solver
 
 include("$(@__DIR__)/utils.jl")
 
@@ -319,6 +319,7 @@ b_sponge = Relaxation(rate=params.sponge_damping_rate, mask=mask_top, target=b�
 
 #+++ Model and ICs
 @info "Creating model"
+
 model = NonhydrostaticModel(grid = grid, timestepper = :RungeKutta3,
                             advection = WENO(order=5),
                             buoyancy = BuoyancyTracer(),
@@ -328,6 +329,7 @@ model = NonhydrostaticModel(grid = grid, timestepper = :RungeKutta3,
                             boundary_conditions = bcs,
                             forcing = (; u=Fᵤ, v=v_sponge, w=w_sponge, b=b_sponge),
                             hydrostatic_pressure_anomaly = CenterField(grid),
+                            #pressure_solver = ConjugateGradientPoissonSolver(grid, preconditioner = fft_poisson_solver(grid.underlying_grid), maxiter = 100),
                             )
 @info "" model
 show_gpu_status()
@@ -346,10 +348,14 @@ simulation = Simulation(model, Δt = 0.2 * minimum_zspacing(grid.underlying_grid
 using Oceanostics.ProgressMessengers
 walltime_per_timestep = StepDuration(with_prefix=false) # This needs to instantiated here, and not in the function below
 walltime = Walltime()
+cg_iterations(simulation) = simulation.model.pressure_solver isa ConjugateGradientPoissonSolver ? "iterations = $(iteration(model.pressure_solver))" : ""
 progress(simulation) = @info (PercentageProgress(with_prefix=false, with_units=false)
                               + "$(round(time(simulation)/params.T_advective; digits=2)) adv periods" + walltime
                               + TimeStep() + "CFL = " * AdvectiveCFLNumber(with_prefix=false)
-                              + "step dur = " * walltime_per_timestep)(simulation)
+                              + MaxVelocities()
+                              + "step dur = " * walltime_per_timestep
+                              + cg_iterations(simulation)
+                              )(simulation)
 simulation.callbacks[:progress] = Callback(progress, IterationInterval(40))
 
 conjure_time_step_wizard!(simulation, IterationInterval(1), max_change=1.05, cfl=0.9, min_Δt=1e-4, max_Δt=1/√params.N²∞)
@@ -426,13 +432,6 @@ tock()
 show_gpu_status()
 @info "Starting simulation"
 run!(simulation, pickup=write_ckpt)
-#---
-
-#+++ Write final checkpoint to disk if checkpointer exists
-# if write_ckpt
-#     @info "Writing final checkpoint to disk"
-#     write_output!(checkpointer, model)
-# end
 #---
 
 #+++ Plot video

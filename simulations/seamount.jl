@@ -14,7 +14,6 @@ using Oceananigans.Units
 using Oceananigans: on_architecture
 using Oceananigans.TurbulenceClosures: Smagorinsky, DynamicCoefficient, LagrangianAveraging, DynamicSmagorinsky
 using Oceananigans.Solvers: ConjugateGradientPoissonSolver, fft_poisson_solver
-using Oceananigans.Grids: with_number_type # less resolved grid
 
 include("$(@__DIR__)/utils.jl")
 

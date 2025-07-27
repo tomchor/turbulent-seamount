@@ -14,6 +14,7 @@ using Oceananigans.Units
 using Oceananigans: on_architecture
 using Oceananigans.TurbulenceClosures: Smagorinsky, DynamicCoefficient, LagrangianAveraging, DynamicSmagorinsky
 using Oceananigans.Solvers: ConjugateGradientPoissonSolver, fft_poisson_solver
+using Oceananigans.Grids: with_number_type # less resolved grid
 
 include("$(@__DIR__)/utils.jl")
 
@@ -319,6 +320,9 @@ b_sponge = Relaxation(rate=params.sponge_damping_rate, mask=mask_top, target=bâˆ
 
 #+++ Model and ICs
 @info "Creating model"
+reduced_precision_grid = with_number_type(Float32, grid.underlying_grid)
+pressure_solver = ConjugateGradientPoissonSolver(grid, preconditioner = fft_poisson_solver(reduced_precision_grid), maxiter = 100)
+
 model = NonhydrostaticModel(grid = grid, timestepper = :RungeKutta3,
                             advection = WENO(order=5),
                             buoyancy = BuoyancyTracer(),
@@ -328,7 +332,7 @@ model = NonhydrostaticModel(grid = grid, timestepper = :RungeKutta3,
                             boundary_conditions = bcs,
                             forcing = (; u=Fáµ¤, v=v_sponge, w=w_sponge, b=b_sponge),
                             hydrostatic_pressure_anomaly = CenterField(grid),
-                            pressure_solver = ConjugateGradientPoissonSolver(grid, preconditioner=fft_poisson_solver(grid.underlying_grid)),
+                            pressure_solver = pressure_solver,
                             )
 @info "" model
 show_gpu_status()

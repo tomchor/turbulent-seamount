@@ -13,7 +13,7 @@ using Oceananigans
 using Oceananigans.Units
 using Oceananigans: on_architecture
 using Oceananigans.TurbulenceClosures: Smagorinsky, DynamicCoefficient, LagrangianAveraging, DynamicSmagorinsky
-using Oceananigans.OutputWriters: write_output!
+using Oceananigans.Solvers: ConjugateGradientPoissonSolver, fft_poisson_solver
 
 include("$(@__DIR__)/utils.jl")
 
@@ -328,6 +328,7 @@ model = NonhydrostaticModel(grid = grid, timestepper = :RungeKutta3,
                             boundary_conditions = bcs,
                             forcing = (; u=Fᵤ, v=v_sponge, w=w_sponge, b=b_sponge),
                             hydrostatic_pressure_anomaly = CenterField(grid),
+                            pressure_solver = ConjugateGradientPoissonSolver(grid, preconditioner=fft_poisson_solver(grid.underlying_grid)),
                             )
 @info "" model
 show_gpu_status()
@@ -426,13 +427,6 @@ tock()
 show_gpu_status()
 @info "Starting simulation"
 run!(simulation, pickup=write_ckpt)
-#---
-
-#+++ Write final checkpoint to disk if checkpointer exists
-# if write_ckpt
-#     @info "Writing final checkpoint to disk"
-#     write_output!(checkpointer, model)
-# end
 #---
 
 #+++ Plot video

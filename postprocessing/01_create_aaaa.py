@@ -59,7 +59,7 @@ for j, config in enumerate(runs):
     #---
 
     #+++ Save aaaa
-    outname = f"data_post/aaaa.{simname}.nc"
+    outname = f"data/aaaa.{simname}.nc"
     aaaa = gather_attributes_as_variables(aaaa)
     with ProgressBar(minimum=5, dt=5):
         print(f"Saving results to {outname}...")

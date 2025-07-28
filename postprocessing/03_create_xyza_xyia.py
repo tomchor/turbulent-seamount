@@ -107,7 +107,7 @@ for j, config in enumerate(runs):
     #---
 
     #+++ Save xyia
-    outname = f"data_post/xyia.{simname}.nc"
+    outname = f"data/xyia.{simname}.nc"
     xyia = gather_attributes_as_variables(xyia)
     with ProgressBar(minimum=5, dt=5):
         print(f"Saving results to {outname}...")
@@ -118,7 +118,7 @@ for j, config in enumerate(runs):
 
     #+++ Save xyza
     if write_xyza:
-        outname = f"data_post/xyza.{simname}.nc"
+        outname = f"data/xyza.{simname}.nc"
         xyza = gather_attributes_as_variables(xyza)
         with ProgressBar(minimum=5, dt=5):
             print(f"Saving results to {outname}...")

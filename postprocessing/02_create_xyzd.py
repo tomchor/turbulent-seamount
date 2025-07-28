@@ -117,7 +117,7 @@ for j, config in enumerate(runs):
     #+++ Drop variables that are not needed and save xyzd
     xyzd = xyzd.drop(["ūᵢ", "b̄", "⟨uᵢuᵢ⟩ₜ", "⟨wb⟩ₜ"])
 
-    outname = f"data_post/xyzd.{simname}.nc"
+    outname = f"data/xyzd.{simname}.nc"
     xyzd = gather_attributes_as_variables(xyzd)
     with ProgressBar(minimum=5, dt=5):
         print(f"Saving results to {outname}...")

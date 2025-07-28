@@ -37,9 +37,9 @@ for j, config in enumerate(runs):
 
     #+++ Load time-averaged datasets
     print(f"\nLoading time-averaged data for {simname}")
-    xyza = xr.open_dataset(f"data_post/xyza.{simname}.nc", chunks="auto")
-    xyia = xr.open_dataset(f"data_post/xyia.{simname}.nc", chunks="auto")
-    xyzd = xr.open_dataset(f"data_post/xyzd.{simname}.nc", chunks="auto")
+    xyza = xr.open_dataset(f"data/xyza.{simname}.nc", chunks="auto")
+    xyia = xr.open_dataset(f"data/xyia.{simname}.nc", chunks="auto")
+    xyzd = xr.open_dataset(f"data/xyzd.{simname}.nc", chunks="auto")
     #---
 
     #+++ Normalize Unicode variable names
@@ -92,7 +92,7 @@ for j, config in enumerate(runs):
     #---
 
     #+++ Save turbstats
-    outname = f"data_post/turbstats_{simname}.nc"
+    outname = f"data/turbstats_{simname}.nc"
     with ProgressBar(minimum=2, dt=5):
         print(f"Saving bulk results to {outname}...")
         bulk.to_netcdf(outname)

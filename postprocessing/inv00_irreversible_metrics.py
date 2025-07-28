@@ -28,7 +28,7 @@ runs = paramspace * configs
 aaaa = merge_datasets(runs, base_name=f"aaaa.{simname_base}", verbose=True, add_min_spacings=False)
 aaaa = aaaa.reindex(Ro_h = list(reversed(aaaa.Ro_h)))
 
-fit_filename = f'data_post/bathymetry_powerlaw_fits_{simname_base}.nc'
+fit_filename = f'data/bathymetry_powerlaw_fits_{simname_base}.nc'
 ds_fit = xr.open_dataset(fit_filename).sel(L=slice(0, 400))
 aaaa = xr.merge([aaaa, ds_fit])
 

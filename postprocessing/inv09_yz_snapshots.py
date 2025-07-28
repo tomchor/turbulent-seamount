@@ -5,8 +5,8 @@ import numpy as np
 import xarray as xr
 from cycler import cycler
 import pynanigans as pn
-from ..src.aux00_utils import open_simulation, adjust_times, aggregate_parameters
-from ..src.aux02_plotting import RdBu_r, solar, balance, inferno
+from src.aux00_utils import open_simulation, adjust_times, aggregate_parameters
+from src.aux02_plotting import RdBu_r, solar, balance, inferno
 from matplotlib import pyplot as plt
 from matplotlib.colors import LogNorm
 xr.set_options(display_width=140, display_max_rows=30)

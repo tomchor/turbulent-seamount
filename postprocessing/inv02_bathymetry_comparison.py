@@ -5,8 +5,8 @@ import pynanigans as pn
 import xarray as xr
 from cycler import cycler
 from matplotlib import pyplot as plt
-from ..src.aux00_utils import merge_datasets
-from ..src.aux01_physfuncs import fit_piecewise_powerlaw_spectrum
+from src.aux00_utils import merge_datasets
+from src.aux01_physfuncs import fit_piecewise_powerlaw_spectrum
 import xrft
 
 plt.rcParams["figure.constrained_layout.use"] = True

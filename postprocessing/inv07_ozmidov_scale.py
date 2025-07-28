@@ -11,8 +11,8 @@ plt.rcParams['figure.constrained_layout.use'] = True
 import matplotlib as mpl
 mpl.rcParams['axes.prop_cycle'] = mpl.cycler(color=["r", "b"])
 
-from ..src.aux00_utils import collect_datasets, merge_datasets
-from ..src.aux02_plotting import letterize, create_mc, mscatter
+from src.aux00_utils import collect_datasets, merge_datasets
+from src.aux02_plotting import letterize, create_mc, mscatter
 
 #+++ Define directory and simulation name
 path = "../simulations/data/"

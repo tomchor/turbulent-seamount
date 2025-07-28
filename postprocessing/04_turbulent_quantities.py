@@ -5,9 +5,9 @@ import numpy as np
 import xarray as xr
 from cycler import cycler
 import pynanigans as pn
-from ..src.aux00_utils import (aggregate_parameters, normalize_unicode_names_in_dataset, integrate,
+from src.aux00_utils import (aggregate_parameters, normalize_unicode_names_in_dataset, integrate,
                              drop_faces, mask_immersed, gather_attributes_as_variables)
-from ..src.aux01_physfuncs import (get_turbulent_Reynolds_stress_tensor, get_shear_production_rates)
+from src.aux01_physfuncs import (get_turbulent_Reynolds_stress_tensor, get_shear_production_rates)
 from colorama import Fore, Back, Style
 from dask.diagnostics.progress import ProgressBar
 xr.set_options(display_width=140, display_max_rows=30)

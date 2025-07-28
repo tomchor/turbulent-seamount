@@ -5,9 +5,9 @@ import numpy as np
 import xarray as xr
 from cycler import cycler
 import pynanigans as pn
-from ..src.aux00_utils import (open_simulation, adjust_times, aggregate_parameters, gather_attributes_as_variables,
+from src.aux00_utils import (open_simulation, adjust_times, aggregate_parameters, gather_attributes_as_variables,
                              condense_velocities, condense_reynolds_stress_tensor_diagonal, integrate)
-from ..src.aux01_physfuncs import (temporal_average, get_turbulent_Reynolds_stress_tensor_diagonal,
+from src.aux01_physfuncs import (temporal_average, get_turbulent_Reynolds_stress_tensor_diagonal,
                                  get_buoyancy_production_rates, get_turbulent_kinetic_energy)
 from colorama import Fore, Back, Style
 from dask.diagnostics import ProgressBar

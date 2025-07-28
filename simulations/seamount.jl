@@ -7,7 +7,7 @@ using CUDA: has_cuda_gpu
 using PrettyPrinting: pprintln
 using TickTock: tick, tock
 using NCDatasets: NCDataset
-using Interpolations: LinearInterpolation, Flat
+import Interpolations
 
 using Oceananigans
 using Oceananigans.Units
@@ -118,7 +118,7 @@ else
     arch = CPU()
     params = (; params..., dz = 50meters)
 end
-@info "Starting simulation $(params.simname) with a dividing factor of $(params.dz) and a $arch architecture\n"
+@info "Starting simulation $(params.simname) with a vertical spacing of $(params.dz) meters and $arch architecture\n"
 #---
 
 #+++ Create interpolant for (and maybe smooth) bathymetry
@@ -148,7 +148,7 @@ shrunk_x = x .* params.FWHM_ratio
 shrunk_y = y .* params.FWHM_ratio
 
 @info "Interpolating bathymetry"
-bathymetry_itp = LinearInterpolation((shrunk_x, shrunk_y), shrunk_smoothed_elevation, extrapolation_bc=Flat())
+bathymetry_itp = Interpolations.LinearInterpolation((shrunk_x, shrunk_y), shrunk_smoothed_elevation, extrapolation_bc=Interpolations.Flat())
 #---
 
 #+++ Get domain sizes, z_coords, and secondary simulation parameters

@@ -17,7 +17,7 @@ save_results = True  # Set to False to skip saving results
 #---
 
 #+++ Define directory and simulation name
-path = "simulations/data/"
+path = "../simulations/data/"
 simname_base = "seamount"
 
 Rossby_numbers = cycler(Ro_h = [0.2])
@@ -188,10 +188,10 @@ if save_results:
         "units": "m"
     }
 
-    # Save to data_post directory
+    # Save to data directory
     import os
-    os.makedirs("data_post", exist_ok=True)
-    output_filename = f"data_post/bathymetry_powerlaw_fits_{simname_base}.nc"
+    os.makedirs("data", exist_ok=True)
+    output_filename = f"data/bathymetry_powerlaw_fits_{simname_base}.nc"
     fit_ds.to_netcdf(output_filename)
     print(f"Saved curve fitting results to: {output_filename}")
 #---
@@ -248,11 +248,4 @@ for L_val in aaai.L.values:
 print(f"\nProcessing completed:")
 print(f"  - Plotting: {"✓" if plot_results else "✗"}")
 print(f"  - Saving results: {"✓" if save_results else "✗"}")
-if save_results:
-    # Get parameter values for filename (will be available from previous computation)
-    Ro_h_val = float(aaai.Ro_h.values)
-    Fr_h_val = float(aaai.Fr_h.values)
-    dz_val = float(aaai.dz.values)
-    closure_val = str(aaai.closure.values)
-    print(f"  - Output file: data_post/bathymetry_powerlaw_fits_{simname_base}_Ro_h={Ro_h_val}_Fr_h={Fr_h_val}_dz={int(dz_val)}_closure={closure_val}.nc")
 #---

@@ -14,7 +14,7 @@ xr.set_options(display_width=140, display_max_rows=30)
 
 #+++ Define directory and simulation name
 if basename(__file__) != "00_run_postproc.py":
-    path = "simulations/data/"
+    path = "../simulations/data/"
     simname_base = "seamount"
 
     Rossby_numbers = cycler(Ro_h = [0.2,])
@@ -83,7 +83,7 @@ for distance, distance_value in distances.items():
         print("  Plotting εₚ")
         xyzi[f"∫{distance}εₚdx"].pnplot(ax=col[1], **(common_opts | εp_opts))
 
-    plt.savefig(f"figures/yz_snapshots_{distance_value}m_dz={config['dz']}.png")
+    plt.savefig(f"../figures/yz_snapshots_{distance_value}m_dz={config['dz']}.png")
 #---
 
 for ax in axes.flatten():

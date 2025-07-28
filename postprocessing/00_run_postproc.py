@@ -13,7 +13,7 @@ from dask.diagnostics import ProgressBar
 print("Starting h00 script")
 
 #+++ Define run options
-path = "simulations/data/"
+path = "../simulations/data/"
 simname_base = "seamount"
 
 Rossby_numbers = cycler(Ro_h = [0.2])
@@ -33,7 +33,7 @@ for config in configs:
     config_suffix = aggregate_parameters(config, sep="_", prefix="")
     simnames = [ simname_base + "_" + aggregate_parameters(params, sep="_", prefix="") + "_" + config_suffix for params in paramspace ]
     print(simnames)
-    check_simulation_completion(simnames, slice_name="xyzi", path="simulations/data/", verbose=False)
+    check_simulation_completion(simnames, slice_name="xyzi", path="../simulations/data/", verbose=False)
     print()
 
 print(Back.LIGHTWHITE_EX + Fore.BLUE + "\nStarting 01 post-processing of results using `configs`", Style.RESET_ALL, configs)

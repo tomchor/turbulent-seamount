@@ -15,7 +15,7 @@ print("Starting aaaa dataset creation script")
 
 #+++ Define directory and simulation name
 if basename(__file__) != "00_run_postproc.py":
-    path = "simulations/data/"
+    path = "../simulations/data/"
     simname_base = "seamount"
 
     Rossby_numbers = cycler(Ro_h = [0.2])
@@ -59,7 +59,7 @@ for j, config in enumerate(runs):
     #---
 
     #+++ Save aaaa
-    outname = f"data_post/aaaa.{simname}.nc"
+    outname = f"data/aaaa.{simname}.nc"
     aaaa = gather_attributes_as_variables(aaaa)
     with ProgressBar(minimum=5, dt=5):
         print(f"Saving results to {outname}...")

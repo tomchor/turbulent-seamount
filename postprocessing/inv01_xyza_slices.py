@@ -11,7 +11,7 @@ from src.aux00_utils import merge_datasets
 plt.rcParams["figure.constrained_layout.use"] = True
 
 #+++ Define directory and simulation name
-path = "simulations/data/"
+path = "../simulations/data/"
 simname_base = "seamount"
 
 Rossby_numbers = cycler(Ro_h = [0.2])

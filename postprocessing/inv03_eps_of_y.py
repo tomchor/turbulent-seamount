@@ -7,7 +7,7 @@ import xarray as xr
 from cycler import cycler
 from matplotlib import pyplot as plt
 from matplotlib.colors import LogNorm
-from src.aux00_utils import merge_datasets
+from src.aux00_utils import merge_datasets, condense, integrate
 plt.rcParams["figure.constrained_layout.use"] = True
 
 #+++ Define directory and simulation name
@@ -31,16 +31,30 @@ xyza = merge_datasets(runs, base_name=f"xyza.{simname_base}", verbose=True, add_
                       open_dataset_kwargs=dict(chunks="auto"))
 xyza = xyza.reindex(Ro_h = list(reversed(xyza.Ro_h)))
 xyza = xyza.squeeze()
+#---
 
-Ĥ = xyza.bottom_height.pnmax(("x", "y")) # Actual height of seamount
-q_scale = 5 * xyza.N2_inf * xyza.f_0
-xyia = xyza.sel(z_aac=Ĥ/5, method="nearest").sel(L = [0, 0.2, 0.8])
+#+++ Condense buffers
+distances = [5, 10]
+xyza = condense(xyza, ["∫⁵εₖdx", "∫¹⁰εₖdx"], "∫ᵇεₖdx", dimname="buffer", indices=distances)
+xyza = condense(xyza, ["∫⁵εₚdx", "∫¹⁰εₚdx"], "∫ᵇεₚdx", dimname="buffer", indices=distances)
+#---
+
+#+++ Integrate over z
+xyza["∬ᵇεₖdxdz"] = integrate(xyza["∫ᵇεₖdx"], dV=xyza.Δz_aac, dims=("z"))
+xyza["∬ᵇεₚdxdz"] = integrate(xyza["∫ᵇεₚdx"], dV=xyza.Δz_aac, dims=("z"))
 #---
 
 #+++ Plot
 print("Plotting")
-xyia["q̄"].pnplot(x="x", col="L", col_wrap=3, vmin=-q_scale, vmax=q_scale, cmap="RdBu_r")
-xyia["ε̄ₖ"].pnplot(x="x", col="L", col_wrap=3, norm=LogNorm(vmin=1e-10, vmax=1e-8))
-xyia["ε̄ₚ"].pnplot(x="x", col="L", col_wrap=3, norm=LogNorm(vmin=1e-11, vmax=1e-9))
-xyia["R̄o"].pnplot(x="x", col="L", col_wrap=3, vmin=-3, vmax=3, cmap="bwr")
+xyza["∬ᵇεₖdxdz"].pnplot(x="y", hue="L", row="buffer")
+figk = plt.gcf()
+
+xyza["∬ᵇεₚdxdz"].pnplot(x="y", hue="L", row="buffer")
+figp = plt.gcf()
+#---
+
+#+++ Prettify
+for ax in (figk.axes + figp.axes):
+    ax.grid(True)
+    ax.axvline(x=0, color="black", linestyle="--")
 #---

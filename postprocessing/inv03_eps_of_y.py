@@ -39,9 +39,11 @@ xyza = condense(xyza, ["∫⁵εₖdx", "∫¹⁰εₖdx"], "∫ᵇεₖdx", dim
 xyza = condense(xyza, ["∫⁵εₚdx", "∫¹⁰εₚdx"], "∫ᵇεₚdx", dimname="buffer", indices=distances)
 #---
 
-#+++ Integrate over z
+#+++ Integrate over z and create new variables
 xyza["∬ᵇεₖdxdz"] = integrate(xyza["∫ᵇεₖdx"], dV=xyza.Δz_aac, dims=("z"))
 xyza["∬ᵇεₚdxdz"] = integrate(xyza["∫ᵇεₚdx"], dV=xyza.Δz_aac, dims=("z"))
+
+xyza["∬ᵇγdxdz"] = xyza["∬ᵇεₚdxdz"] / (xyza["∬ᵇεₖdxdz"] + xyza["∬ᵇεₚdxdz"])
 #---
 
 #+++ Plot
@@ -51,10 +53,13 @@ figk = plt.gcf()
 
 xyza["∬ᵇεₚdxdz"].pnplot(x="y", hue="L", row="buffer")
 figp = plt.gcf()
+
+xyza["∬ᵇγdxdz"].pnplot(x="y", hue="L", row="buffer")
+figg = plt.gcf()
 #---
 
 #+++ Prettify
-for ax in (figk.axes + figp.axes):
+for ax in (figk.axes + figp.axes + figg.axes):
     ax.grid(True)
     ax.axvline(x=0, color="black", linestyle="--")
 #---

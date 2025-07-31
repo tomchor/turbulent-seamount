@@ -175,7 +175,7 @@ def merge_datasets(
         add_simulation_info=True,
         verbose=False,
         drop_vars=None,
-        open_dataset_kwargs={},
+        open_dataset_kwargs=dict(chunks="auto"),
         combine_by_coords_kwargs={"combine_attrs": "drop_conflicts"},
         adjust_times_before_merge=False):
     """
@@ -198,7 +198,7 @@ def merge_datasets(
     drop_vars : list of str, optional
         List of variable names to drop from each dataset before merging. Default None
     open_dataset_kwargs : dict, optional
-        Additional keyword arguments to pass to xr.open_dataset. Default {}
+        Additional keyword arguments to pass to xr.open_dataset. Default `dict(chunks="auto")`
     combine_by_coords_kwargs : dict, optional
         Additional keyword arguments to pass to xr.combine_by_coords.
         Default {"combine_attrs": "drop_conflicts"}

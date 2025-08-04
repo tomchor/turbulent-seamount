@@ -12,7 +12,7 @@ import xrft
 plt.rcParams["figure.constrained_layout.use"] = True
 
 #+++ Options
-plot_results = False  # Set to False to skip plotting
+plot_results = True  # Set to False to skip plotting
 save_results = True  # Set to False to skip saving results
 #---
 

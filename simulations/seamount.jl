@@ -71,12 +71,14 @@ function parse_command_line_arguments()
             default = 1.25
             arg_type = Float64
 
-        "--Lx_ratio"
-            default = 6 # Lx / FWHM
+        "--Lx"
+            help = "Domain length in x-direction"
+            default = 1800meters
             arg_type = Float64
 
-        "--Ly_ratio"
-            default = 10 # Ly / FWHM
+        "--Ly"
+            help = "Domain length in y-direction"
+            default = 3000meters
             arg_type = Float64
 
         "--Lz_ratio"
@@ -155,9 +157,6 @@ bathymetry_itp = Interpolations.LinearInterpolation((shrunk_x, shrunk_y), shrunk
 let
     #+++ Geometry
     α = params.H / params.FWHM
-
-    Lx = params.Lx_ratio * params.FWHM
-    Ly = params.Ly_ratio * params.FWHM
     Lz = params.Lz_ratio * params.H
 
     y_offset = params.runway_length_fraction_FWHM * params.FWHM

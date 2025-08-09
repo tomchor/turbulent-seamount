@@ -170,12 +170,12 @@ def condense_reynolds_stress_tensor_diagonal(ds, indices=[1, 2, 3]):
 def merge_datasets(
         runs,
         base_name="seamount",
-        dirpath="data_post",
+        dirpath="data",
         add_min_spacings=False,
         add_simulation_info=True,
         verbose=False,
         drop_vars=None,
-        open_dataset_kwargs={},
+        open_dataset_kwargs=dict(chunks="auto"),
         combine_by_coords_kwargs={"combine_attrs": "drop_conflicts"},
         adjust_times_before_merge=False):
     """
@@ -188,7 +188,7 @@ def merge_datasets(
     base_name : str, optional
         Base name for simulation files. Default "seamount"
     dirpath : str, optional
-        Directory path containing the datasets. Default "data_post"
+        Directory path containing the datasets. Default "data"
     add_min_spacings : bool, optional
         Whether to add minimum spacing variables. Default False
     add_simulation_info : bool, optional
@@ -198,7 +198,7 @@ def merge_datasets(
     drop_vars : list of str, optional
         List of variable names to drop from each dataset before merging. Default None
     open_dataset_kwargs : dict, optional
-        Additional keyword arguments to pass to xr.open_dataset. Default {}
+        Additional keyword arguments to pass to xr.open_dataset. Default `dict(chunks="auto")`
     combine_by_coords_kwargs : dict, optional
         Additional keyword arguments to pass to xr.combine_by_coords.
         Default {"combine_attrs": "drop_conflicts"}
@@ -332,14 +332,14 @@ def collect_datasets(simnames_filtered, slice_name="xyii", path="./simulations/d
         if slice_name == "tafields":
             fname = f"tafields_{simname}.nc"
             print(f"\nOpening {fname}")
-            ds = xr.open_dataset(f"data_post/{fname}", chunks=dict(time="auto", L="auto"))
+            ds = xr.open_dataset(f"data/{fname}", chunks=dict(time="auto", L="auto"))
         #---
 
         #+++ Deal with volume-integrated output
         elif slice_name == "turbstats":
             fname = f"turbstats_{simname}.nc"
             print(f"\nOpening {fname}")
-            ds = xr.open_dataset(f"data_post/{fname}", chunks=dict(time="auto", L="auto"))
+            ds = xr.open_dataset(f"data/{fname}", chunks=dict(time="auto", L="auto"))
         #---
 
         #+++ Deal with snapshots

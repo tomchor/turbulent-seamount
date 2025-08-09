@@ -27,13 +27,14 @@ runs = paramspace * configs
 #---
 
 #+++ Read and pre-process datasets
-xyza = merge_datasets(runs, base_name=f"xyza.{simname_base}", verbose=True, add_min_spacings=False)
+xyza = merge_datasets(runs, base_name=f"xyza.{simname_base}", verbose=True, add_min_spacings=False,
+                      open_dataset_kwargs=dict(chunks="auto"))
 xyza = xyza.reindex(Ro_h = list(reversed(xyza.Ro_h)))
 xyza = xyza.squeeze()
 
 Ĥ = xyza.bottom_height.pnmax(("x", "y")) # Actual height of seamount
 q_scale = 5 * xyza.N2_inf * xyza.f_0
-xyia = xyza.sel(z_aac=Ĥ/5, method="nearest").sel(L = [0, 0.25, 1])
+xyia = xyza.sel(z_aac=Ĥ/5, method="nearest").sel(L = [0, 0.2, 0.8])
 #---
 
 #+++ Plot

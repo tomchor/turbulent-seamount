@@ -6,6 +6,7 @@ import pynanigans as pn
 import xarray as xr
 from cycler import cycler
 from matplotlib import pyplot as plt
+from matplotlib.colors import LogNorm
 from src.aux00_utils import merge_datasets, condense
 plt.rcParams["figure.constrained_layout.use"] = True
 
@@ -77,7 +78,7 @@ aaaa["ℰₚ"].sel(dz=0, method="nearest").plot.scatter(x="L", hue="FWHM", col="
 figs.append(plt.gcf())
 
 for fig in figs:
-    for ax in fig.axes[:1]:
+    for ax in fig.axes[:-1]:
         ax.grid(True)
         ax.axvline(x=1, color="black", linestyle="--", label="Seamount horz scale FWHM")
-    ax.legend(loc="upper right")
+    ax.legend()

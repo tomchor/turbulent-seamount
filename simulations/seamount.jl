@@ -113,7 +113,7 @@ params = (; parse_command_line_arguments()...)
 rundir = @__DIR__
 #---
 
-#+++ Figure out architecture
+#+++ Figure out architecture (and maybe change dz)
 if has_cuda_gpu()
     arch = GPU()
 else

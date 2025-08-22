@@ -273,5 +273,6 @@ function construct_outputs(simulation;
                                                                            kwargs...
                                                                            )
     end
+    #---
 end
 #---

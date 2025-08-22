@@ -112,8 +112,8 @@ outputs_grads = Dict{Symbol, Any}(:∂u∂x => (@at CellCenter ∂x(u)),
 @info "Defining volume averages"
 # Define conditions to avoid unresolved bottom, sponge layer, and couple of points closest to the
 # open boundary
-dc5  = DistanceCondition(from_bottom=5meters , from_top=params.h_sponge, from_north=2minimum_yspacing(grid))
-dc10 = DistanceCondition(from_bottom=10meters, from_top=params.h_sponge, from_north=2minimum_yspacing(grid))
+dc5  = DistanceCondition(from_bottom=5meters , from_top=params.h_sponge, from_east=2minimum_xspacing(grid))
+dc10 = DistanceCondition(from_bottom=10meters, from_top=params.h_sponge, from_east=2minimum_xspacing(grid))
 
 outputs_vol_integrals = Dict{Symbol, Any}(:∭⁵εₖdV  => Integral(εₖ; condition = dc5),
                                           :∭⁵εₚdV  => Integral(εₚ; condition = dc5),

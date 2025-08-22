@@ -42,8 +42,8 @@ const SLICE_DIMS = Dict(
 variables = (:v, :PV, :εₖ, :Ro)
 
 # Get main dataset paths
-fpath_xyii = (@isdefined simulation) ? simulation.output_writers[:nc_xyii].filepath : "data/xyii.seamount_Ro_h0.2_Fr_h1.25_L0_FWHM300_dz8.nc"
-fpath_xizi = (@isdefined simulation) ? simulation.output_writers[:nc_xizi].filepath : "data/xizi.seamount_Ro_h0.2_Fr_h1.25_L0_FWHM300_dz8.nc"
+fpath_xyii = (@isdefined simulation) ? simulation.output_writers[:nc_xyii].filepath : "data/xyii.seamount_Ro_h0.2_Fr_h1.25_L0_FWHM500_dz8.nc"
+fpath_xizi = (@isdefined simulation) ? simulation.output_writers[:nc_xizi].filepath : "data/xizi.seamount_Ro_h0.2_Fr_h1.25_L0_FWHM500_dz8.nc"
 
 @info "Reading xyii dataset: $fpath_xyii"
 ds_xyii = RasterStack(fpath_xyii, lazy=true, name=variables)
@@ -239,7 +239,6 @@ end
 @info "Recording animation with $(length(frames)) frames"
 resize_to_layout!(fig)
 
-pause
 Mk.record(fig, "$(@__DIR__)/../anims/$(params.simname).mp4", frames,
          framerate=14, compression=30, px_per_unit=1) do frame
     @info "Frame $frame / $(frames[end])"

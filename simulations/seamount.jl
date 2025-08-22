@@ -55,7 +55,7 @@ function parse_command_line_arguments()
 
         "--FWHM"
             help = "Full width at half maximum of the seamount"
-            default = 300meters
+            default = 500meters
             arg_type = Float64
 
         "--L"
@@ -73,12 +73,12 @@ function parse_command_line_arguments()
 
         "--Lx"
             help = "Domain length in x-direction"
-            default = 3000meters
+            default = 5000meters
             arg_type = Float64
 
         "--Ly"
             help = "Domain length in y-direction"
-            default = 2000meters
+            default = 3000meters
             arg_type = Float64
 
         "--Lz_ratio"

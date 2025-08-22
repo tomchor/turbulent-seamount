@@ -80,8 +80,8 @@ layout_params = (
     title_height = 10,
     panel_width = 300,
     cbar_height = 8,
-    column_gap = 0,
-    row_gap = 10
+    column_gap = 20,
+    row_gap = 0
 )
 #---
 
@@ -94,9 +94,14 @@ title = @lift "α = $(@sprintf "%.2g" params.α),     Frₕ = $(@sprintf "%.2g" 
               "Δzₘᵢₙ = $(@sprintf "%.2g" params.Δz_min) m,    Time = $(@sprintf "%s" prettytime(times[$n]))  =  $(@sprintf "%.3g" times[$n]/params.T_advective) advective periods  =  " *
               "$(@sprintf "%.3g" times[$n]/params.T_inertial) Inertial periods"
 
-fig[1, 1] = Label(fig, title, fontsize=18, tellwidth=false, height=layout_params.title_height)
+fig[1, 0:2] = Label(fig, title, fontsize=18, tellwidth=false, height=layout_params.title_height)
 colgap!(fig.layout, layout_params.column_gap)
 rowgap!(fig.layout, layout_params.row_gap)
+
+# Configure column widths: title column narrow, plot column wide, colorbar column narrow
+colsize!(fig.layout, 0, Auto(0.3))  # Title column (very narrow)
+colsize!(fig.layout, 1, Auto(1.0))  # Plot column (main width)
+colsize!(fig.layout, 2, Auto(0.6))  # Colorbar column (wider for better spacing)
 #---
 
 #+++ Create axes and plots
@@ -115,9 +120,7 @@ for (i, variable) in enumerate(variables)
     vₙ = @lift v[Ti=$n]
     
     # Set up axis properties
-    panel_title = string(variable)
     ylabel = string(dimnames[2])
-    xlabel = string(dimnames[1])
     
     # Calculate data aspect ratio
     data_dims = size(v)
@@ -134,10 +137,29 @@ for (i, variable) in enumerate(variables)
     
     @info "Variable $variable: data dimensions = $data_dims, aspect ratio = $(@sprintf "%.2f" aspect_ratio), panel size = $(@sprintf "%.0f" panel_width) × $(@sprintf "%.0f" panel_height)"
     
-    # Create axis
-    ax = Axis(fig[i+1, 1];
-              title=panel_title, xlabel, ylabel,
-              width=panel_width, height=panel_height)
+    # Create title label on the left
+    title_label = Label(fig[i+1, 0], string(variable), fontsize=14, rotation=0, tellwidth=false)
+    
+    # Create axis - only show xlabel for the bottommost panel
+    if i == length(variables)
+        # Bottom panel: show x label
+        ax = Axis(fig[i+1, 1];
+                  xlabel=string(dimnames[1]), ylabel,
+                  width=panel_width, height=panel_height)
+    else
+        # Upper panels: no x label
+        ax = Axis(fig[i+1, 1];
+                  ylabel,
+                  width=panel_width, height=panel_height)
+        
+        # Hide all x decorations for upper panels - more explicit approach
+        hidexdecorations!(ax, label=false, ticklabels=false, ticks=false, grid=false)
+        
+        # Additional explicit hiding of x ticks and tick labels
+        ax.xticks = (Float64[], String[])
+        ax.xticklabelsize = 0
+        ax.xticksize = 0
+    end
     
     # Create heatmap
     color_params = color_ranges[variable]
@@ -170,12 +192,12 @@ for (i, variable) in enumerate(variables)
              width=layout_params.cbar_height, height=panel_height, ticklabelsize=12)
 end
 #---
-pause
 
 #+++ Record animation
 @info "Recording animation with $(length(frames)) frames"
 resize_to_layout!(fig)
 
+pause
 Mk.record(fig, "$(@__DIR__)/../anims/$(params.simname).mp4", frames,
          framerate=14, compression=30, px_per_unit=1) do frame
     @info "Frame $frame / $(frames[end])"

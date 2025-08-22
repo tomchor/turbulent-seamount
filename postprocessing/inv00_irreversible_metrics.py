@@ -77,6 +77,9 @@ figs.append(plt.gcf())
 aaaa["ℰₚ"].sel(dz=0, method="nearest").plot.scatter(x="L", hue="FWHM", col="buffer", cmap="bwr", yscale="log")
 figs.append(plt.gcf())
 
+aaaa["𝒦⁵"].sel(dz=0, method="nearest").plot.scatter(x="L", hue="FWHM", col="buffer", cmap="bwr", yscale="log")
+figs.append(plt.gcf())
+
 for fig in figs:
     for ax in fig.axes[:-1]:
         ax.grid(True)

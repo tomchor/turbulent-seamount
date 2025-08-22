@@ -12,7 +12,7 @@ import xrft
 plt.rcParams["figure.constrained_layout.use"] = True
 
 #+++ Options
-plot_results = False  # Set to False to skip plotting
+plot_results = True  # Set to False to skip plotting
 save_results = True  # Set to False to skip saving results
 #---
 
@@ -25,10 +25,9 @@ Froude_numbers = cycler(Fr_h = [1.25])
 L              = cycler(L = [0, 0.05, 0.1, 0.2, 0.4, 0.8])
 
 resolutions    = cycler(dz = [2])
-closures       = cycler(closure = ["DSM"])
 
 paramspace = Rossby_numbers * Froude_numbers * L
-configs    = resolutions * closures
+configs    = resolutions
 
 runs = paramspace * configs
 #---
@@ -121,22 +120,20 @@ if save_results:
     Ro_h_val = float(aaai.Ro_h.values)
     Fr_h_val = float(aaai.Fr_h.values)
     dz_val = float(aaai.dz.values)
-    closure_val = str(aaai.closure.values)
 
     fit_ds = xr.Dataset({
-        "amplitude": (["Ro_h", "Fr_h", "dz", "closure", "L"],
-                      np.array(amps).reshape(1, 1, 1, 1, len(amps))),
-        "power_law_exponent": (["Ro_h", "Fr_h", "dz", "closure", "L"],
-                               np.array(alphas).reshape(1, 1, 1, 1, len(alphas))),
-        "transition_wavenumber": (["Ro_h", "Fr_h", "dz", "closure", "L"],
-                                  np.array(k_transitions).reshape(1, 1, 1, 1, len(k_transitions))),
-        "fit_success": (["Ro_h", "Fr_h", "dz", "closure", "L"],
-                        np.array(fit_successes).reshape(1, 1, 1, 1, len(fit_successes))),
+        "amplitude": (["Ro_h", "Fr_h", "dz", "L"],
+                       np.array(amps).reshape(1, 1, 1, len(amps))),
+        "power_law_exponent": (["Ro_h", "Fr_h", "dz", "L"],
+                                np.array(alphas).reshape(1, 1, 1, len(alphas))),
+        "transition_wavenumber": (["Ro_h", "Fr_h", "dz", "L"],
+                                   np.array(k_transitions).reshape(1, 1, 1, len(k_transitions))),
+        "fit_success": (["Ro_h", "Fr_h", "dz", "L"],
+                         np.array(fit_successes).reshape(1, 1, 1, len(fit_successes))),
     }, coords={
         "Ro_h": [Ro_h_val],
         "Fr_h": [Fr_h_val],
         "dz": [dz_val],
-        "closure": [closure_val],
         "L": L_values
     })
 
@@ -178,10 +175,6 @@ if save_results:
     fit_ds["dz"].attrs = {
         "long_name": "Vertical grid spacing",
         "units": "m"
-    }
-    fit_ds["closure"].attrs = {
-        "long_name": "Turbulence closure scheme",
-        "units": "dimensionless"
     }
     fit_ds["L"].attrs = {
         "long_name": "Roughness length scale",

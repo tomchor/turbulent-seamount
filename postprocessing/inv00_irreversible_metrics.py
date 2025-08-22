@@ -6,6 +6,7 @@ import pynanigans as pn
 import xarray as xr
 from cycler import cycler
 from matplotlib import pyplot as plt
+from matplotlib.colors import LogNorm
 from src.aux00_utils import merge_datasets, condense
 plt.rcParams["figure.constrained_layout.use"] = True
 
@@ -15,11 +16,14 @@ simname_base = "seamount"
 
 Rossby_numbers = cycler(Ro_h = [0.2])
 Froude_numbers = cycler(Fr_h = [1.25])
-L              = cycler(L = [0, 0.05, 0.1, 0.2, 0.4, 0.8])
+L              = cycler(L = [0, 0.05, 0.1, 0.2, 0.4, 0.8,
+                             0.8, 0.8, 0.8, 0.8])
+FWHM           = cycler(FWHM = [300, 300, 300, 300, 300, 300,
+                                30, 60, 90, 120])
 
 resolutions    = cycler(dz = [8, 4, 2])
 
-paramspace = Rossby_numbers * Froude_numbers * L
+paramspace = Rossby_numbers * Froude_numbers * (L + FWHM)
 configs    = resolutions
 
 runs = paramspace * configs
@@ -65,16 +69,19 @@ figs = []
 # aaaa.plot.scatter(y="ℰₖ", col="buffer", x="dz", hue="L", xscale="log", yscale="log", cmap="bwr")
 # figs.append(plt.gcf())
 
-plt.figure()
-aaaa["ℰₖ"].sel(dz=0, method="nearest").plot.scatter(x="L", hue="buffer", cmap="bwr")
+# plt.figure()
+aaaa["ℰₖ"].sel(dz=0, method="nearest").plot.scatter(x="L", hue="FWHM", col="buffer", cmap="bwr", yscale="log")
 figs.append(plt.gcf())
 
-plt.figure()
-aaaa["ℰₚ"].sel(dz=0, method="nearest").plot.scatter(x="L", hue="buffer", cmap="bwr")
+# plt.figure()
+aaaa["ℰₚ"].sel(dz=0, method="nearest").plot.scatter(x="L", hue="FWHM", col="buffer", cmap="bwr", yscale="log")
+figs.append(plt.gcf())
+
+aaaa["𝒦⁵"].sel(dz=0, method="nearest").plot.scatter(x="L", hue="FWHM", col="buffer", cmap="bwr", yscale="log")
 figs.append(plt.gcf())
 
 for fig in figs:
-    for ax in fig.axes[:1]:
+    for ax in fig.axes[:-1]:
         ax.grid(True)
         ax.axvline(x=1, color="black", linestyle="--", label="Seamount horz scale FWHM")
-    ax.legend(loc="upper right")
+    ax.legend()

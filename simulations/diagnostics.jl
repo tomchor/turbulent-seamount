@@ -59,7 +59,7 @@ outputs_state_vars = merge(outputs_vels, Dict{Any, Any}(:b => b))
 @info "Calculating misc diagnostics"
 
 @compute altitude = Field(KernelFunctionOperation{Center, Center, Center}(z_distance_from_seamount_boundary_ccc, grid))
-ω_y = @at CellCenter (∂z(u) - ∂x(w))
+ω_x = @at CellCenter (∂y(w) - ∂z(v))
 
 if model.closure isa Nothing
     εₖ = @at CellCenter CenterField(grid)
@@ -81,7 +81,7 @@ Ro = @at CellCenter RossbyNumber(model)
 PV = @at CellCenter ErtelPotentialVorticity(model, u, v, w, b, model.coriolis)
 
 outputs_dissip = Dict(pairs((; εₖ, εₚ, κ, εₛ)))
-outputs_misc = Dict(pairs((; ω_y, Ri, Ro, PV,)))
+outputs_misc = Dict(pairs((; ω_x, Ri, Ro, PV,)))
 #---
 
 #+++ Define covariances

@@ -82,11 +82,12 @@ color_ranges = Dict(
 
 # Layout parameters
 layout_params = (
-    title_height = 10,
+    title_height = 8,
     panel_width = 300,
     cbar_height = 8,
     column_gap = 20,
-    row_gap = 0
+    row_gap = 0,
+    title_row_gap = 20
 )
 #---
 
@@ -94,17 +95,21 @@ layout_params = (
 fig = Figure(figure_padding = (10, 30, 10, 10))
 n = Observable(1)
 
-# Create title
-title = @lift "α = $(@sprintf "%.2g" params.α),     Frₕ = $(@sprintf "%.2g" params.Fr_h),    Roₕ = $(@sprintf "%.2g" params.Ro_h);    Sᴮᵘ = $(@sprintf "%.2g" params.Slope_Bu);    " *
-              "Δzₘᵢₙ = $(@sprintf "%.2g" params.Δz_min) m,    Time = $(@sprintf "%s" prettytime(times[$n]))  =  $(@sprintf "%.3g" times[$n]/params.T_advective) advective periods  =  " *
-              "$(@sprintf "%.3g" times[$n]/params.T_inertial) Inertial periods"
+# Create title in two lines
+title_line1 = "α = $(@sprintf "%.2g" params.α),     Frₕ = $(@sprintf "%.2g" params.Fr_h),    Roₕ = $(@sprintf "%.2g" params.Ro_h);    Sᴮᵘ = $(@sprintf "%.2g" params.Slope_Bu);    Δzₘᵢₙ = $(@sprintf "%.2g" params.Δz_min) m"
+title_line2 = @lift "Time = $(@sprintf "%s" prettytime(times[$n]))  =  $(@sprintf "%.3g" times[$n]/params.T_advective) advective periods  =  $(@sprintf "%.3g" times[$n]/params.T_inertial) Inertial periods"
 
-fig[1, 0:3] = Label(fig, title, fontsize=18, tellwidth=false, height=layout_params.title_height)
+# Create two title rows with custom spacing
+fig[1, 1:3] = Label(fig, title_line1, fontsize=18, tellwidth=false, height=layout_params.title_height)
+fig[2, 1:3] = Label(fig, title_line2, fontsize=18, tellwidth=false, height=layout_params.title_height)
+
 colgap!(fig.layout, layout_params.column_gap)
 rowgap!(fig.layout, layout_params.row_gap)
 
-# Configure column widths: title column narrow, xyii plot column wide, xizi plot column wide, colorbar column narrow
-colsize!(fig.layout, 0, Auto(0.3))  # Title column (very narrow)
+# Set custom row gap between title rows
+rowgap!(fig.layout, 1, layout_params.title_row_gap)  # Gap between title rows
+
+# Configure column widths: xyii plot column wide, xizi plot column wide, colorbar column narrow
 colsize!(fig.layout, 1, Auto(1.0))  # xyii plot column (main width)
 colsize!(fig.layout, 2, Auto(1.0))  # xizi plot column (main width)
 colsize!(fig.layout, 3, Auto(0.6))  # Colorbar column (wider for better spacing)
@@ -115,9 +120,6 @@ dimnames_order = (:x_faa, :x_caa, :y_afa, :y_aca, :z_afa, :z_aac)
 
 for (i, variable) in enumerate(variables)
     @info "Creating panel: $variable"
-    
-    # Create title label on the left
-    title_label = Label(fig[i+1, 0], string(variable), fontsize=14, rotation=0, tellwidth=false)
     
     # Create xyii plot (column 1)
     var_data_xyii = ds_xyii[variable]
@@ -140,12 +142,12 @@ for (i, variable) in enumerate(variables)
     # Create xyii axis
     if i == length(variables)
         # Bottom panel: show x label
-        ax_xyii = Axis(fig[i+1, 1];
+        ax_xyii = Axis(fig[i+3, 1];
                       xlabel=string(dimnames_xyii[1]), ylabel=string(dimnames_xyii[2]),
                       width=panel_width, height=panel_height_xyii)
     else
         # Upper panels: no x label
-        ax_xyii = Axis(fig[i+1, 1];
+        ax_xyii = Axis(fig[i+3, 1];
                       ylabel=string(dimnames_xyii[2]),
                       width=panel_width, height=panel_height_xyii)
         
@@ -184,23 +186,18 @@ for (i, variable) in enumerate(variables)
     v_xizi = permutedims(var_data_xizi, dimnames_xizi)
     v_xiziₙ = @lift v_xizi[Ti=$n]
     
-    # Calculate data aspect ratio for xizi
-    data_dims_xizi = size(v_xizi)
-    aspect_ratio_xizi = data_dims_xizi[1] / data_dims_xizi[2]
-    
-    # Set panel dimensions for xizi
-    panel_height_xizi = panel_width / aspect_ratio_xizi
-    panel_height_xizi = clamp(panel_height_xizi, panel_width * 0.3, panel_width * 2.0)
+    # Use the same panel height as xyii for consistent layout
+    panel_height_xizi = panel_height_xyii
     
     # Create xizi axis
     if i == length(variables)
         # Bottom panel: show x label
-        ax_xizi = Axis(fig[i+1, 2];
+        ax_xizi = Axis(fig[i+3, 2];
                       xlabel=string(dimnames_xizi[1]), ylabel=string(dimnames_xizi[2]),
                       width=panel_width, height=panel_height_xizi)
     else
         # Upper panels: no x label
-        ax_xizi = Axis(fig[i+1, 2];
+        ax_xizi = Axis(fig[i+3, 2];
                       ylabel=string(dimnames_xizi[2]),
                       width=panel_width, height=panel_height_xizi)
         
@@ -236,12 +233,10 @@ for (i, variable) in enumerate(variables)
         string(variable)
     end
     
-    # Use the larger height for the colorbar
-    panel_height_max = max(panel_height_xyii, panel_height_xizi)
-    
-    Colorbar(fig[i+1, 3], hm_xyii;
+    # Use the same height for the colorbar since both panels have the same height
+    Colorbar(fig[i+3, 3], hm_xyii;
              label=cbar_label, vertical=true,
-             width=layout_params.cbar_height, height=panel_height_max, ticklabelsize=12)
+             width=layout_params.cbar_height, height=panel_height_xyii, ticklabelsize=12)
 end
 #---
 

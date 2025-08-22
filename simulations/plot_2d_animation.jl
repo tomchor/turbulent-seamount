@@ -18,40 +18,24 @@ end
 #+++ Load re
 import Rasters as ra
 import NCDatasets
-using Rasters: Raster, RasterStack
+using Rasters: RasterStack
 using Printf: @sprintf
 using Oceananigans.Units
 using Oceananigans: prettytime
-#---
-
-#+++ Helper functions
-function squeeze(ds::Union{Raster, RasterStack})
-    flat_dimensions = NamedTuple((ra.name(dim), 1) for dim in ra.dims(ds) if length(ra.dims(ds, dim)) == 1)
-    return getindex(ds; flat_dimensions...)
-end
-
-# Slice dimension mapping
-const SLICE_DIMS = Dict(
-    "xy" => :z_aac,
-    "xz" => :y_aca,
-    "yz" => :x_caa
-)
 #---
 
 #+++ Read datasets
 variables = (:v, :PV, :εₖ, :Ro)
 
 # Get main dataset paths
-fpath_xyii = (@isdefined simulation) ? simulation.output_writers[:nc_xyii].filepath : "data/xyii.seamount_Ro_h0.2_Fr_h1.25_L0_FWHM500_dz8.nc"
-fpath_xizi = (@isdefined simulation) ? simulation.output_writers[:nc_xizi].filepath : "data/xizi.seamount_Ro_h0.2_Fr_h1.25_L0_FWHM500_dz8.nc"
+fpath_xyii = (@isdefined simulation) ? simulation.output_writers[:nc_xyii].filepath : "data/xyii.seamount_Ro_h0.2_Fr_h1.25_L0_FWHM400_dz8.nc"
+fpath_xizi = (@isdefined simulation) ? simulation.output_writers[:nc_xizi].filepath : "data/xizi.seamount_Ro_h0.2_Fr_h1.25_L0_FWHM400_dz8.nc"
 
 @info "Reading xyii dataset: $fpath_xyii"
 ds_xyii = RasterStack(fpath_xyii, lazy=true, name=variables)
-ds_xyii = squeeze(ds_xyii)
 
 @info "Reading xizi dataset: $fpath_xizi"
 ds_xizi = RasterStack(fpath_xizi, lazy=true, name=variables)
-ds_xizi = squeeze(ds_xizi)
 #---
 
 #+++ Get parameters
@@ -74,7 +58,7 @@ frames = 1:frame_step:n_times
 #+++ Define plotting parameters
 # Color ranges for each variable
 color_ranges = Dict(
-    :v  => (range=(-params.V∞, +params.V∞) .* 1.2, colormap=:balance),
+    :v  => (range=(-params.U∞, +params.U∞) .* 1.2, colormap=:balance),
     :PV => (range=params.N²∞ * abs(params.f₀) * [-5, +5], colormap=:seismic),
     :εₖ => (range=(1e-10, 1e-7), colormap=:inferno, colorscale=log10),
     :Ro => (range=(-4, +4), colormap=:balance)

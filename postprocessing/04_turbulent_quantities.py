@@ -81,7 +81,7 @@ for j, config in enumerate(runs):
     bulk["∭⁵⟨w′b′⟩ₜdV"] = xyzd["∭⁵⟨w′b′⟩ₜdV"]
     bulk["∭⁵SPRdxdy"]   = xyza["∭⁵SPRdV"]
 
-    bulk["V∞∬⟨Ek′⟩ₜdxdz"] = xyzd["V∞∬⟨Ek′⟩ₜdxdz"]
+    bulk["U∞∬⟨Ek′⟩ₜdxdz"] = xyzd["U∞∬⟨Ek′⟩ₜdxdz"]
 
     bulk["∭ᵋε̄ₖdxdy"] = xyza["∭ᵋε̄ₖdxdy"]
     bulk["⟨ε̄ₖ⟩ᵋ"]    = xyza["∭ᵋε̄ₖdxdy"] / xyza["∭ᵋ1dxdy"]

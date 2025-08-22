@@ -36,7 +36,7 @@ turb["RoFr"] = turb.Ro_h * turb.Fr_h
 turb["𝒦ℰ"] = turb["∭⁵⟨Ek′⟩ₜdV"]
 turb["𝒫"] = turb["∭⁵SPRdxdy"].sum("j")
 turb["ℬ"] = turb["∭⁵⟨w′b′⟩ₜdV"]
-turb["𝒜"] = turb["V∞∬⟨Ek′⟩ₜdxdz"]
+turb["𝒜"] = turb["U∞∬⟨Ek′⟩ₜdxdz"]
 #---
 
 #+++ Make it legible

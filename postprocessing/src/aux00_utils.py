@@ -521,7 +521,7 @@ def gather_attributes_as_variables(ds, ds_ref=None, include_derived=True):
     Transform dataset attributes to variables and optionally create derived quantities.
 
     This function converts common attributes like Ro_h, Fr_h, etc. to variables
-    in the dataset, and optionally creates derived quantities like RoFr, V∞³÷L, etc.
+    in the dataset, and optionally creates derived quantities like RoFr, U∞³÷L, etc.
 
     Parameters
     ----------
@@ -544,7 +544,7 @@ def gather_attributes_as_variables(ds, ds_ref=None, include_derived=True):
 
     #+++ Convert existing variables to new names and attributes to variables
     for var in ["Ro_h", "Fr_h", "Slope_Bu", "α", "Bu_h", "Γ", "c_dz",
-                "f₀", "N²∞", "V∞", "L"]:
+                "f₀", "N²∞", "U∞", "L"]:
         if var in ds.variables:
             ds[var] = ds[var]
         elif var in ds.attrs:
@@ -567,11 +567,11 @@ def gather_attributes_as_variables(ds, ds_ref=None, include_derived=True):
             ds["RoFr"] = ds.Ro_h * ds.Fr_h
 
         # Velocity and stratification derived quantities
-        if "V∞" in ds.variables and "L" in ds.variables:
-            ds["V∞³÷L"] = ds["V∞"]**3 / ds.L
+        if "U∞" in ds.variables and "L" in ds.variables:
+            ds["U∞³÷L"] = ds["U∞"]**3 / ds.L
 
-        if "V∞" in ds.variables and "N²∞" in ds.variables:
-            ds["V∞²N∞"] = ds["V∞"]**2 * np.sqrt(ds["N²∞"])
+        if "U∞" in ds.variables and "N²∞" in ds.variables:
+            ds["U∞²N∞"] = ds["U∞"]**2 * np.sqrt(ds["N²∞"])
 
         if "N²∞" in ds.variables and "L" in ds.variables:
             ds["N∞³L²"] = np.sqrt(ds["N²∞"])**3 * ds.L**2

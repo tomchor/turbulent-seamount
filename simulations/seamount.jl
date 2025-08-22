@@ -45,7 +45,7 @@ function parse_command_line_arguments()
             default = 8meters
             arg_type = Int
 
-        "--V∞"
+        "--U∞"
             default = 0.1meters/second
             arg_type = Float64
 
@@ -55,7 +55,7 @@ function parse_command_line_arguments()
 
         "--FWHM"
             help = "Full width at half maximum of the seamount"
-            default = 500meters
+            default = 400meters
             arg_type = Float64
 
         "--L"
@@ -73,12 +73,12 @@ function parse_command_line_arguments()
 
         "--Lx"
             help = "Domain length in x-direction"
-            default = 5000meters
+            default = 4000meters
             arg_type = Float64
 
         "--Ly"
             help = "Domain length in y-direction"
-            default = 3000meters
+            default = 2400meters
             arg_type = Float64
 
         "--Lz_ratio"
@@ -180,8 +180,8 @@ let
     #---
 
     #+++ Dynamically-relevant secondary parameters
-    f₀ = f_0 = params.V∞ / (params.Ro_h * params.FWHM)
-    N²∞ = N2_inf = (params.V∞ / (params.Fr_h * params.H))^2
+    f₀ = f_0 = params.U∞ / (params.Ro_h * params.FWHM)
+    N²∞ = N2_inf = (params.U∞ / (params.Fr_h * params.H))^2
     R1 = √N²∞ * params.H / f₀
     z₀ = z_0 = params.Rz * params.H
     #---
@@ -195,8 +195,8 @@ let
 
     #+++ Time scales
     T_inertial = 2π / f₀
-    T_cycle = params.Lx / params.V∞
-    T_advective = params.FWHM / params.V∞
+    T_cycle = params.Lx / params.U∞
+    T_advective = params.FWHM / params.U∞
     #---
 
     global params = merge(params, Base.@locals)
@@ -248,8 +248,8 @@ params = (; params..., c_dz = (κᵛᵏ / log(z₁/z₀))^2) # quadratic drag co
 #+++ Open boundary conditions for velocitities
 using Oceananigans.BoundaryConditions: PerturbationAdvectionOpenBoundaryCondition
 
-u_west = OpenBoundaryCondition(params.V∞)
-u_east = PerturbationAdvectionOpenBoundaryCondition(params.V∞; inflow_timescale = 2minutes, outflow_timescale = 30minutes)
+u_west = OpenBoundaryCondition(params.U∞)
+u_east = PerturbationAdvectionOpenBoundaryCondition(params.U∞; inflow_timescale = 2minutes, outflow_timescale = 30minutes)
 
 v_west = w_west = ValueBoundaryCondition(0)
 v_east = w_east = FluxBoundaryCondition(0)
@@ -279,8 +279,8 @@ bcs = (u=u_bcs, v=v_bcs, w=w_bcs, b=b_bcs)
 #---
 
 #+++ Define geostrophic forcing
-@inline geostrophy(x, y, z, t, p) = p.f₀ * p.V∞
-Fᵥ = Forcing(geostrophy, parameters = (; params.f₀, params.V∞))
+@inline geostrophy(x, y, z, t, p) = p.f₀ * p.U∞
+Fᵥ = Forcing(geostrophy, parameters = (; params.f₀, params.U∞))
 #---
 
 #+++ Turbulence closure
@@ -304,14 +304,14 @@ end
 #+++ Add top sponge layer
 let
     h_sponge = 0.2 * params.Lz
-    sponge_damping_rate = max(√params.N²∞, params.α * params.V∞ / h_sponge) / 10
+    sponge_damping_rate = max(√params.N²∞, params.α * params.U∞ / h_sponge) / 10
 
     global params = merge(params, Base.@locals)
 end
 
 mask_top = PiecewiseLinearMask{:z}(center=params.Lz, width=params.h_sponge)
 w_sponge = Relaxation(rate=params.sponge_damping_rate, mask=mask_top, target=0)
-u_sponge = Relaxation(rate=params.sponge_damping_rate, mask=mask_top, target=params.V∞)
+u_sponge = Relaxation(rate=params.sponge_damping_rate, mask=mask_top, target=params.U∞)
 b_sponge = Relaxation(rate=params.sponge_damping_rate, mask=mask_top, target=b∞)
 #---
 
@@ -332,12 +332,12 @@ model = NonhydrostaticModel(grid = grid, timestepper = :RungeKutta3,
 @info "" model
 show_gpu_status()
 
-set!(model, b=(x, y, z) -> b∞(z), u=params.V∞)
+set!(model, b=(x, y, z) -> b∞(z), u=params.U∞)
 #---
 
 #+++ Create simulation
 params = (; params..., T_advective_max = params.T_advective_spinup + params.T_advective_statistics)
-simulation = Simulation(model, Δt = 0.2 * minimum_zspacing(grid.underlying_grid) / params.V∞,
+simulation = Simulation(model, Δt = 0.2 * minimum_zspacing(grid.underlying_grid) / params.U∞,
                         stop_time = params.T_advective_max * params.T_advective,
                         wall_time_limit = 23hours,
                         minimum_relative_step = 1e-10,

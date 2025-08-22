@@ -111,7 +111,7 @@ for j, config in enumerate(runs):
     #---
 
     #+++ Calculate flux of turbulent kinetic energy out of the domain
-    xyzd["V∞∬⟨Ek′⟩ₜdxdz"] = xyzd.attrs["V∞"] * integrate(xyzd["⟨Ek′⟩ₜ"], dV=xyzd.ΔxΔz, dims=["x", "z"]).pnsel(y=np.inf, method="nearest")
+    xyzd["U∞∬⟨Ek′⟩ₜdxdz"] = xyzd.attrs["U∞"] * integrate(xyzd["⟨Ek′⟩ₜ"], dV=xyzd.ΔxΔz, dims=["x", "z"]).pnsel(y=np.inf, method="nearest")
     #---
 
     #+++ Drop variables that are not needed and save xyzd

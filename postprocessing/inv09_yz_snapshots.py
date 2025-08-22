@@ -59,11 +59,11 @@ def mask_immersed(da, bathymetric_mask=xyzi.peripheral_nodes_ccc):
 #+++ Plot
 sel = dict(x_caa=300, time=np.inf, method="nearest")
 
-V_inf = xyzi_list[0].attrs["V∞"]
+U_inf = xyzi_list[0].attrs["U∞"]
 
 common_opts = dict(x="y", rasterized=True)
-w_opts = dict(vmin=-2e-1*V_inf, vmax=+2e-1*V_inf, cmap=RdBu_r)
-v_opts = dict(vmin=-1.5*V_inf, vmax=+1.5*V_inf, cmap=RdBu_r)
+w_opts = dict(vmin=-2e-1*U_inf, vmax=+2e-1*U_inf, cmap=RdBu_r)
+v_opts = dict(vmin=-1.5*U_inf, vmax=+1.5*U_inf, cmap=RdBu_r)
 uw_opts = dict(vmin=-3e-3, vmax=+3e-3, cmap=RdBu_r)
 shear_opts = dict(vmin=0, vmax=0.03, cmap=solar)
 εp_opts = dict(norm=LogNorm(clip=True), vmin=1e-8, vmax=1e-6, cmap=inferno)

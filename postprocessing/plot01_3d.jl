@@ -19,8 +19,8 @@ md = metadata(xyzi_1)
 params = (; (Symbol(k) => v for (k, v) in md)...)
 
 # Extract grid coordinates from first dataset
-xyzi_1 = xyzi_1[z_aac = 0..1.1*params.H, y_aca = -Inf..5.5*params.FWHM]
-xyzi_2 = xyzi_2[z_aac = 0..1.1*params.H, y_aca = -Inf..5.5*params.FWHM]
+xyzi_1 = xyzi_1[z_aac = 0..1.1*params.H, x_caa = -Inf..6*params.FWHM]
+xyzi_2 = xyzi_2[z_aac = 0..1.1*params.H, x_caa = -Inf..6*params.FWHM]
 
 x_range = extrema(dims(xyzi_1, :x_caa))
 y_range = extrema(dims(xyzi_1, :y_aca))
@@ -32,7 +32,7 @@ n_final = length(times)
 #---
 
 #+++ Set limits based on data range or physical considerations
-isovalue_εₚ₁ = 3e-10
+isovalue_εₚ₁ = 5e-10
 isovalue_εₚ₂ = 1e-9
 εₚ_range = (isovalue_εₚ₁, isovalue_εₚ₂)
 isorange_εₚ₁ = isovalue_εₚ₁/2

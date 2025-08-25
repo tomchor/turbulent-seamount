@@ -2,7 +2,6 @@ import numpy as np
 import xarray as xr
 from matplotlib import pyplot as plt
 from scipy import interpolate
-from cmocean import cm
 
 #+++ Utility functions
 def get_max_location_argmax(da):
@@ -128,6 +127,7 @@ ds["detrended_elevation"] = detrend_elevation(ds.z)
 
 maximum_point = get_max_location_argmax(ds.detrended_elevation)
 ds = ds.assign_coords(lat = ds.lat - maximum_point["lat"], lon = ds.lon - maximum_point["lon"])
+ds.attrs["H"] = maximum_point["value"]
 
 # The resolution of the GEBCO 2024 datasets is 15 arcseconds. At 40°-ish latitude then
 Δlat = ds.lat.diff("lat").mean().item()
@@ -145,14 +145,12 @@ ds = ds.assign_coords(lat = ds.lat * lat2meter, lon = ds.lon * lon2meter)
 ds = ds.rename(lon="x", lat="y")
 
 # Useful to estimate full width at half maximum (FWHM)
-half_maximum_ring = ds.detrended_elevation.where(abs(ds.detrended_elevation - ds.detrended_elevation.max()/2) < 100)
+ds["area_at_HM"] = xr.ones_like(ds.detrended_elevation).where(ds.detrended_elevation > ds.H/2, other=0).integrate(("x", "y"))
+ds["FWHM"] = 2 * np.sqrt(ds.area_at_HM / np.pi)
 ds["distance_from_peak"] = np.sqrt(ds.x**2 + ds.y**2)
+ds.attrs["δ"] = float(ds.H / ds.FWHM)
 
-ds.attrs["H"] = maximum_point["value"]
-ds.attrs["FWHM"] = ds.distance_from_peak.where(np.logical_not(np.isnan(half_maximum_ring))).mean().item()
-ds.attrs["δ"] = ds.H / ds.FWHM
-
-ringed_periodic_elevation = ds.detrended_elevation.where(ds.distance_from_peak < 2*ds.FWHM).where(ds.distance_from_peak < 2.5*ds.FWHM, other=0)
+ringed_periodic_elevation = ds.detrended_elevation.where(ds.distance_from_peak < 1*ds.FWHM).where(ds.distance_from_peak < 1.2*ds.FWHM, other=0)
 ds["periodic_elevation"] = interpolate_2d_scipy(ringed_periodic_elevation)
 
 ds = ds.drop_vars(["detrended_elevation", "distance_from_peak"])

@@ -204,7 +204,7 @@ for (i, variable) in enumerate(variables)
             end
         end
     end
-    
+
     # Add colorbar (column 3)
     cbar_label = try
         metadata(ds_xyii[variable])["units"]

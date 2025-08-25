@@ -17,9 +17,9 @@ simname_base = "seamount"
 Rossby_numbers = cycler(Ro_h = [0.2])
 Froude_numbers = cycler(Fr_h = [1.25])
 L              = cycler(L = [0, 0.05, 0.1, 0.2, 0.4, 0.8,
-                             0.8, 0.8, 0.8, 0.8])
-FWHM           = cycler(FWHM = [300, 300, 300, 300, 300, 300,
-                                30, 60, 90, 120])
+                             0.8, 0.8])
+FWHM           = cycler(FWHM = [400, 400, 400, 400, 400, 400,
+                                100, 40])
 
 resolutions    = cycler(dz = [8, 4, 2])
 
@@ -49,10 +49,10 @@ aaaa["RoFr"] = aaaa.Ro_h * aaaa.Fr_h
 
 hor_scale = 1/aaaa.transition_wavenumber
 hor_scale = aaaa.FWHM
-aaaa["ℰₖ"] = aaaa["∭ᵇε̄ₖdV"] / (aaaa.attrs["V∞"]**3 * aaaa.FWHM**2 * aaaa.H / hor_scale)
-aaaa["ℰₚ"] = aaaa["∭ᵇε̄ₚdV"] / (aaaa.attrs["V∞"]**3 * aaaa.FWHM**2 * aaaa.H / hor_scale)
+aaaa["ℰₖ"] = aaaa["∭ᵇε̄ₖdV"] / (aaaa.attrs["U∞"]**3 * aaaa.FWHM**2 * aaaa.H / hor_scale)
+aaaa["ℰₚ"] = aaaa["∭ᵇε̄ₚdV"] / (aaaa.attrs["U∞"]**3 * aaaa.FWHM**2 * aaaa.H / hor_scale)
 
-aaaa["𝒦⁵"] = (aaaa["∭ᵇε̄ₚdV"] / aaaa["N²∞"]) / (aaaa["V∞"] * aaaa.FWHM**2 * aaaa.H**2)
+aaaa["𝒦⁵"] = (aaaa["∭ᵇε̄ₚdV"] / aaaa["N²∞"]) / (aaaa["U∞"] * aaaa.FWHM**2 * aaaa.H**2)
 #---
 
 #+++ Make it legible

@@ -45,7 +45,7 @@ function parse_command_line_arguments()
             default = 8meters
             arg_type = Int
 
-        "--V∞"
+        "--U∞"
             default = 0.1meters/second
             arg_type = Float64
 
@@ -55,7 +55,7 @@ function parse_command_line_arguments()
 
         "--FWHM"
             help = "Full width at half maximum of the seamount"
-            default = 300meters
+            default = 400meters
             arg_type = Float64
 
         "--L"
@@ -73,12 +73,12 @@ function parse_command_line_arguments()
 
         "--Lx"
             help = "Domain length in x-direction"
-            default = 1800meters
+            default = 4000meters
             arg_type = Float64
 
         "--Ly"
             help = "Domain length in y-direction"
-            default = 3000meters
+            default = 2400meters
             arg_type = Float64
 
         "--Lz_ratio"
@@ -94,7 +94,7 @@ function parse_command_line_arguments()
             arg_type = String
 
         "--runway_length_fraction_FWHM"
-            default = 3.5 # y_offset / FWHM (how far from the inflow the headland is)
+            default = 3.5 # x_offset / FWHM (how far from the inflow the headland is)
             arg_type = Float64
 
         "--T_advective_spinup"
@@ -159,7 +159,7 @@ let
     α = params.H / params.FWHM
     Lz = params.Lz_ratio * params.H
 
-    y_offset = params.runway_length_fraction_FWHM * params.FWHM
+    x_offset = params.runway_length_fraction_FWHM * params.FWHM
     L_meters = params.L * params.FWHM  # Convert dimensionless L to meters
     #---
 
@@ -180,8 +180,8 @@ let
     #---
 
     #+++ Dynamically-relevant secondary parameters
-    f₀ = f_0 = params.V∞ / (params.Ro_h * params.FWHM)
-    N²∞ = N2_inf = (params.V∞ / (params.Fr_h * params.H))^2
+    f₀ = f_0 = params.U∞ / (params.Ro_h * params.FWHM)
+    N²∞ = N2_inf = (params.U∞ / (params.Fr_h * params.H))^2
     R1 = √N²∞ * params.H / f₀
     z₀ = z_0 = params.Rz * params.H
     #---
@@ -195,8 +195,8 @@ let
 
     #+++ Time scales
     T_inertial = 2π / f₀
-    T_cycle = params.Ly / params.V∞
-    T_advective = params.FWHM / params.V∞
+    T_cycle = params.Lx / params.U∞
+    T_advective = params.FWHM / params.U∞
     #---
 
     global params = merge(params, Base.@locals)
@@ -206,10 +206,10 @@ pprintln(params)
 #---
 
 #+++ Base grid
-grid_base = RectilinearGrid(arch; topology = (Periodic, Bounded, Bounded),
+grid_base = RectilinearGrid(arch; topology = (Bounded, Periodic, Bounded),
                             size = (params.Nx, params.Ny, params.Nz),
-                            x = (-params.Lx/2, +params.Lx/2),
-                            y = (-params.y_offset, params.Ly - params.y_offset),
+                            x = (-params.x_offset, params.Lx - params.x_offset),
+                            y = (-params.Ly/2, +params.Ly/2),
                             z = z_coords,
                             halo = (4, 4, 4),
                             )
@@ -220,7 +220,7 @@ params = (; params..., Δz_min = minimum_zspacing(grid_base))
 #+++ Interpolate bathymetry and create immersed boundary grid
 x_grid = xnodes(grid_base, Center(), Center(), Center())
 y_grid = ynodes(grid_base, Center(), Center(), Center())
-interpolated_bathymetry_cpu = bathymetry_itp.(reshape(x_grid, (grid_base.Nx, 1)), reshape(y_grid, (1, grid_base.Ny)))
+interpolated_bathymetry_cpu = bathymetry_itp.(reshape(y_grid, (1, grid_base.Ny)), reshape(x_grid, (grid_base.Nx, 1)))
 interpolated_bathymetry = on_architecture(grid_base.architecture, interpolated_bathymetry_cpu)
 
 grid = ImmersedBoundaryGrid(grid_base, GridFittedBottom(interpolated_bathymetry))
@@ -248,12 +248,11 @@ params = (; params..., c_dz = (κᵛᵏ / log(z₁/z₀))^2) # quadratic drag co
 #+++ Open boundary conditions for velocitities
 using Oceananigans.BoundaryConditions: PerturbationAdvectionOpenBoundaryCondition
 
-u_south = u_north = ValueBoundaryCondition(0)
+u_west = OpenBoundaryCondition(params.U∞)
+u_east = PerturbationAdvectionOpenBoundaryCondition(params.U∞; inflow_timescale = 2minutes, outflow_timescale = 30minutes)
 
-v_south = OpenBoundaryCondition(params.V∞)
-v_north = PerturbationAdvectionOpenBoundaryCondition(params.V∞; inflow_timescale = 2minutes, outflow_timescale = 2minutes,)
-
-w_south = w_north = ValueBoundaryCondition(0)
+v_west = w_west = ValueBoundaryCondition(0)
+v_east = w_east = FluxBoundaryCondition(0)
 #---
 
 #+++ Boundary and initial conditions for buoyancy
@@ -267,21 +266,21 @@ end
 b∞ = LinearStratification(params.N²∞)
 
 b_boundaries(x, z, t, N²∞) = z * N²∞
-b_south = b_north = ValueBoundaryCondition(b_boundaries, parameters=params.N²∞)
+b_west = b_east = ValueBoundaryCondition(b_boundaries, parameters=params.N²∞)
 #---
 
 #+++ Assemble BCs
-u_bcs = FieldBoundaryConditions(south=u_south, north=u_north, immersed=τᵘ)
-v_bcs = FieldBoundaryConditions(south=v_south, north=v_north, immersed=τᵛ)
-w_bcs = FieldBoundaryConditions(south=w_south, north=w_north, immersed=τʷ)
-b_bcs = FieldBoundaryConditions(south=b_south, north=b_north)
+u_bcs = FieldBoundaryConditions(west=u_west, east=u_east, immersed=τᵘ)
+v_bcs = FieldBoundaryConditions(west=v_west, east=v_east, immersed=τᵛ)
+w_bcs = FieldBoundaryConditions(west=w_west, east=w_east, immersed=τʷ)
+b_bcs = FieldBoundaryConditions(west=b_west, east=b_east)
 
 bcs = (u=u_bcs, v=v_bcs, w=w_bcs, b=b_bcs)
 #---
 
 #+++ Define geostrophic forcing
-@inline geostrophy(x, y, z, t, p) = -p.f₀ * p.V∞
-Fᵤ = Forcing(geostrophy, parameters = (; params.f₀, params.V∞))
+@inline geostrophy(x, y, z, t, p) = p.f₀ * p.U∞
+Fᵥ = Forcing(geostrophy, parameters = (; params.f₀, params.U∞))
 #---
 
 #+++ Turbulence closure
@@ -305,14 +304,14 @@ end
 #+++ Add top sponge layer
 let
     h_sponge = 0.2 * params.Lz
-    sponge_damping_rate = max(√params.N²∞, params.α * params.V∞ / h_sponge) / 10
+    sponge_damping_rate = max(√params.N²∞, params.α * params.U∞ / h_sponge) / 10
 
     global params = merge(params, Base.@locals)
 end
 
 mask_top = PiecewiseLinearMask{:z}(center=params.Lz, width=params.h_sponge)
 w_sponge = Relaxation(rate=params.sponge_damping_rate, mask=mask_top, target=0)
-v_sponge = Relaxation(rate=params.sponge_damping_rate, mask=mask_top, target=params.V∞)
+u_sponge = Relaxation(rate=params.sponge_damping_rate, mask=mask_top, target=params.U∞)
 b_sponge = Relaxation(rate=params.sponge_damping_rate, mask=mask_top, target=b∞)
 #---
 
@@ -326,19 +325,19 @@ model = NonhydrostaticModel(grid = grid, timestepper = :RungeKutta3,
                             tracers = :b,
                             closure = closure,
                             boundary_conditions = bcs,
-                            forcing = (; u=Fᵤ, v=v_sponge, w=w_sponge, b=b_sponge),
+                            forcing = (; u=u_sponge, v=Fᵥ, w=w_sponge, b=b_sponge),
                             hydrostatic_pressure_anomaly = CenterField(grid),
                             #pressure_solver = ConjugateGradientPoissonSolver(grid, preconditioner = fft_poisson_solver(grid.underlying_grid), maxiter = 100),
                             )
 @info "" model
 show_gpu_status()
 
-set!(model, b=(x, y, z) -> b∞(z), v=params.V∞)
+set!(model, b=(x, y, z) -> b∞(z), u=params.U∞)
 #---
 
 #+++ Create simulation
 params = (; params..., T_advective_max = params.T_advective_spinup + params.T_advective_statistics)
-simulation = Simulation(model, Δt = 0.2 * minimum_zspacing(grid.underlying_grid) / params.V∞,
+simulation = Simulation(model, Δt = 0.2 * minimum_zspacing(grid.underlying_grid) / params.U∞,
                         stop_time = params.T_advective_max * params.T_advective,
                         wall_time_limit = 23hours,
                         minimum_relative_step = 1e-10,
@@ -415,9 +414,9 @@ construct_outputs(simulation;
                   interval_3d = 0.5*params.T_advective,
                   interval_time_avg,
                   write_xyzi = true,
-                  write_xizi = false,
+                  write_xizi = true,
                   write_xyii = true,
-                  write_iyzi = true,
+                  write_iyzi = false,
                   write_xyza = false,
                   write_xyia = false,
                   write_aaai = true,

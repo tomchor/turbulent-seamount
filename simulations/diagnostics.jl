@@ -59,7 +59,7 @@ outputs_state_vars = merge(outputs_vels, Dict{Any, Any}(:b => b))
 @info "Calculating misc diagnostics"
 
 @compute altitude = Field(KernelFunctionOperation{Center, Center, Center}(z_distance_from_seamount_boundary_ccc, grid))
-ω_y = @at CellCenter (∂z(u) - ∂x(w))
+ω_x = @at CellCenter (∂y(w) - ∂z(v))
 
 if model.closure isa Nothing
     εₖ = @at CellCenter CenterField(grid)
@@ -81,7 +81,7 @@ Ro = @at CellCenter RossbyNumber(model)
 PV = @at CellCenter ErtelPotentialVorticity(model, u, v, w, b, model.coriolis)
 
 outputs_dissip = Dict(pairs((; εₖ, εₚ, κ, εₛ)))
-outputs_misc = Dict(pairs((; ω_y, Ri, Ro, PV,)))
+outputs_misc = Dict(pairs((; ω_x, Ri, Ro, PV,)))
 #---
 
 #+++ Define covariances
@@ -112,8 +112,8 @@ outputs_grads = Dict{Symbol, Any}(:∂u∂x => (@at CellCenter ∂x(u)),
 @info "Defining volume averages"
 # Define conditions to avoid unresolved bottom, sponge layer, and couple of points closest to the
 # open boundary
-dc5  = DistanceCondition(from_bottom=5meters , from_top=params.h_sponge, from_north=2minimum_yspacing(grid))
-dc10 = DistanceCondition(from_bottom=10meters, from_top=params.h_sponge, from_north=2minimum_yspacing(grid))
+dc5  = DistanceCondition(from_bottom=5meters , from_top=params.h_sponge, from_east=2minimum_xspacing(grid))
+dc10 = DistanceCondition(from_bottom=10meters, from_top=params.h_sponge, from_east=2minimum_xspacing(grid))
 
 outputs_vol_integrals = Dict{Symbol, Any}(:∭⁵εₖdV  => Integral(εₖ; condition = dc5),
                                           :∭⁵εₚdV  => Integral(εₚ; condition = dc5),
@@ -273,5 +273,6 @@ function construct_outputs(simulation;
                                                                            kwargs...
                                                                            )
     end
+    #---
 end
 #---

@@ -312,13 +312,14 @@ end
 
 #+++ Auxiliary immersed boundary metrics
 using Oceananigans.Fields: @compute
-import Oceananigans.Grids: ynode, znode
+import Oceananigans.Grids: xnode, ynode, znode
 using Adapt
 
 const c = Center()
 const f = Face()
 
-ynode(j, grid, ℓy) = ynode(1, j, 1, grid, c, ℓz, c)
+xnode(i, grid, ℓx) = xnode(i, 1, 1, grid, ℓx, c, c)
+ynode(j, grid, ℓy) = ynode(1, j, 1, grid, c, ℓy, c)
 znode(k, grid, ℓz) = znode(1, 1, k, grid, c, c, ℓz)
 
 @inline z_distance_from_seamount_boundary_ccc(i, j, k, grid, args...) = znode(k, grid, c) - grid.immersed_boundary.bottom_height[i, j, 1]
@@ -326,25 +327,25 @@ znode(k, grid, ℓz) = znode(1, 1, k, grid, c, c, ℓz)
 struct DistanceCondition{FT}
     from_bottom :: FT
     from_top    :: FT
-    from_north  :: FT
+    from_east   :: FT
 end
 
-function DistanceCondition(FT=Float64; from_bottom=5meters, from_top=0, from_north=0)
+function DistanceCondition(FT=Float64; from_bottom=5meters, from_top=0, from_east=0)
     from_bottom = convert(FT, from_bottom)
     from_top    = convert(FT, from_top)
-    from_north  = convert(FT, from_north)
-    return DistanceCondition(from_bottom, from_top, from_north)
+    from_east   = convert(FT, from_east)
+    return DistanceCondition(from_bottom, from_top, from_east)
 end
 
 # Necessary for GPU
 Adapt.adapt_structure(to, dc::DistanceCondition) = DistanceCondition(adapt(to, dc.from_bottom),
                                                                      adapt(to, dc.from_top),
-                                                                     adapt(to, dc.from_north))
+                                                                     adapt(to, dc.from_east))
 
 z_distance_from_bottom(args...) = z_distance_from_seamount_boundary_ccc(args...)
 z_distance_from_top(i, j, k, grid, args...) = znode(grid.Nz + 1, grid, f) - znode(k, grid, c)
-y_distance_from_north(i, j, k, grid, args...) = ynode(grid.Ny + 1, grid, f) - ynode(j, grid, c)
+x_distance_from_east(i, j, k, grid, args...) = xnode(grid.Nx + 1, grid, f) - xnode(i, grid, c)
 (dc::DistanceCondition)(i, j, k, grid, co) = (z_distance_from_bottom(i, j, k, grid) > dc.from_bottom) &
                                              (z_distance_from_top(i, j, k, grid) > dc.from_top) &
-                                             (y_distance_from_north(i, j, k, grid) > dc.from_north)
+                                             (x_distance_from_east(i, j, k, grid) > dc.from_east)
 #---

@@ -34,6 +34,7 @@ df["FWHM"] = df.width_meters / 2 # width here is the basal ellipse width, which 
 df["aspect_ratio"] = df.Height / df.FWHM
 
 df["eccentricity"] = np.sqrt(1 - (df.Minor / df.Major)**2)
+df["axes_ratio"] = df.Minor / df.Major
 
 acc = df.where(df.Latitude < -45).dropna()
 
@@ -46,3 +47,6 @@ print("FWHM for ACC seamounts: ", acc.FWHM.median())
 print()
 print("eccentricity for all seamounts: ", df.eccentricity.median())
 print("eccentricity for ACC seamounts: ", acc.eccentricity.median())
+
+print("axes ratio for all seamounts: ", df.axes_ratio.median())
+print("axes ratio for ACC seamounts: ", acc.axes_ratio.median())

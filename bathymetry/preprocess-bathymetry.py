@@ -145,10 +145,10 @@ ds = ds.assign_coords(lat = ds.lat * lat2meter, lon = ds.lon * lon2meter)
 ds = ds.rename(lon="x", lat="y")
 
 # Useful to estimate full width at half maximum (FWHM)
-ds["area_at_HM"] = xr.ones_like(ds.detrended_elevation).where(ds.detrended_elevation > ds.H/2, other=0).integrate(("x", "y"))
-ds["FWHM"] = 2 * np.sqrt(ds.area_at_HM / np.pi)
+area_at_HM = xr.ones_like(ds.detrended_elevation).where(ds.detrended_elevation > ds.H/2, other=0).integrate(("x", "y"))
+ds.attrs["FWHM"] = float(2 * np.sqrt(area_at_HM / np.pi))
 ds["distance_from_peak"] = np.sqrt(ds.x**2 + ds.y**2)
-ds.attrs["δ"] = float(ds.H / ds.FWHM)
+ds.attrs["δ"] = float(ds.H / ds.attrs["FWHM"])
 
 ringed_periodic_elevation = ds.detrended_elevation.where(ds.distance_from_peak < 1*ds.FWHM).where(ds.distance_from_peak < 1.2*ds.FWHM, other=0)
 ds["periodic_elevation"] = interpolate_2d_scipy(ringed_periodic_elevation)

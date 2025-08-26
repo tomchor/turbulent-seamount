@@ -73,12 +73,12 @@ function parse_command_line_arguments()
 
         "--Lx"
             help = "Domain length in x-direction"
-            default = 4000meters
+            default = 3000meters
             arg_type = Float64
 
         "--Ly"
             help = "Domain length in y-direction"
-            default = 2400meters
+            default = 2000meters
             arg_type = Float64
 
         "--Lz_ratio"
@@ -125,10 +125,14 @@ end
 
 #+++ Create interpolant for (and maybe smooth) bathymetry
 ds_bathymetry = NCDataset(joinpath(@__DIR__, "../bathymetry/balanus-bathymetry-preprocessed.nc"))
+elevation = ds_bathymetry["periodic_elevation"]
 x = ds_bathymetry["x"]
 y = ds_bathymetry["y"]
 
-params = (; params..., H_ratio = params.H / maximum(ds_bathymetry["periodic_elevation"]), # How much do we rescale in the vertical?
+original_FWHM = measure_FWHM(x, y, elevation)
+@assert original_FWHM ≈ ds_bathymetry.attrib["FWHM"]
+
+params = (; params..., H_ratio = params.H / maximum(elevation), # How much do we rescale in the vertical?
                        FWHM_ratio = params.FWHM / ds_bathymetry.attrib["FWHM"]) # How much do we rescale in the horizontal?
 shrunk_elevation = ds_bathymetry["periodic_elevation"] .* params.H_ratio # Rescale the elevation to the new height
 

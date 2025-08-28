@@ -121,10 +121,10 @@ outputs_vol_integrals = Dict{Symbol, Any}(:∭⁵εₖdV  => Integral(εₖ; con
                                           :∭¹⁰εₚdV => Integral(εₚ; condition = dc10),
                                           )
 
-outputs_x_integrals = Dict{Symbol, Any}(:∫⁵εₖdx   => Integral(εₖ; condition = dc5, dims=1),
-                                        :∫⁵εₚdx   => Integral(εₚ; condition = dc5, dims=1),
-                                        :∫¹⁰εₖdx  => Integral(εₖ; condition = dc10, dims=1),
-                                        :∫¹⁰εₚdx  => Integral(εₚ; condition = dc10, dims=1),
+outputs_x_integrals = Dict{Symbol, Any}(:∫⁵εₖdy   => Integral(εₖ; condition = dc5, dims=2),
+                                        :∫⁵εₚdy   => Integral(εₚ; condition = dc5, dims=2),
+                                        :∫¹⁰εₖdy  => Integral(εₖ; condition = dc10, dims=2),
+                                        :∫¹⁰εₚdy  => Integral(εₚ; condition = dc10, dims=2),
                                         )
 
 dcf5  = Field(KernelFunctionOperation{Center, Center, Center}(dc5,  grid, nothing)) |> compute!

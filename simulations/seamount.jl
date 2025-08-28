@@ -28,19 +28,6 @@ function parse_command_line_arguments()
             default = "seamount"
             arg_type = String
 
-        "--x₀"
-            default = 0
-            arg_type = Float64
-
-        "--y₀"
-            default = 0
-            arg_type = Float64
-
-        "--aspect"
-            help = "Desired cell aspect ratio; Δx/Δz = Δy/Δz"
-            default = 2
-            arg_type = Float64
-
         "--dz"
             default = 8meters
             arg_type = Int
@@ -55,7 +42,7 @@ function parse_command_line_arguments()
 
         "--FWHM"
             help = "Full width at half maximum of the seamount"
-            default = 400meters
+            default = 500meters
             arg_type = Float64
 
         "--L"
@@ -83,6 +70,19 @@ function parse_command_line_arguments()
 
         "--Lz_ratio"
             default = 2 # Lz / H
+            arg_type = Float64
+
+        "--x₀"
+            default = 0
+            arg_type = Float64
+
+        "--y₀"
+            default = 0
+            arg_type = Float64
+
+        "--aspect"
+            help = "Desired cell aspect ratio; Δx/Δz = Δy/Δz"
+            default = 2
             arg_type = Float64
 
         "--Rz"
@@ -354,7 +354,7 @@ cg_iterations(simulation) = simulation.model.pressure_solver isa ConjugateGradie
 progress(simulation) = @info (PercentageProgress(with_prefix=false, with_units=false)
                               + "$(round(time(simulation)/params.T_advective; digits=2)) adv periods" + walltime
                               + TimeStep() + "CFL = " * AdvectiveCFLNumber(with_prefix=false)
-                              + MaxVelocities()
+                              + MaxUVelocity()
                               + "step dur = " * walltime_per_timestep
                               + cg_iterations(simulation)
                               )(simulation)

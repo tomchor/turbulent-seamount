@@ -73,7 +73,7 @@ function parse_command_line_arguments()
 
         "--Lx"
             help = "Domain length in x-direction"
-            default = 3000meters
+            default = 3500meters
             arg_type = Float64
 
         "--Ly"
@@ -94,7 +94,7 @@ function parse_command_line_arguments()
             arg_type = String
 
         "--runway_length_fraction_FWHM"
-            default = 3.5 # x_offset / FWHM (how far from the inflow the headland is)
+            default = 2 # x_offset / FWHM (how far from the inflow the headland is)
             arg_type = Float64
 
         "--T_advective_spinup"

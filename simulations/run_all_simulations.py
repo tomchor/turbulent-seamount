@@ -8,12 +8,12 @@ from postprocessing.src.aux00_utils import aggregate_parameters
 #+++ Define run options
 simname_base = "seamount"
 
-Rossby_numbers = cycler(Ro_h = [0.2])
-Froude_numbers = cycler(Fr_h = [1.25])
+Rossby_numbers = cycler(Ro_h = [0.1])
+Froude_numbers = cycler(Fr_h = [1.0])
 L              = cycler(L = [0, 0.05, 0.1, 0.2, 0.4, 0.8,
                              0.8, 0.8])
-FWHM           = cycler(FWHM = [400, 400, 400, 400, 400, 400,
-                                100, 40])
+FWHM           = cycler(FWHM = [500, 500, 500, 500, 500, 500,
+                                200, 100])
 
 resolutions    = cycler(dz = [8, 4, 2])
 

@@ -154,5 +154,56 @@ ringed_periodic_elevation = ds.detrended_elevation.where(ds.distance_from_peak <
 ds["periodic_elevation"] = interpolate_2d_scipy(ringed_periodic_elevation)
 
 ds = ds.drop_vars(["detrended_elevation", "distance_from_peak"])
-encoding = { var : dict(zlib=True, complevel=9, shuffle=True) for var in ds.data_vars }
-ds.to_netcdf("balanus-bathymetry-preprocessed.nc", encoding = encoding)
+
+#+++ Ugly hack to extend the dataset in x and y directions
+# Create new coordinate arrays with double the extent
+dx = ds.x.diff("x").mean().item()
+dy = ds.y.diff("y").mean().item()
+
+x_min = ds.x.min().item()
+y_min = ds.y.min().item()
+
+x_max = ds.x.max().item()
+y_max = ds.y.max().item()
+
+# Extend in negative direction
+x_new_min = 1.5*x_min
+y_new_min = 1.5*y_min
+
+# Extend in positive direction
+x_new_max = 1.5*x_max
+y_new_max = 1.5*y_max
+
+# Create new coordinate arrays
+x_new = np.arange(x_new_min, x_new_max + dx/2, dx)
+y_new = np.arange(y_new_min, y_new_max + dy/2, dy)
+
+extended_array = np.zeros((len(y_new), len(x_new)))
+
+# Create extended dataset filled with zeros
+extended_data = {}
+for var_name in ds.data_vars:
+    # Create new DataArray
+    extended_da = xr.DataArray(
+        extended_array,
+        coords={"y": y_new, "x": x_new},
+        dims=["y", "x"],
+        attrs=ds[var_name].attrs
+    )
+
+    # Find indices where original data should be placed
+    x_start_idx = np.argmin(np.abs(x_new - x_min))
+    x_end_idx = x_start_idx + len(ds.x)
+    y_start_idx = np.argmin(np.abs(y_new - y_min))
+    y_end_idx = y_start_idx + len(ds.y)
+
+    # Insert original data into the extended array
+    extended_da.values[y_start_idx:y_end_idx, x_start_idx:x_end_idx] = ds[var_name].values
+    extended_data[var_name] = extended_da
+
+# Create extended dataset
+ds_extended = xr.Dataset(extended_data, attrs=ds.attrs)
+#---
+
+encoding = { var : dict(zlib=True, complevel=9, shuffle=True) for var in ds_extended.data_vars }
+ds_extended.to_netcdf("balanus-bathymetry-preprocessed.nc", encoding = encoding)

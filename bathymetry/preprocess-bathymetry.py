@@ -120,6 +120,7 @@ def interpolate_2d_scipy(da, method='linear'):
     )
 #---
 
+#+++ Open and detrend elevation
 ds = xr.open_dataset("GMRT/GMRTv4_3_1_20250502topo.nc")
 ds = ds.dropna("lat", how="all").dropna("lon", how="all")
 
@@ -128,7 +129,9 @@ ds["detrended_elevation"] = detrend_elevation(ds.z)
 maximum_point = get_max_location_argmax(ds.detrended_elevation)
 ds = ds.assign_coords(lat = ds.lat - maximum_point["lat"], lon = ds.lon - maximum_point["lon"])
 ds.attrs["H"] = maximum_point["value"]
+#---
 
+#+++ Convert from lat lon to meters
 # The resolution of the GEBCO 2024 datasets is 15 arcseconds. At 40°-ish latitude then
 Δlat = ds.lat.diff("lat").mean().item()
 Δlon = ds.lon.diff("lon").mean().item()
@@ -143,66 +146,73 @@ print(f"Dataset has spacing of {Δlat * degrees_to_arcseconds:.2f} arcseconds in
 
 ds = ds.assign_coords(lat = ds.lat * lat2meter, lon = ds.lon * lon2meter)
 ds = ds.rename(lon="x", lat="y")
+#---
 
-# Useful to estimate full width at half maximum (FWHM)
+#+++ Estimate full width at half maximum (FWHM)
 area_at_HM = xr.ones_like(ds.detrended_elevation).where(ds.detrended_elevation > ds.H/2, other=0).integrate(("x", "y"))
 ds.attrs["FWHM"] = float(2 * np.sqrt(area_at_HM / np.pi))
 ds["distance_from_peak"] = np.sqrt(ds.x**2 + ds.y**2)
 ds.attrs["δ"] = float(ds.H / ds.attrs["FWHM"])
+#---
 
+#+++ Make it periodic
 ringed_periodic_elevation = ds.detrended_elevation.where(ds.distance_from_peak < 1*ds.FWHM).where(ds.distance_from_peak < 1.2*ds.FWHM, other=0)
 ds["periodic_elevation"] = interpolate_2d_scipy(ringed_periodic_elevation)
 
 ds = ds.drop_vars(["detrended_elevation", "distance_from_peak"])
 
-#+++ Ugly hack to extend the dataset in x and y directions
-# Create new coordinate arrays with double the extent
+# Coarsen to reduce points by half in x and y directions
+ds = ds.coarsen(x=2, y=2).mean()
+#---
+
+#+++ Extend the dataset in x and y directions using native xarray functions
+# Calculate extension parameters
 dx = ds.x.diff("x").mean().item()
 dy = ds.y.diff("y").mean().item()
 
-x_min = ds.x.min().item()
-y_min = ds.y.min().item()
+x_min, x_max = ds.x.min().item(), ds.x.max().item()
+y_min, y_max = ds.y.min().item(), ds.y.max().item()
 
-x_max = ds.x.max().item()
-y_max = ds.y.max().item()
+# Create extension coordinates by progressive concatenation
+# Calculate target extents
+x_target_min = 1.5 * x_min
+x_target_max = 1.5 * x_max
+y_target_min = 1.5 * y_min
+y_target_max = 1.5 * y_max
 
-# Extend in negative direction
-x_new_min = 1.5*x_min
-y_new_min = 1.5*y_min
+# Create western extension points by going backwards from x_min
+x_west = []
+x_current = x_min - dx
+while x_current >= x_target_min:
+    x_west.insert(0, x_current)  # Insert at beginning to maintain order
+    x_current -= dx
 
-# Extend in positive direction
-x_new_max = 1.5*x_max
-y_new_max = 1.5*y_max
+# Create eastern extension points by going forwards from x_max
+x_east = []
+x_current = x_max + dx
+while x_current <= x_target_max:
+    x_east.append(x_current)
+    x_current += dx
 
-# Create new coordinate arrays
-x_new = np.arange(x_new_min, x_new_max + dx/2, dx)
-y_new = np.arange(y_new_min, y_new_max + dy/2, dy)
+# Create southern extension points by going backwards from y_min
+y_south = []
+y_current = y_min - dy
+while y_current >= y_target_min:
+    y_south.insert(0, y_current)  # Insert at beginning to maintain order
+    y_current -= dy
 
-extended_array = np.zeros((len(y_new), len(x_new)))
+# Create northern extension points by going forwards from y_max
+y_north = []
+y_current = y_max + dy
+while y_current <= y_target_max:
+    y_north.append(y_current)
+    y_current += dy
 
-# Create extended dataset filled with zeros
-extended_data = {}
-for var_name in ds.data_vars:
-    # Create new DataArray
-    extended_da = xr.DataArray(
-        extended_array,
-        coords={"y": y_new, "x": x_new},
-        dims=["y", "x"],
-        attrs=ds[var_name].attrs
-    )
+# Concatenate all coordinates
+x_extended = np.concatenate([x_west, ds.x.values, x_east])
+y_extended = np.concatenate([y_south, ds.y.values, y_north])
 
-    # Find indices where original data should be placed
-    x_start_idx = np.argmin(np.abs(x_new - x_min))
-    x_end_idx = x_start_idx + len(ds.x)
-    y_start_idx = np.argmin(np.abs(y_new - y_min))
-    y_end_idx = y_start_idx + len(ds.y)
-
-    # Insert original data into the extended array
-    extended_da.values[y_start_idx:y_end_idx, x_start_idx:x_end_idx] = ds[var_name].values
-    extended_data[var_name] = extended_da
-
-# Create extended dataset
-ds_extended = xr.Dataset(extended_data, attrs=ds.attrs)
+ds_extended = ds.reindex(x=x_extended, y=y_extended, fill_value=0)
 #---
 
 encoding = { var : dict(zlib=True, complevel=9, shuffle=True) for var in ds_extended.data_vars }

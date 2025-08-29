@@ -130,7 +130,7 @@ x = ds_bathymetry["x"]
 y = ds_bathymetry["y"]
 
 original_FWHM = measure_FWHM(x, y, elevation)
-@assert original_FWHM ≈ ds_bathymetry.attrib["FWHM"]
+@assert isapprox(original_FWHM, ds_bathymetry.attrib["FWHM"], rtol=1e-3)
 
 params = (; params..., H_ratio = params.H / maximum(elevation), # How much do we rescale in the vertical?
                        FWHM_ratio = params.FWHM / ds_bathymetry.attrib["FWHM"]) # How much do we rescale in the horizontal?
@@ -155,6 +155,7 @@ shrunk_y = y .* params.FWHM_ratio
 
 @info "Interpolating bathymetry"
 bathymetry_itp = Interpolations.LinearInterpolation((shrunk_x, shrunk_y), shrunk_smoothed_elevation, extrapolation_bc=Interpolations.Flat())
+close(ds_bathymetry)
 #---
 
 #+++ Get domain sizes, z_coords, and secondary simulation parameters

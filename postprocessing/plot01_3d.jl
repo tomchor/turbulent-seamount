@@ -69,7 +69,7 @@ surface!(ax1, x_range, y_range, xyzi_1.bottom_height, colormap = :turbid)
 surface!(ax2, x_range, y_range, xyzi_2.bottom_height, colormap = :turbid)
 #---
 
-#+++ heatmap plots of ∫⁵εₖdx with log scale
+#+++ heatmap plots of ∫⁵εₖdy with log scale
 # Extract the energy dissipation data at the final time step
 εₖ_1 = xyzi_1.∫⁵εₖdy[Ti=n_final]
 εₖ_2 = xyzi_2.∫⁵εₖdy[Ti=n_final]

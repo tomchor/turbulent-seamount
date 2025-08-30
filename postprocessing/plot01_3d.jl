@@ -50,8 +50,9 @@ settings_axis3 = (aspect = (3params1.FWHM, 3params1.FWHM, 4*Lz), azimuth = 1.6π
 # Create figure with two columns (3D plots and heatmaps)
 fig = Figure(size = (1800, 800))
 
-# Set column widths: narrower first column, wider second column
 colsize!(fig.layout, 1, Relative(0.25))  # 3D plots column - 35% width
+rowgap!(fig.layout, 0)
+colgap!(fig.layout, 0)
 
 # Main 3D axes - first column
 ax1 = Axis3(fig[1, 1]; settings_axis3...)
@@ -62,9 +63,8 @@ for ax in (ax1, ax2)
 end
 
 # Heatmap axes - second column
-ax1_heat = Axis(fig[1, 2], xlabel="x [m]", ylabel="z [m]", title="L/FWHM = $(params1.L)")
-ax2_heat = Axis(fig[2, 2], xlabel="x [m]", ylabel="z [m]", title="L/FWHM = $(params2.L)")
-
+ax1_heat = Axis(fig[1, 2], ylabel="z [m]", xticksvisible=false, xticklabelsvisible=false)
+ax2_heat = Axis(fig[2, 2], ylabel="z [m]", xlabel="x [m]")
 
 #+++ bottom height plot for 3D axes
 surface!(ax1, x_range, y_range, xyzi_1.bottom_height, colormap = :turbid)
@@ -85,6 +85,11 @@ hm2 = heatmap!(ax2_heat, x_range, z_range, εₖ_2,
 # Add colorbars
 Colorbar(fig[1, 3], hm1, label = "∫⁵εₖdy [m³/s³]", height = Relative(0.8))
 Colorbar(fig[2, 3], hm2, label = "∫⁵εₖdy [m³/s³]", height = Relative(0.8))
+
+# Add titles inside the heatmaps with white font
+label_options = (space=:relative, color=:white, fontsize=16, align=(:left, :top))
+text!(ax1_heat, 0.05, 0.95, text="L/FWHM = $(params1.L)"; label_options...)
+text!(ax2_heat, 0.05, 0.95, text="L/FWHM = $(params2.L)"; label_options...)
 #---
 
 #+++ Create title, labels, and save the plot

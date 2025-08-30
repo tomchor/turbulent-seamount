@@ -5,8 +5,8 @@ using Printf
 using Oceananigans: prettytime
 
 #+++ Preamble
-fpath_xyzi_1 = "../simulations/data/xyzi.seamount_Ro_h0.1_Fr_h1.0_L0_FWHM500_dz2.nc"
-fpath_xyzi_2 = "../simulations/data/xyzi.seamount_Ro_h0.1_Fr_h1.0_L0.8_FWHM500_dz2.nc"
+fpath_xyzi_1 = "../simulations/data/xyzi.seamount_Ro_h0.1_Fr_h1_L0_FWHM500_dz2.nc"
+fpath_xyzi_2 = "../simulations/data/xyzi.seamount_Ro_h0.1_Fr_h1_L0.8_FWHM500_dz2.nc"
 
 @info "Reading NetCDF files: $fpath_xyzi_1 and $fpath_xyzi_2"
 
@@ -51,7 +51,7 @@ settings_axis3 = (aspect = (3params1.FWHM, 3params1.FWHM, 4*Lz), azimuth = 1.6π
 fig = Figure(size = (1800, 800))
 
 # Set column widths: narrower first column, wider second column
-colsize!(fig.layout, 1, Relative(0.35))  # 3D plots column - 35% width
+colsize!(fig.layout, 1, Relative(0.25))  # 3D plots column - 35% width
 
 # Main 3D axes - first column
 ax1 = Axis3(fig[1, 1]; settings_axis3...)

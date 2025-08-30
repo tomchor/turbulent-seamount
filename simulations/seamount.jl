@@ -148,6 +148,8 @@ else
                                                   bc_y="replicate",)
 end
 
+params = (; params..., H_after_smoothing = maximum(shrunk_smoothed_elevation))
+
 # Rescale the horizontal dimensions to the new FWHM.
 # Note that the smoothed bathymetry is likely a bit shorter than the original, and we do not correct for that on purpose.
 shrunk_x = x .* params.FWHM_ratio
@@ -379,7 +381,7 @@ add_callback!(simulation, cfl_changer, SpecifiedTimes([t_switch]); name=:cfl_cha
 include("$rundir/diagnostics.jl")
 
 #+++ Define checkpointer/pickup
-write_ckpt = params.dz < 1
+write_ckpt = params.dz < 2
 interval_time_avg = params.T_advective
 
 if write_ckpt

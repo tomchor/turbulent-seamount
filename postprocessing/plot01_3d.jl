@@ -56,8 +56,10 @@ colsize!(fig.layout, 1, Relative(0.35))  # 3D plots column - 35% width
 # Main 3D axes - first column
 ax1 = Axis3(fig[1, 1]; settings_axis3...)
 ax2 = Axis3(fig[2, 1]; settings_axis3...)
-xlims!(ax1, (-1.5params1.FWHM, 1.5params1.FWHM))
-xlims!(ax2, (-1.5params1.FWHM, 1.5params1.FWHM))
+for ax in (ax1, ax2)
+    xlims!(ax, (-1.5params1.FWHM, 1.5params1.FWHM))
+    zlims!(ax, (0, 1.1*params1.H))
+end
 
 # Heatmap axes - second column
 ax1_heat = Axis(fig[1, 2], xlabel="x [m]", ylabel="z [m]", title="L/FWHM = $(params1.L)")

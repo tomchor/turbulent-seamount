@@ -68,6 +68,59 @@ function diffusion_coeff_tukey(grad_mag, K)
     return result
 end
 
+function extrude_bathymetry_3d(x, y, H, bathymetry_2d; dz=nothing, z_max=nothing)
+    dx = minimum(diff(x))
+    dy = minimum(diff(y))
+    dz = dz isa Nothing ? (dx + dy) / 2 : dz
+    zᶠ = collect(0:dz:z_max)
+    zᶜ = zᶠ[1:end-1] + dz/2
+
+    # Create 2D grids for x, y, z coordinates
+    X = repeat(reshape(x,  :, 1, 1),         1, length(y), length(zᶠ))
+    Y = repeat(reshape(y,  1, :, 1), length(x),         1, length(zᶠ))
+    Z = repeat(reshape(zᶠ, 1, 1, :), length(x), length(y),          1)
+
+    return X, Y, Z, zᶜ
+end
+
+function smooth_3d_bathymetry(bathymetry_3d; window_size_x, window_size_y, bc_x="circular", bc_y="replicate")
+    kernel_x = Kernel.gaussian((window_size_x, 0, 0))
+    kernel_y = Kernel.gaussian((0, window_size_y, 0))
+
+    smoothed_x = imfilter(bathymetry_3d, kernel_x, bc_x)
+    smoothed = imfilter(smoothed_x, kernel_y, bc_y)
+
+    return smoothed
+end
+
+function find_interface_height(array3d::AbstractArray{Bool,3}, x::AbstractVector, y::AbstractVector, z::AbstractVector)
+    # Get dimensions
+    nx, ny, nz = size(array3d)
+
+    # Initialize output array
+    heights = zeros(nx, ny)
+
+    # For each x,y point, find first false value from bottom up
+    for i in 1:nx
+        for j in 1:ny
+            # Get column of values at this x,y point
+            column = view(array3d, i, j, :)
+
+            # Find index of first false value from bottom
+            k = findlast(column)
+
+            # If found, set height to corresponding z value
+            if !isnothing(k) && k > 0
+                heights[i,j] = z[k]
+            end
+        end
+    end
+
+    return heights
+end
+
+
+
 #+++ Read bathymetry data
 @info "Reading bathymetry data"
 ds_bathymetry = NCDataset(joinpath(@__DIR__, "../bathymetry/balanus-bathymetry-preprocessed.nc"))
@@ -79,15 +132,13 @@ dy = minimum(diff(y))
 H = ds_bathymetry.attrib["H"]
 
 FWHM = 2 * ds_bathymetry.attrib["FWHM"]
-elevation = ds_bathymetry["periodic_elevation"]
+elevation = ds_bathymetry["periodic_elevation"] |> collect
 
-dz = (dx + dy) / 2
-z = collect(0:dz:1.2*H)
+# Close the original dataset
+close(ds_bathymetry)
 
 # Create 2D grids for x, y, z coordinates
-X = repeat(reshape(x, :, 1, 1), 1, length(y), length(z))
-Y = repeat(reshape(y, 1, :, 1), length(x), 1, length(z))
-Z = repeat(reshape(z, 1, 1, :), length(x), length(y), 1)
+X, Y, Z = extrude_bathymetry_3d(x, y, H, elevation, z_max=1.2*H)
 
 # Convert to Float64 and get basic info
 bathymetry = Float64.(elevation)
@@ -95,7 +146,8 @@ bathymetry = Float64.(elevation)
 @info "Elevation range: $(extrema(bathymetry))"
 @info "FWHM from data: $FWHM"
 
-bathymetry_3d = Z .< bathymetry
+bathymetry_3d = Float64.(Z .< bathymetry)
+smoothed_bathymetry_3d = smooth_3d_bathymetry(bathymetry_3d; window_size_x=σ, window_size_y=σ)
 
 #+++ Apply three different filtering procedures
 
@@ -117,8 +169,6 @@ num_iter_aniso = 50
 λ_aniso = 0.2  # Time step
 aniso_filtered = anisotropic_diffusion_2d(bathymetry; K=K_aniso, num_iter=num_iter_aniso, lambda=λ_aniso)
 
-# Close the original dataset
-close(ds_bathymetry)
 
 #+++ Create comparison plot using GLMakie
 using GLMakie

@@ -58,6 +58,25 @@ function same_area_smoothed(smoothed, unsmoothed_area; initial_guess=0.5)
     if Optim.minimum(result) > 0.05*unsmoothed_area
         result = optimize(objective, lower_bound, upper_bound, 0.8.*initial_guess, Fminbox(LBFGS()), options)
         if Optim.minimum(result) > 0.05*unsmoothed_area
+            result = optimize(objective, lower_bound, upper_bound, 0.2.*initial_guess, Fminbox(LBFGS()), options)
+            if Optim.minimum(result) > 0.05*unsmoothed_area
+                result = optimize(objective, lower_bound, upper_bound, 0.1.*initial_guess, Fminbox(LBFGS()), options)
+                if Optim.minimum(result) > 0.05*unsmoothed_area
+                    @warn "Optimal threshold not found"
+                end
+                optimal_threshold = Optim.minimizer(result)[1]
+            end
+            optimal_threshold = Optim.minimizer(result)[1]
+        end
+        optimal_threshold = Optim.minimizer(result)[1]
+    end
+
+    @info "Optimal threshold found: $optimal_threshold, objective value: $(Optim.minimum(result))"
+
+    # Return binary mask using optimal threshold
+    return smoothed .> optimal_threshold, optimal_threshold
+end
+
             @warn "Optimal threshold not found, using 0.5"
             Main.@infiltrate
         end
@@ -92,7 +111,7 @@ function smooth_3d_bathymetry(bathymetry_3d; window_size_x, window_size_y, bc_x=
     return smoothed_3d
 end
 
-function find_interface_height(array3d::AbstractArray{Bool,3}, x::AbstractVector, y::AbstractVector, z::AbstractVector)
+function find_interface_height(array3d, x::AbstractVector, y::AbstractVector, z::AbstractVector)
     # Get dimensions
     nx, ny, nz = size(array3d)
 
@@ -110,7 +129,7 @@ function find_interface_height(array3d::AbstractArray{Bool,3}, x::AbstractVector
 
             # If found, set height to corresponding z value
             if !isnothing(k) && k > 0
-                heights[i,j] = z[k]
+                heights[i, j] = z[k]
             end
         end
     end
@@ -162,7 +181,7 @@ bathymetry = Float64.(elevation)
 @info "Applying 3D Gaussian filter"
 bathymetry_3d = Float64.(Z .< bathymetry)
 smoothed_bathymetry_3d = smooth_3d_bathymetry(bathymetry_3d; window_size_x=σ, window_size_y=σ)
-gaussian_filtered_3d = find_interface_height(Bool.(smoothed_bathymetry_3d), x, y, z)
+gaussian_filtered_3d = find_interface_height(smoothed_bathymetry_3d, x, y, z)
 
 #+++ Create comparison plot using GLMakie
 using GLMakie

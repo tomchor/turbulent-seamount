@@ -2,10 +2,7 @@ using LinearAlgebra
 using NCDatasets: NCDataset
 using Printf
 
-
-include("utils.jl")
-
-
+include("../simulations/utils.jl")
 
 #+++ Read bathymetry data
 @info "Reading bathymetry data"

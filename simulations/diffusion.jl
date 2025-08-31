@@ -6,7 +6,9 @@ using Printf
 import Optim
 using Optim: Fminbox, LBFGS
 
-function extrude_bathymetry_3d(x, y, H, bathymetry_2d; dz=nothing, z_max=nothing)
+include("utils.jl")
+
+function extrude_bathymetry_3d(x, y, bathymetry_2d; dz=nothing, z_max=nothing)
     dx = minimum(diff(x))
     dy = minimum(diff(y))
     dz = dz isa Nothing ? (dx + dy) / 2 : dz
@@ -56,20 +58,8 @@ function same_area_smoothed(smoothed, unsmoothed_area; initial_guess=0.5)
     # Get optimal threshold
     optimal_threshold = Optim.minimizer(result)[1]
 
-    if Optim.minimum(result) > 0.05*unsmoothed_area
-        result = Optim.optimize(objective, lower_bound, upper_bound, 0.6.*initial_guess, Fminbox(LBFGS()), options)
-        if Optim.minimum(result) > 0.05*unsmoothed_area
-            result = Optim.optimize(objective, lower_bound, upper_bound, 0.2.*initial_guess, Fminbox(LBFGS()), options)
-            if Optim.minimum(result) > 0.05*unsmoothed_area
-                result = Optim.optimize(objective, lower_bound, upper_bound, 0.1.*initial_guess, Fminbox(LBFGS()), options)
-                if Optim.minimum(result) > 0.05*unsmoothed_area
-                    @warn "Optimal threshold not found"
-                end
-                optimal_threshold = Optim.minimizer(result)[1]
-            end
-            optimal_threshold = Optim.minimizer(result)[1]
-        end
-        optimal_threshold = Optim.minimizer(result)[1]
+    if (Optim.minimum(result) > 0.05*unsmoothed_area) && (initial_guess[] > 1e-3)
+        return same_area_smoothed(smoothed, unsmoothed_area; initial_guess=0.5*initial_guess[])
     end
 
     @info "Optimal threshold found: $optimal_threshold, objective value: $(Optim.minimum(result))"
@@ -99,29 +89,25 @@ function smooth_3d_bathymetry(bathymetry_3d; window_size_x, window_size_y, bc_x=
     return smoothed_3d
 end
 
-find_interface_height(array3d::AbstractArray{Float64, 3}, x, y, z) = find_interface_height(array3d .> 0.5, x, y, z)
+find_interface_height(array3d::AbstractArray{Float64, 3}; kwargs...) = find_interface_height(Bool.(array3d); kwargs...)
 
-function find_interface_height(array3d::AbstractArray{Bool, 3}, x::AbstractVector, y::AbstractVector, z::AbstractVector)
-    # Get dimensions
+function find_interface_height(array3d::AbstractArray{Bool, 3}; smooth=false, x=nothing, y=nothing, z=nothing)
     nx, ny, nz = size(array3d)
-
-    # Initialize output array
     heights = zeros(nx, ny)
 
     # For each x,y point, find first false value from bottom up
-    for i in 1:nx
-        for j in 1:ny
-            # Get column of values at this x,y point
-            column = view(array3d, i, j, :)
+    for i in 1:nx, j in 1:ny
+        column = view(array3d, i, j, :)
+        k = findlast(column)
 
-            # Find index of first false value from bottom
-            k = findlast(column)
-
-            # If found, set height to corresponding z value
-            if !isnothing(k) && k > 0
-                heights[i, j] = z[k]
-            end
+        # If found, set height to corresponding z value
+        if !isnothing(k) && k > 0
+            heights[i, j] = z[k]
         end
+    end
+
+    if smooth
+        heights = smooth_bathymetry(heights; window_size_x=10, window_size_y=10)
     end
 
     return heights
@@ -146,7 +132,7 @@ elevation = ds_bathymetry["periodic_elevation"] |> collect
 close(ds_bathymetry)
 
 # Create 2D grids for x, y, z coordinates
-X, Y, Z, zᶜ = extrude_bathymetry_3d(x, y, H, elevation, z_max=1.2*H)
+X, Y, Z, zᶜ = extrude_bathymetry_3d(x, y, elevation, z_max=1.1*H)
 
 # Convert to Float64 and get basic info
 bathymetry = Float64.(elevation)
@@ -158,20 +144,20 @@ bathymetry = Float64.(elevation)
 
 # 1. Gaussian filter using ImageFiltering.jl
 @info "Applying Gaussian filter"
-σ = 0.5 * FWHM / (2*dx)  # Standard deviation for Gaussian kernel
+σ = 0.3 * FWHM / (2*dx)  # Standard deviation for Gaussian kernel
 gaussian_filtered = imfilter(bathymetry, Kernel.gaussian(σ))
 
-# # 2. Total Variation (TV) denoising using solve_ROF_PD
-# @info "Applying Total Variation denoising"
-# λ_tv = 10*σ^2
-# max_iter_tv = 1000
-# tv_filtered = solve_ROF_PD(bathymetry, λ_tv, max_iter_tv)
+# 2. Total Variation (TV) denoising using solve_ROF_PD
+@info "Applying Total Variation denoising"
+λ_tv = 5*σ^2
+max_iter_tv = 1000
+tv_filtered = solve_ROF_PD(bathymetry, λ_tv, max_iter_tv)
 
 # 3. 3D Gaussian filter
 @info "Applying 3D Gaussian filter"
 bathymetry_3d = Float64.(Z .< bathymetry)
 smoothed_bathymetry_3d = smooth_3d_bathymetry(bathymetry_3d; window_size_x=σ, window_size_y=σ)
-gaussian_filtered_3d = find_interface_height(smoothed_bathymetry_3d, x, y, zᶜ)
+gaussian_filtered_3d = find_interface_height(smoothed_bathymetry_3d, smooth=true, x=x, y=y, z=zᶜ)
 
 #+++ Create comparison plot using GLMakie
 using GLMakie

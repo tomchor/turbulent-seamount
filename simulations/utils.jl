@@ -311,6 +311,7 @@ end
 #---
 
 #+++ Auxiliary immersed boundary metrics
+using Oceananigans: Center, Face
 using Oceananigans.Fields: @compute
 import Oceananigans.Grids: xnode, ynode, znode
 using Adapt

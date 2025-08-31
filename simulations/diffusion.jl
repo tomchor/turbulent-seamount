@@ -3,7 +3,8 @@ using NCDatasets: NCDataset
 using ImageFiltering
 using ImageFiltering.Models: solve_ROF_PD
 using Printf
-using Optim
+import Optim
+using Optim: Fminbox, LBFGS
 
 function extrude_bathymetry_3d(x, y, H, bathymetry_2d; dz=nothing, z_max=nothing)
     dx = minimum(diff(x))
@@ -50,17 +51,17 @@ function same_area_smoothed(smoothed, unsmoothed_area; initial_guess=0.5)
 
     # Use bounded optimization
     options = Optim.Options(f_abstol=0.05*unsmoothed_area, iterations=10)
-    result = optimize(objective, lower_bound, upper_bound, initial_guess, Fminbox(LBFGS()), options)
-    
+    result = Optim.optimize(objective, lower_bound, upper_bound, initial_guess, Fminbox(LBFGS()), options)
+
     # Get optimal threshold
     optimal_threshold = Optim.minimizer(result)[1]
 
     if Optim.minimum(result) > 0.05*unsmoothed_area
-        result = optimize(objective, lower_bound, upper_bound, 0.8.*initial_guess, Fminbox(LBFGS()), options)
+        result = Optim.optimize(objective, lower_bound, upper_bound, 0.6.*initial_guess, Fminbox(LBFGS()), options)
         if Optim.minimum(result) > 0.05*unsmoothed_area
-            result = optimize(objective, lower_bound, upper_bound, 0.2.*initial_guess, Fminbox(LBFGS()), options)
+            result = Optim.optimize(objective, lower_bound, upper_bound, 0.2.*initial_guess, Fminbox(LBFGS()), options)
             if Optim.minimum(result) > 0.05*unsmoothed_area
-                result = optimize(objective, lower_bound, upper_bound, 0.1.*initial_guess, Fminbox(LBFGS()), options)
+                result = Optim.optimize(objective, lower_bound, upper_bound, 0.1.*initial_guess, Fminbox(LBFGS()), options)
                 if Optim.minimum(result) > 0.05*unsmoothed_area
                     @warn "Optimal threshold not found"
                 end
@@ -76,19 +77,6 @@ function same_area_smoothed(smoothed, unsmoothed_area; initial_guess=0.5)
     # Return binary mask using optimal threshold
     return smoothed .> optimal_threshold, optimal_threshold
 end
-
-            @warn "Optimal threshold not found, using 0.5"
-            Main.@infiltrate
-        end
-        optimal_threshold = Optim.minimizer(result)[1]
-    end
-
-    @info "Optimal threshold found: $optimal_threshold, objective value: $(Optim.minimum(result))"
-
-    # Return binary mask using optimal threshold
-    return smoothed .> optimal_threshold, optimal_threshold
-end
-
 
 
 function smooth_3d_bathymetry(bathymetry_3d; window_size_x, window_size_y, bc_x="circular", bc_y="replicate")
@@ -111,7 +99,9 @@ function smooth_3d_bathymetry(bathymetry_3d; window_size_x, window_size_y, bc_x=
     return smoothed_3d
 end
 
-function find_interface_height(array3d, x::AbstractVector, y::AbstractVector, z::AbstractVector)
+find_interface_height(array3d::AbstractArray{Float64, 3}, x, y, z) = find_interface_height(array3d .> 0.5, x, y, z)
+
+function find_interface_height(array3d::AbstractArray{Bool, 3}, x::AbstractVector, y::AbstractVector, z::AbstractVector)
     # Get dimensions
     nx, ny, nz = size(array3d)
 
@@ -156,7 +146,7 @@ elevation = ds_bathymetry["periodic_elevation"] |> collect
 close(ds_bathymetry)
 
 # Create 2D grids for x, y, z coordinates
-X, Y, Z = extrude_bathymetry_3d(x, y, H, elevation, z_max=1.2*H)
+X, Y, Z, zᶜ = extrude_bathymetry_3d(x, y, H, elevation, z_max=1.2*H)
 
 # Convert to Float64 and get basic info
 bathymetry = Float64.(elevation)
@@ -167,9 +157,9 @@ bathymetry = Float64.(elevation)
 #+++ Apply three different filtering procedures
 
 # 1. Gaussian filter using ImageFiltering.jl
-# @info "Applying Gaussian filter"
-# σ = 0.5 * FWHM / (2*dx)  # Standard deviation for Gaussian kernel
-# gaussian_filtered = imfilter(bathymetry, Kernel.gaussian(σ))
+@info "Applying Gaussian filter"
+σ = 0.5 * FWHM / (2*dx)  # Standard deviation for Gaussian kernel
+gaussian_filtered = imfilter(bathymetry, Kernel.gaussian(σ))
 
 # # 2. Total Variation (TV) denoising using solve_ROF_PD
 # @info "Applying Total Variation denoising"
@@ -181,7 +171,7 @@ bathymetry = Float64.(elevation)
 @info "Applying 3D Gaussian filter"
 bathymetry_3d = Float64.(Z .< bathymetry)
 smoothed_bathymetry_3d = smooth_3d_bathymetry(bathymetry_3d; window_size_x=σ, window_size_y=σ)
-gaussian_filtered_3d = find_interface_height(smoothed_bathymetry_3d, x, y, z)
+gaussian_filtered_3d = find_interface_height(smoothed_bathymetry_3d, x, y, zᶜ)
 
 #+++ Create comparison plot using GLMakie
 using GLMakie

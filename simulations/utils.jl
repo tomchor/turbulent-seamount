@@ -1,6 +1,7 @@
 using Parameters
 using ImageFiltering: imfilter, Kernel
-using Optim: GoldenSection, optimize
+import Optim
+using Optim: GoldenSection, Fminbox, LBFGS, optimize
 using CUDA: devices, device!, functional, totalmem, name, available_memory, memory_status, @time
 
 #+++ Get good grid size
@@ -75,7 +76,7 @@ function closest_factor_number(primes::NTuple{1, Int}, target::Int)
 end
 #---
 
-#+++ Smooth bathymetry
+#+++ Smooth bathymetry using regular 2D Gaussian filter
 function smooth_bathymetry(elevation; window_size_x, window_size_y, bc_x="circular", bc_y="replicate", target_height=nothing)
     # Create separate Gaussian kernels for x and y directions
     kernel_x = Kernel.gaussian((window_size_x, 0))
@@ -99,20 +100,142 @@ function smooth_bathymetry(elevation; window_size_x, window_size_y, bc_x="circul
     return smoothed
 end
 
-function smooth_bathymetry(elevation, x, y; scale_x, scale_y, bc_x="circular", bc_y="replicate", target_height=nothing)
-    # Get minimum grid spacing in x and y directions from coordinate arrays
+function smooth_bathymetry(elevation, x, y; scale_x, scale_y, kwargs...)
     Δx_min = minimum(diff(x))
     Δy_min = minimum(diff(y))
 
-    # Convert physical scales to window sizes
-    # We use ceil to ensure we have enough points to cover the scale
-    # The factor of 2 is because the Gaussian kernel's standard deviation
+    # The factor of 2 is there because the Gaussian kernel's standard deviation
     # should be about half the desired smoothing length
     window_size_x = scale_x / (2 * Δx_min)
     window_size_y = scale_y / (2 * Δy_min)
 
     # Call the original method with calculated window sizes
-    return smooth_bathymetry(elevation; window_size_x, window_size_y, bc_x, bc_y, target_height)
+    return smooth_bathymetry(elevation; window_size_x, window_size_y, kwargs...)
+end
+#---
+
+#+++ Smooth bathymetry using 3D Gaussian filter
+function extrude_bathymetry_3d(bathymetry_2d, x, y; dz=nothing, z_max=nothing)
+    dx = minimum(diff(x))
+    dy = minimum(diff(y))
+    dz = dz isa Nothing ? (dx + dy) / 2 : dz
+    zᶠ = collect(0:dz:z_max)
+    zᶜ = zᶠ[1:end-1] .+ dz/2
+
+    # Create 2D grids for x, y, z coordinates
+    X = repeat(reshape(x,  :, 1, 1),         1, length(y), length(zᶠ))
+    Y = repeat(reshape(y,  1, :, 1), length(x),         1, length(zᶠ))
+    Z = repeat(reshape(zᶠ, 1, 1, :), length(x), length(y),          1)
+
+    return X, Y, Z, zᶜ
+end
+
+function masked_area(smoothed, target_area; threshold=0.5)
+    masked_smoothed = smoothed .> threshold
+    return (sum(masked_smoothed) - target_area)^2
+end
+
+function same_area_smoothed(smoothed, unsmoothed_area; initial_guess=0.5)
+    """
+    Find the optimal threshold that minimizes the area difference between
+    smoothed and unsmoothed area using optimization.
+
+    Parameters:
+    - smoothed: smoothed bathymetry data
+    - unsmoothed_area: original unsmoothed bathymetry data
+
+    Returns:
+    - Binary mask of smoothed bathymetry with optimal threshold
+    """
+
+    # Define objective function to minimize
+    objective(threshold) = abs(masked_area(smoothed, unsmoothed_area; threshold=threshold[1]))
+
+    # Set bounds for threshold search (0 to 1 for probability-like values)
+    lower_bound = [0.0]
+    upper_bound = [1.0]
+
+    # Initial guess (start with middle value)
+    initial_guess = [initial_guess]
+
+    # Use bounded optimization
+    options = Optim.Options(f_abstol=0.05*unsmoothed_area, iterations=10)
+    result = Optim.optimize(objective, lower_bound, upper_bound, initial_guess, Fminbox(LBFGS()), options)
+
+    # Get optimal threshold
+    optimal_threshold = Optim.minimizer(result)[1]
+
+    if (Optim.minimum(result) > 0.05*unsmoothed_area) && (initial_guess[] > 1e-3)
+        return same_area_smoothed(smoothed, unsmoothed_area; initial_guess=0.5*initial_guess[])
+    end
+
+    @info "Optimal threshold found: $optimal_threshold, objective value: $(Optim.minimum(result))"
+
+    # Return binary mask using optimal threshold
+    return smoothed .> optimal_threshold, optimal_threshold
+end
+
+
+function sliced_smooth_bathymetry(bathymetry_3d; window_size_x, window_size_y, bc_x="circular", bc_y="replicate")
+    nx, ny, nz = size(bathymetry_3d)
+    kernel_x = Kernel.gaussian((window_size_x, 0))
+    kernel_y = Kernel.gaussian((0, window_size_y))
+
+    smoothed_3d = zeros(nx, ny, nz)
+    initial_guess = 0.5
+    for k in 1:nz
+        @info "Smoothing layer $k of $nz"
+        smoothed_x = imfilter(bathymetry_3d[:,:,k], kernel_x, bc_x)
+        smoothed = imfilter(smoothed_x, kernel_y, bc_y)
+
+        unsmoothed_area = sum(bathymetry_3d[:, :, k])
+        smoothed_3d[:, :, k], optimal_threshold = same_area_smoothed(smoothed, unsmoothed_area; initial_guess)
+        initial_guess = optimal_threshold
+    end
+
+    return smoothed_3d
+end
+
+find_interface_height(array3d::AbstractArray{Float64, 3}; kwargs...) = find_interface_height(Bool.(array3d); kwargs...)
+
+function find_interface_height(array3d::AbstractArray{Bool, 3}; smooth=false, x=nothing, y=nothing, z=nothing)
+    nx, ny, nz = size(array3d)
+    heights = zeros(nx, ny)
+
+    # For each x,y point, find first false value from bottom up
+    for i in 1:nx, j in 1:ny
+        column = view(array3d, i, j, :)
+        k = findlast(column)
+
+        # If found, set height to corresponding z value
+        if !isnothing(k) && k > 0
+            heights[i, j] = z[k]
+        end
+    end
+
+    if smooth
+        heights = smooth_bathymetry(heights; window_size_x=10, window_size_y=10)
+    end
+
+    return heights
+end
+
+
+function smooth_bathymetry_3d(elevation, x, y; window_size_x=10, window_size_y=10, scale_x=nothing, scale_y=nothing, dz=nothing)
+    dx = minimum(diff(x))
+    dy = minimum(diff(y))
+
+    # If scale_x or scale_y are provided, overwride window size
+    window_size_x = scale_x isa Nothing ? window_size_x : scale_x / (2 * dx)
+    window_size_y = scale_y isa Nothing ? window_size_y : scale_y / (2 * dy)
+
+    # If dz is not provided, use the average of the grid spacing
+    dz = dz isa Nothing ? (dx + dy) / 2 : dz
+
+    X, Y, Z, zᶜ = extrude_bathymetry_3d(elevation, x, y; dz, z_max=1.1*H)
+    bathymetry_3d = Float64.(Z .< elevation)
+    smoothed_bathymetry_3d = sliced_smooth_bathymetry(bathymetry_3d; window_size_x, window_size_y)
+    return find_interface_height(smoothed_bathymetry_3d, smooth=true, x=x, y=y, z=zᶜ)
 end
 #---
 

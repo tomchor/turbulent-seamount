@@ -8,14 +8,14 @@ from postprocessing.src.aux00_utils import aggregate_parameters
 #+++ Define run options
 simname_base = "seamount"
 
-Rossby_numbers = cycler(Ro_h = [0.2])
-Froude_numbers = cycler(Fr_h = [1.25])
+Rossby_numbers = cycler(Ro_h = [0.1])
+Froude_numbers = cycler(Fr_h = [1])
 L              = cycler(L = [0, 0.05, 0.1, 0.2, 0.4, 0.8,
                              0.8, 0.8])
-FWHM           = cycler(FWHM = [400, 400, 400, 400, 400, 400,
-                                100, 40])
+FWHM           = cycler(FWHM = [500, 500, 500, 500, 500, 500,
+                                200, 100])
 
-resolutions    = cycler(dz = [8, 4, 2])
+resolutions    = cycler(dz = [4, 2, 1])
 
 paramspace = Rossby_numbers * Froude_numbers * (L + FWHM)
 configs    = resolutions
@@ -73,8 +73,8 @@ def small_submission_options(scheduler):
 
 def big_submission_options(scheduler):
     if scheduler == "pbs":
-        options = ["select=1:ncpus=1:ngpus=1",
-                   "gpu_type=h100"]
+        options = ["select=1:ncpus=1:ngpus=1:cpu_type=milan",
+                   "gpu_type=a100"]
         options_string = "\n".join([ "#PBS -l " + option for option in options ])
 
     elif scheduler == "slurm":
@@ -99,7 +99,7 @@ def small_submission_command(scheduler):
 
 def big_submission_command(scheduler):
     if scheduler == "pbs":
-        cmd1 = f"JID1=`qsub {aux_filename}`; JID2=`qsub -W depend=afterok:$JID1 {aux_filename}`; JID3=`qsub -W depend=afterok:$JID2 {aux_filename}`; qrls $JID1"
+        cmd1 = f"JID1=`qsub {aux_filename}`; JID2=`qsub -W depend=afterok:$JID1 {aux_filename}`; qrls $JID1"
     elif scheduler == "slurm":
         cmd1 = small_submission_command(scheduler)
     return cmd1

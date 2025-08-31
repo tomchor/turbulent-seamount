@@ -15,27 +15,33 @@ else
 end
 #---
 
-#+++ Load re
+#+++ Load required packages
 import Rasters as ra
 import NCDatasets
-using Rasters: RasterStack
+using Rasters: Raster, RasterStack
 using Printf: @sprintf
 using Oceananigans.Units
 using Oceananigans: prettytime
+
+#+++ Helper function to remove singleton dimensions
+function squeeze(ds::Union{Raster, RasterStack})
+    flat_dimensions = NamedTuple((ra.name(dim), 1) for dim in ra.dims(ds) if length(ra.dims(ds, dim)) == 1)
+    return getindex(ds; flat_dimensions...)
+end
 #---
 
 #+++ Read datasets
 variables = (:v, :PV, :εₖ, :Ro)
 
 # Get main dataset paths
-fpath_xyii = (@isdefined simulation) ? simulation.output_writers[:nc_xyii].filepath : "data/xyii.seamount_Ro_h0.2_Fr_h1.25_L0_FWHM400_dz8.nc"
-fpath_xizi = (@isdefined simulation) ? simulation.output_writers[:nc_xizi].filepath : "data/xizi.seamount_Ro_h0.2_Fr_h1.25_L0_FWHM400_dz8.nc"
+fpath_xyii = (@isdefined simulation) ? simulation.output_writers[:nc_xyii].filepath : "data/xyii.seamount_Ro_h0.1_Fr_h1.0_L0.8_FWHM400_dz8.nc"
+fpath_xizi = (@isdefined simulation) ? simulation.output_writers[:nc_xizi].filepath : "data/xizi.seamount_Ro_h0.1_Fr_h1.0_L0.8_FWHM400_dz8.nc"
 
 @info "Reading xyii dataset: $fpath_xyii"
-ds_xyii = RasterStack(fpath_xyii, lazy=true, name=variables)
+ds_xyii = RasterStack(fpath_xyii, lazy=true, name=variables) |> squeeze
 
 @info "Reading xizi dataset: $fpath_xizi"
-ds_xizi = RasterStack(fpath_xizi, lazy=true, name=variables)
+ds_xizi = RasterStack(fpath_xizi, lazy=true, name=variables) |> squeeze
 #---
 
 #+++ Get parameters
@@ -127,8 +133,8 @@ for (i, variable) in enumerate(variables)
     else
         # Upper panels: no x label
         ax_xyii = Axis(fig[i+2, 1];
-                      ylabel=string(dimnames_xyii[2]),
-                      width=panel_width, height=panel_height_xyii)
+                       ylabel=string(dimnames_xyii[2]),
+                       width=panel_width, height=panel_height_xyii)
 
         # Hide all x decorations for upper panels
         hidexdecorations!(ax_xyii, label=false, ticklabels=false, ticks=false, grid=false)
@@ -172,13 +178,13 @@ for (i, variable) in enumerate(variables)
     if i == length(variables)
         # Bottom panel: show x label
         ax_xizi = Axis(fig[i+2, 2];
-                      xlabel=string(dimnames_xizi[1]), ylabel=string(dimnames_xizi[2]),
-                      width=panel_width, height=panel_height_xizi)
+                       xlabel=string(dimnames_xizi[1]), ylabel=string(dimnames_xizi[2]),
+                       width=panel_width, height=panel_height_xizi)
     else
         # Upper panels: no x label
         ax_xizi = Axis(fig[i+2, 2];
-                      ylabel=string(dimnames_xizi[2]),
-                      width=panel_width, height=panel_height_xizi)
+                       ylabel=string(dimnames_xizi[2]),
+                       width=panel_width, height=panel_height_xizi)
 
         # Hide all x decorations for upper panels
         hidexdecorations!(ax_xizi, label=false, ticklabels=false, ticks=false, grid=false)
@@ -224,7 +230,7 @@ end
 resize_to_layout!(fig)
 
 Mk.record(fig, "$(@__DIR__)/../anims/$(params.simname).mp4", frames,
-         framerate=14, compression=30, px_per_unit=1) do frame
+          framerate=14, compression=30, px_per_unit=1) do frame
     @info "Frame $frame / $(frames[end])"
     n[] = frame
 end

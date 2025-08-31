@@ -237,6 +237,15 @@ function smooth_bathymetry_3d(elevation, x, y; window_size_x=10, window_size_y=1
     smoothed_bathymetry_3d = sliced_smooth_bathymetry(bathymetry_3d; window_size_x, window_size_y, verbose)
     return find_interface_height(smoothed_bathymetry_3d, smooth=true, x=x, y=y, z=zᶜ)
 end
+
+function measure_FWHM(x, y, elevation)
+    H = maximum(elevation)
+    Δx = diff(x)[1]
+    Δy = diff(y)[1]
+    area_at_HM = (elevation .> H/2) .* Δx .* Δy
+    FWHM = 2 * √(sum(area_at_HM) / π)
+    return FWHM
+end
 #---
 
 #+++ Functions to create z coordinate

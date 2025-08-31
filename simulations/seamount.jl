@@ -28,19 +28,6 @@ function parse_command_line_arguments()
             default = "seamount"
             arg_type = String
 
-        "--x₀"
-            default = 0
-            arg_type = Float64
-
-        "--y₀"
-            default = 0
-            arg_type = Float64
-
-        "--aspect"
-            help = "Desired cell aspect ratio; Δx/Δz = Δy/Δz"
-            default = 2
-            arg_type = Float64
-
         "--dz"
             default = 8meters
             arg_type = Int
@@ -55,7 +42,7 @@ function parse_command_line_arguments()
 
         "--FWHM"
             help = "Full width at half maximum of the seamount"
-            default = 400meters
+            default = 500meters
             arg_type = Float64
 
         "--L"
@@ -73,16 +60,29 @@ function parse_command_line_arguments()
 
         "--Lx"
             help = "Domain length in x-direction"
-            default = 4000meters
+            default = 3500meters
             arg_type = Float64
 
         "--Ly"
             help = "Domain length in y-direction"
-            default = 2400meters
+            default = 2000meters
             arg_type = Float64
 
         "--Lz_ratio"
             default = 2 # Lz / H
+            arg_type = Float64
+
+        "--x₀"
+            default = 0
+            arg_type = Float64
+
+        "--y₀"
+            default = 0
+            arg_type = Float64
+
+        "--aspect"
+            help = "Desired cell aspect ratio; Δx/Δz = Δy/Δz"
+            default = 2
             arg_type = Float64
 
         "--Rz"
@@ -94,7 +94,7 @@ function parse_command_line_arguments()
             arg_type = String
 
         "--runway_length_fraction_FWHM"
-            default = 3.5 # x_offset / FWHM (how far from the inflow the headland is)
+            default = 2 # x_offset / FWHM (how far from the inflow the headland is)
             arg_type = Float64
 
         "--T_advective_spinup"
@@ -125,10 +125,14 @@ end
 
 #+++ Create interpolant for (and maybe smooth) bathymetry
 ds_bathymetry = NCDataset(joinpath(@__DIR__, "../bathymetry/balanus-bathymetry-preprocessed.nc"))
+elevation = ds_bathymetry["periodic_elevation"]
 x = ds_bathymetry["x"]
 y = ds_bathymetry["y"]
 
-params = (; params..., H_ratio = params.H / maximum(ds_bathymetry["periodic_elevation"]), # How much do we rescale in the vertical?
+original_FWHM = measure_FWHM(x, y, elevation)
+@assert isapprox(original_FWHM, ds_bathymetry.attrib["FWHM"], rtol=1e-3)
+
+params = (; params..., H_ratio = params.H / maximum(elevation), # How much do we rescale in the vertical?
                        FWHM_ratio = params.FWHM / ds_bathymetry.attrib["FWHM"]) # How much do we rescale in the horizontal?
 shrunk_elevation = ds_bathymetry["periodic_elevation"] .* params.H_ratio # Rescale the elevation to the new height
 
@@ -144,6 +148,8 @@ else
                                                   bc_y="replicate",)
 end
 
+params = (; params..., H_after_smoothing = maximum(shrunk_smoothed_elevation))
+
 # Rescale the horizontal dimensions to the new FWHM.
 # Note that the smoothed bathymetry is likely a bit shorter than the original, and we do not correct for that on purpose.
 shrunk_x = x .* params.FWHM_ratio
@@ -151,6 +157,7 @@ shrunk_y = y .* params.FWHM_ratio
 
 @info "Interpolating bathymetry"
 bathymetry_itp = Interpolations.LinearInterpolation((shrunk_x, shrunk_y), shrunk_smoothed_elevation, extrapolation_bc=Interpolations.Flat())
+close(ds_bathymetry)
 #---
 
 #+++ Get domain sizes, z_coords, and secondary simulation parameters
@@ -350,7 +357,7 @@ cg_iterations(simulation) = simulation.model.pressure_solver isa ConjugateGradie
 progress(simulation) = @info (PercentageProgress(with_prefix=false, with_units=false)
                               + "$(round(time(simulation)/params.T_advective; digits=2)) adv periods" + walltime
                               + TimeStep() + "CFL = " * AdvectiveCFLNumber(with_prefix=false)
-                              + MaxVelocities()
+                              + MaxUVelocity()
                               + "step dur = " * walltime_per_timestep
                               + cg_iterations(simulation)
                               )(simulation)

@@ -73,8 +73,8 @@ def small_submission_options(scheduler):
 
 def big_submission_options(scheduler):
     if scheduler == "pbs":
-        options = ["select=1:ncpus=1:ngpus=1",
-                   "gpu_type=h100"]
+        options = ["select=1:ncpus=1:ngpus=1:cpu_type=milan",
+                   "gpu_type=a100"]
         options_string = "\n".join([ "#PBS -l " + option for option in options ])
 
     elif scheduler == "slurm":
@@ -99,7 +99,7 @@ def small_submission_command(scheduler):
 
 def big_submission_command(scheduler):
     if scheduler == "pbs":
-        cmd1 = f"JID1=`qsub {aux_filename}`; JID2=`qsub -W depend=afterok:$JID1 {aux_filename}`; JID3=`qsub -W depend=afterok:$JID2 {aux_filename}`; qrls $JID1"
+        cmd1 = f"JID1=`qsub {aux_filename}`; JID2=`qsub -W depend=afterok:$JID1 {aux_filename}`; qrls $JID1"
     elif scheduler == "slurm":
         cmd1 = small_submission_command(scheduler)
     return cmd1

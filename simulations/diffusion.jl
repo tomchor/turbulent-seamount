@@ -3,77 +3,14 @@ using NCDatasets: NCDataset
 using ImageFiltering
 using ImageFiltering.Models: solve_ROF_PD
 using Printf
-
-function anisotropic_diffusion_2d(image; K=10, num_iter=50, lambda=0.25)
-    """
-    Apply Perona-Malik anisotropic diffusion to 2D data
-    
-    Parameters:
-    - image: 2D array to smooth
-    - K: gradient threshold parameter
-    - num_iter: number of iterations
-    - lambda: time step (should be ≤ 0.25 for stability)
-    """
-    
-    u = copy(Float64.(image))
-    rows, cols = size(u)
-    
-    for iter in 1:num_iter
-        # Compute gradients in all directions
-        grad_N = zeros(rows, cols)  # North
-        grad_S = zeros(rows, cols)  # South  
-        grad_E = zeros(rows, cols)  # East
-        grad_W = zeros(rows, cols)  # West
-        
-        # Northern gradient
-        grad_N[2:end, :] = u[1:end-1, :] - u[2:end, :]
-        
-        # Southern gradient  
-        grad_S[1:end-1, :] = u[2:end, :] - u[1:end-1, :]
-        
-        # Eastern gradient
-        grad_E[:, 1:end-1] = u[:, 2:end] - u[:, 1:end-1]
-        
-        # Western gradient
-        grad_W[:, 2:end] = u[:, 1:end-1] - u[:, 2:end]
-        
-        # Compute diffusion coefficients using exponential function
-        # c(∇u) = exp(-(|∇u|/K)²)
-        c_N = exp.(-(grad_N ./ K).^2)
-        c_S = exp.(-(grad_S ./ K).^2)  
-        c_E = exp.(-(grad_E ./ K).^2)
-        c_W = exp.(-(grad_W ./ K).^2)
-        
-        # Apply anisotropic diffusion update
-        u += lambda * (c_N .* grad_N + c_S .* grad_S + 
-                      c_E .* grad_E + c_W .* grad_W)
-    end
-    
-    return u
-end
-
-# Alternative diffusion coefficient functions
-function diffusion_coeff_exponential(grad_mag, K)
-    return exp.(-(grad_mag ./ K).^2)
-end
-
-function diffusion_coeff_rational(grad_mag, K)
-    return 1 ./ (1 .+ (grad_mag ./ K).^2)
-end
-
-function diffusion_coeff_tukey(grad_mag, K)
-    mask = grad_mag .<= K
-    result = zeros(size(grad_mag))
-    result[mask] = (1 .- (grad_mag[mask] ./ K).^2).^2
-    return result
-end
+using Optim
 
 function extrude_bathymetry_3d(x, y, H, bathymetry_2d; dz=nothing, z_max=nothing)
     dx = minimum(diff(x))
     dy = minimum(diff(y))
     dz = dz isa Nothing ? (dx + dy) / 2 : dz
     zᶠ = collect(0:dz:z_max)
-    zᶜ = zᶠ[1:end-1] + dz/2
+    zᶜ = zᶠ[1:end-1] .+ dz/2
 
     # Create 2D grids for x, y, z coordinates
     X = repeat(reshape(x,  :, 1, 1),         1, length(y), length(zᶠ))
@@ -83,14 +20,76 @@ function extrude_bathymetry_3d(x, y, H, bathymetry_2d; dz=nothing, z_max=nothing
     return X, Y, Z, zᶜ
 end
 
+function masked_area(smoothed, target_area; threshold=0.5)
+    masked_smoothed = smoothed .> threshold
+    return (sum(masked_smoothed) - target_area)^2
+end
+
+function same_area_smoothed(smoothed, unsmoothed_area; initial_guess=0.5)
+    """
+    Find the optimal threshold that minimizes the area difference between 
+    smoothed and unsmoothed area using optimization.
+    
+    Parameters:
+    - smoothed: smoothed bathymetry data
+    - unsmoothed_area: original unsmoothed bathymetry data
+    
+    Returns:
+    - Binary mask of smoothed bathymetry with optimal threshold
+    """
+
+    # Define objective function to minimize
+    objective(threshold) = abs(masked_area(smoothed, unsmoothed_area; threshold=threshold[1]))
+
+    # Set bounds for threshold search (0 to 1 for probability-like values)
+    lower_bound = [0.0]
+    upper_bound = [1.0]
+
+    # Initial guess (start with middle value)
+    initial_guess = [initial_guess]
+
+    # Use bounded optimization
+    options = Optim.Options(f_abstol=0.05*unsmoothed_area, iterations=10)
+    result = optimize(objective, lower_bound, upper_bound, initial_guess, Fminbox(LBFGS()), options)
+    
+    # Get optimal threshold
+    optimal_threshold = Optim.minimizer(result)[1]
+
+    if Optim.minimum(result) > 0.05*unsmoothed_area
+        result = optimize(objective, lower_bound, upper_bound, 0.8.*initial_guess, Fminbox(LBFGS()), options)
+        if Optim.minimum(result) > 0.05*unsmoothed_area
+            @warn "Optimal threshold not found, using 0.5"
+            Main.@infiltrate
+        end
+        optimal_threshold = Optim.minimizer(result)[1]
+    end
+
+    @info "Optimal threshold found: $optimal_threshold, objective value: $(Optim.minimum(result))"
+
+    # Return binary mask using optimal threshold
+    return smoothed .> optimal_threshold, optimal_threshold
+end
+
+
+
 function smooth_3d_bathymetry(bathymetry_3d; window_size_x, window_size_y, bc_x="circular", bc_y="replicate")
-    kernel_x = Kernel.gaussian((window_size_x, 0, 0))
-    kernel_y = Kernel.gaussian((0, window_size_y, 0))
+    nx, ny, nz = size(bathymetry_3d)
+    kernel_x = Kernel.gaussian((window_size_x, 0))
+    kernel_y = Kernel.gaussian((0, window_size_y))
 
-    smoothed_x = imfilter(bathymetry_3d, kernel_x, bc_x)
-    smoothed = imfilter(smoothed_x, kernel_y, bc_y)
+    smoothed_3d = zeros(nx, ny, nz)
+    initial_guess = 0.5
+    for k in 1:nz
+        @info "Smoothing layer $k of $nz"
+        smoothed_x = imfilter(bathymetry_3d[:,:,k], kernel_x, bc_x)
+        smoothed = imfilter(smoothed_x, kernel_y, bc_y)
 
-    return smoothed
+        unsmoothed_area = sum(bathymetry_3d[:, :, k])
+        smoothed_3d[:, :, k], optimal_threshold = same_area_smoothed(smoothed, unsmoothed_area; initial_guess)
+        initial_guess = optimal_threshold
+    end
+
+    return smoothed_3d
 end
 
 function find_interface_height(array3d::AbstractArray{Bool,3}, x::AbstractVector, y::AbstractVector, z::AbstractVector)
@@ -146,29 +145,24 @@ bathymetry = Float64.(elevation)
 @info "Elevation range: $(extrema(bathymetry))"
 @info "FWHM from data: $FWHM"
 
-bathymetry_3d = Float64.(Z .< bathymetry)
-smoothed_bathymetry_3d = smooth_3d_bathymetry(bathymetry_3d; window_size_x=σ, window_size_y=σ)
-
 #+++ Apply three different filtering procedures
 
 # 1. Gaussian filter using ImageFiltering.jl
-@info "Applying Gaussian filter"
-σ = 0.8 * FWHM / (2*dx)  # Standard deviation for Gaussian kernel
-gaussian_filtered = imfilter(bathymetry, Kernel.gaussian(σ))
+# @info "Applying Gaussian filter"
+# σ = 0.5 * FWHM / (2*dx)  # Standard deviation for Gaussian kernel
+# gaussian_filtered = imfilter(bathymetry, Kernel.gaussian(σ))
 
-# 2. Total Variation (TV) denoising using solve_ROF_PD
-@info "Applying Total Variation denoising"
-λ_tv = 0.1*σ^2
-max_iter_tv = 1000
-tv_filtered = solve_ROF_PD(bathymetry, λ_tv, max_iter_tv)
+# # 2. Total Variation (TV) denoising using solve_ROF_PD
+# @info "Applying Total Variation denoising"
+# λ_tv = 10*σ^2
+# max_iter_tv = 1000
+# tv_filtered = solve_ROF_PD(bathymetry, λ_tv, max_iter_tv)
 
-# 3. Anisotropic diffusion using the custom function
-@info "Applying anisotropic diffusion"
-K_aniso = σ^2  # Gradient threshold parameter
-num_iter_aniso = 50
-λ_aniso = 0.2  # Time step
-aniso_filtered = anisotropic_diffusion_2d(bathymetry; K=K_aniso, num_iter=num_iter_aniso, lambda=λ_aniso)
-
+# 3. 3D Gaussian filter
+@info "Applying 3D Gaussian filter"
+bathymetry_3d = Float64.(Z .< bathymetry)
+smoothed_bathymetry_3d = smooth_3d_bathymetry(bathymetry_3d; window_size_x=σ, window_size_y=σ)
+gaussian_filtered_3d = find_interface_height(Bool.(smoothed_bathymetry_3d), x, y, z)
 
 #+++ Create comparison plot using GLMakie
 using GLMakie
@@ -176,7 +170,7 @@ using GLMakie
 @info "Creating comparison plot"
 
 # Create figure with 2x2 layout
-fig = Figure(size = (1200, 1000))
+fig = Figure(size = (1200, 1000));
 
 # Define common colormap and range for all plots
 elevation_range = extrema(bathymetry)
@@ -194,15 +188,21 @@ sf2 = surface!(ax2, x, y, gaussian_filtered, colormap=common_colormap, colorrang
 ax3 = Axis3(fig[2, 1], title="TV Denoising (λ=$λ_tv)", xlabel="x [m]", ylabel="y [m]", zlabel="z [m]")
 sf3 = surface!(ax3, x, y, tv_filtered, colormap=common_colormap, colorrange=elevation_range)
 
-# Plot anisotropic diffusion filtered (bottom right)
-ax4 = Axis3(fig[2, 2], title="Anisotropic Diffusion (K=$K_aniso)", xlabel="x [m]", ylabel="y [m]", zlabel="z [m]")
-sf4 = surface!(ax4, x, y, aniso_filtered, colormap=common_colormap, colorrange=elevation_range)
+# Plot 3D Gaussian filtered (bottom right)
+ax4 = Axis3(fig[2, 2], title="3D Gaussian Filtered (σ=$σ)", xlabel="x [m]", ylabel="y [m]", zlabel="z [m]")
+sf4 = surface!(ax4, x, y, gaussian_filtered_3d, colormap=common_colormap, colorrange=elevation_range)
 
 # Add a shared colorbar
 Colorbar(fig[:, 3], sf1, label="Elevation [m]")
+
+# Set z limits for all axes
+for ax in (ax1, ax2, ax3, ax4)
+    zlims!(ax, (0, 1.2*H))
+end
 
 # Add overall title
 fig[0, 1:2] = Label(fig, "Bathymetry Filtering Comparison", fontsize=20, tellwidth=false)
 
 # Display the figure (optional - comment out if running in batch mode)
 display(fig)
+#---

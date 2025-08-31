@@ -114,6 +114,15 @@ function smooth_bathymetry(elevation, x, y; scale_x, scale_y, bc_x="circular", b
     # Call the original method with calculated window sizes
     return smooth_bathymetry(elevation; window_size_x, window_size_y, bc_x, bc_y, target_height)
 end
+
+function measure_FWHM(x, y, elevation)
+    H = maximum(elevation)
+    Δx = diff(x)[1]
+    Δy = diff(y)[1]
+    area_at_HM = (elevation .> H/2) .* Δx .* Δy
+    FWHM = 2 * √(sum(area_at_HM) / π)
+    return FWHM
+end
 #---
 
 #+++ Functions to create z coordinate

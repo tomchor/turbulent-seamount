@@ -2,7 +2,6 @@ import numpy as np
 import xarray as xr
 from matplotlib import pyplot as plt
 from scipy import interpolate
-from cmocean import cm
 
 #+++ Utility functions
 def get_max_location_argmax(da):
@@ -121,6 +120,7 @@ def interpolate_2d_scipy(da, method='linear'):
     )
 #---
 
+#+++ Open and detrend elevation
 ds = xr.open_dataset("GMRT/GMRTv4_3_1_20250502topo.nc")
 ds = ds.dropna("lat", how="all").dropna("lon", how="all")
 
@@ -128,7 +128,10 @@ ds["detrended_elevation"] = detrend_elevation(ds.z)
 
 maximum_point = get_max_location_argmax(ds.detrended_elevation)
 ds = ds.assign_coords(lat = ds.lat - maximum_point["lat"], lon = ds.lon - maximum_point["lon"])
+ds.attrs["H"] = maximum_point["value"]
+#---
 
+#+++ Convert from lat lon to meters
 # The resolution of the GEBCO 2024 datasets is 15 arcseconds. At 40°-ish latitude then
 Δlat = ds.lat.diff("lat").mean().item()
 Δlon = ds.lon.diff("lon").mean().item()
@@ -143,18 +146,74 @@ print(f"Dataset has spacing of {Δlat * degrees_to_arcseconds:.2f} arcseconds in
 
 ds = ds.assign_coords(lat = ds.lat * lat2meter, lon = ds.lon * lon2meter)
 ds = ds.rename(lon="x", lat="y")
+#---
 
-# Useful to estimate full width at half maximum (FWHM)
-half_maximum_ring = ds.detrended_elevation.where(abs(ds.detrended_elevation - ds.detrended_elevation.max()/2) < 100)
+#+++ Estimate full width at half maximum (FWHM)
+area_at_HM = xr.ones_like(ds.detrended_elevation).where(ds.detrended_elevation > ds.H/2, other=0).integrate(("x", "y"))
+ds.attrs["FWHM"] = float(2 * np.sqrt(area_at_HM / np.pi))
 ds["distance_from_peak"] = np.sqrt(ds.x**2 + ds.y**2)
+ds.attrs["δ"] = float(ds.H / ds.attrs["FWHM"])
+#---
 
-ds.attrs["H"] = maximum_point["value"]
-ds.attrs["FWHM"] = ds.distance_from_peak.where(np.logical_not(np.isnan(half_maximum_ring))).mean().item()
-ds.attrs["δ"] = ds.H / ds.FWHM
-
-ringed_periodic_elevation = ds.detrended_elevation.where(ds.distance_from_peak < 2*ds.FWHM).where(ds.distance_from_peak < 2.5*ds.FWHM, other=0)
+#+++ Make it periodic
+ringed_periodic_elevation = ds.detrended_elevation.where(ds.distance_from_peak < 1*ds.FWHM).where(ds.distance_from_peak < 1.2*ds.FWHM, other=0)
 ds["periodic_elevation"] = interpolate_2d_scipy(ringed_periodic_elevation)
 
 ds = ds.drop_vars(["detrended_elevation", "distance_from_peak"])
-encoding = { var : dict(zlib=True, complevel=9, shuffle=True) for var in ds.data_vars }
-ds.to_netcdf("balanus-bathymetry-preprocessed.nc", encoding = encoding)
+
+# Coarsen to reduce points by half in x and y directions
+ds = ds.coarsen(x=2, y=2).mean()
+#---
+
+#+++ Extend the dataset in x and y directions using native xarray functions
+# Calculate extension parameters
+dx = ds.x.diff("x").mean().item()
+dy = ds.y.diff("y").mean().item()
+
+x_min, x_max = ds.x.min().item(), ds.x.max().item()
+y_min, y_max = ds.y.min().item(), ds.y.max().item()
+
+# Create extension coordinates by progressive concatenation
+# Calculate target extents
+x_target_min = 1.5 * x_min
+x_target_max = 1.5 * x_max
+y_target_min = 1.5 * y_min
+y_target_max = 1.5 * y_max
+
+# Create western extension points by going backwards from x_min
+x_west = []
+x_current = x_min - dx
+while x_current >= x_target_min:
+    x_west.insert(0, x_current)  # Insert at beginning to maintain order
+    x_current -= dx
+
+# Create eastern extension points by going forwards from x_max
+x_east = []
+x_current = x_max + dx
+while x_current <= x_target_max:
+    x_east.append(x_current)
+    x_current += dx
+
+# Create southern extension points by going backwards from y_min
+y_south = []
+y_current = y_min - dy
+while y_current >= y_target_min:
+    y_south.insert(0, y_current)  # Insert at beginning to maintain order
+    y_current -= dy
+
+# Create northern extension points by going forwards from y_max
+y_north = []
+y_current = y_max + dy
+while y_current <= y_target_max:
+    y_north.append(y_current)
+    y_current += dy
+
+# Concatenate all coordinates
+x_extended = np.concatenate([x_west, ds.x.values, x_east])
+y_extended = np.concatenate([y_south, ds.y.values, y_north])
+
+ds_extended = ds.reindex(x=x_extended, y=y_extended, fill_value=0)
+#---
+
+encoding = { var : dict(zlib=True, complevel=9, shuffle=True) for var in ds_extended.data_vars }
+ds_extended.to_netcdf("balanus-bathymetry-preprocessed.nc", encoding = encoding)

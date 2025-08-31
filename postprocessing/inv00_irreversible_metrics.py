@@ -14,13 +14,13 @@ plt.rcParams["figure.constrained_layout.use"] = True
 simname_base = "seamount"
 
 Rossby_numbers = cycler(Ro_h = [0.1])
-Froude_numbers = cycler(Fr_h = [1.0])
+Froude_numbers = cycler(Fr_h = [1])
 L              = cycler(L = [0, 0.05, 0.1, 0.2, 0.4, 0.8,
                              0.8, 0.8])
-FWHM           = cycler(FWHM = [400, 400, 400, 400, 400, 400,
-                                100, 40])
+FWHM           = cycler(FWHM = [500, 500, 500, 500, 500, 500,
+                                200, 100])
 
-resolutions    = cycler(dz = [8, 4, 2])
+resolutions    = cycler(dz = [4, 2])
 
 paramspace = Rossby_numbers * Froude_numbers * (L + FWHM)
 configs    = resolutions

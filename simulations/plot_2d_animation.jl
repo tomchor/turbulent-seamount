@@ -99,25 +99,25 @@ dimnames_order = (:x_faa, :x_caa, :y_afa, :y_aca, :z_afa, :z_aac)
 
 for (i, variable) in enumerate(variables)
     @info "Creating panel: $variable"
-    
+
     # Create xyii plot (column 1)
     var_data_xyii = ds_xyii[variable]
     dimnames_xyii = [dim for dim in dimnames_order if dim in map(ra.name, ra.dims(var_data_xyii))]
     push!(dimnames_xyii, :Ti)
-    
+
     # Permute dimensions and create observable for xyii
     v_xyii = permutedims(var_data_xyii, dimnames_xyii)
     v_xyiiₙ = @lift v_xyii[Ti=$n]
-    
+
     # Calculate data aspect ratio for xyii
     data_dims_xyii = size(v_xyii)
     aspect_ratio_xyii = data_dims_xyii[1] / data_dims_xyii[2]
-    
+
     # Set panel dimensions for xyii
     panel_width = layout_params.panel_width
     panel_height_xyii = panel_width / aspect_ratio_xyii
     panel_height_xyii = clamp(panel_height_xyii, panel_width * 0.3, panel_width * 2.0)
-    
+
     # Create xyii axis
     if i == length(variables)
         # Bottom panel: show x label
@@ -129,19 +129,19 @@ for (i, variable) in enumerate(variables)
         ax_xyii = Axis(fig[i+2, 1];
                       ylabel=string(dimnames_xyii[2]),
                       width=panel_width, height=panel_height_xyii)
-        
+
         # Hide all x decorations for upper panels
         hidexdecorations!(ax_xyii, label=false, ticklabels=false, ticks=false, grid=false)
         ax_xyii.xticks = (Float64[], String[])
         ax_xyii.xticklabelsize = 0
         ax_xyii.xticksize = 0
     end
-    
+
     # Create xyii heatmap
     color_params = color_ranges[variable]
     global hm_xyii = heatmap!(v_xyiiₙ; colorrange=color_params.range, colormap=color_params.colormap,
                               (haskey(color_params, :colorscale) ? (colorscale=color_params.colorscale,) : ())...)
-    
+
     # Add buoyancy contours to xyii if available
     if haskey(ds_xyii, :b)
         for dim_combo in [(:x_caa, :z_aac), (:y_aca, :z_aac)]
@@ -155,19 +155,19 @@ for (i, variable) in enumerate(variables)
             end
         end
     end
-    
+
     # Create xizi plot (column 2)
     var_data_xizi = ds_xizi[variable]
     dimnames_xizi = [dim for dim in dimnames_order if dim in map(ra.name, ra.dims(var_data_xizi))]
     push!(dimnames_xizi, :Ti)
-    
+
     # Permute dimensions and create observable for xizi
     v_xizi = permutedims(var_data_xizi, dimnames_xizi)
     v_xiziₙ = @lift v_xizi[Ti=$n]
-    
+
     # Use the same panel height as xyii for consistent layout
     panel_height_xizi = panel_height_xyii
-    
+
     # Create xizi axis
     if i == length(variables)
         # Bottom panel: show x label
@@ -179,18 +179,18 @@ for (i, variable) in enumerate(variables)
         ax_xizi = Axis(fig[i+2, 2];
                       ylabel=string(dimnames_xizi[2]),
                       width=panel_width, height=panel_height_xizi)
-        
+
         # Hide all x decorations for upper panels
         hidexdecorations!(ax_xizi, label=false, ticklabels=false, ticks=false, grid=false)
         ax_xizi.xticks = (Float64[], String[])
         ax_xizi.xticklabelsize = 0
         ax_xizi.xticksize = 0
     end
-    
+
     # Create xizi heatmap
     global hm_xizi = heatmap!(v_xiziₙ; colorrange=color_params.range, colormap=color_params.colormap,
                               (haskey(color_params, :colorscale) ? (colorscale=color_params.colorscale,) : ())...)
-    
+
     # Add buoyancy contours to xizi if available
     if haskey(ds_xizi, :b)
         for dim_combo in [(:x_caa, :z_aac), (:y_aca, :z_aac)]
@@ -211,7 +211,7 @@ for (i, variable) in enumerate(variables)
     catch
         string(variable)
     end
-    
+
     # Use the same height for the colorbar since both panels have the same height
     Colorbar(fig[i+2, 3], hm_xyii;
              label=cbar_label, vertical=true,

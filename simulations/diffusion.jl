@@ -28,13 +28,13 @@ end
 
 function same_area_smoothed(smoothed, unsmoothed_area; initial_guess=0.5)
     """
-    Find the optimal threshold that minimizes the area difference between 
+    Find the optimal threshold that minimizes the area difference between
     smoothed and unsmoothed area using optimization.
-    
+
     Parameters:
     - smoothed: smoothed bathymetry data
     - unsmoothed_area: original unsmoothed bathymetry data
-    
+
     Returns:
     - Binary mask of smoothed bathymetry with optimal threshold
     """
@@ -189,7 +189,7 @@ common_colormap = :terrain
 ax1 = Axis3(fig[1, 1], title="Original Bathymetry", xlabel="x [m]", ylabel="y [m]", zlabel="z [m]")
 sf1 = surface!(ax1, x, y, bathymetry, colormap=common_colormap, colorrange=elevation_range)
 
-# Plot Gaussian filtered (top right)  
+# Plot Gaussian filtered (top right)
 ax2 = Axis3(fig[1, 2], title="Gaussian Filtered (σ=$σ)", xlabel="x [m]", ylabel="y [m]", zlabel="z [m]")
 sf2 = surface!(ax2, x, y, gaussian_filtered, colormap=common_colormap, colorrange=elevation_range)
 

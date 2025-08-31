@@ -135,7 +135,7 @@ function masked_area(smoothed, target_area; threshold=0.5)
     return (sum(masked_smoothed) - target_area)^2
 end
 
-function same_area_smoothed(smoothed, unsmoothed_area; initial_guess=0.5)
+function same_area_smoothed(smoothed, unsmoothed_area; initial_guess=0.5, verbose=false)
     """
     Find the optimal threshold that minimizes the area difference between
     smoothed and unsmoothed area using optimization.
@@ -169,14 +169,14 @@ function same_area_smoothed(smoothed, unsmoothed_area; initial_guess=0.5)
         return same_area_smoothed(smoothed, unsmoothed_area; initial_guess=0.5*initial_guess[])
     end
 
-    @info "Optimal threshold found: $optimal_threshold, objective value: $(Optim.minimum(result))"
+    verbose && @info "Optimal threshold found: $optimal_threshold, objective value: $(Optim.minimum(result))"
 
     # Return binary mask using optimal threshold
     return smoothed .> optimal_threshold, optimal_threshold
 end
 
 
-function sliced_smooth_bathymetry(bathymetry_3d; window_size_x, window_size_y, bc_x="circular", bc_y="replicate")
+function sliced_smooth_bathymetry(bathymetry_3d; window_size_x, window_size_y, bc_x="circular", bc_y="replicate", verbose=false)
     nx, ny, nz = size(bathymetry_3d)
     kernel_x = Kernel.gaussian((window_size_x, 0))
     kernel_y = Kernel.gaussian((0, window_size_y))
@@ -184,12 +184,12 @@ function sliced_smooth_bathymetry(bathymetry_3d; window_size_x, window_size_y, b
     smoothed_3d = zeros(nx, ny, nz)
     initial_guess = 0.5
     for k in 1:nz
-        @info "Smoothing layer $k of $nz"
+        verbose && @info "Smoothing layer $k of $nz"
         smoothed_x = imfilter(bathymetry_3d[:,:,k], kernel_x, bc_x)
         smoothed = imfilter(smoothed_x, kernel_y, bc_y)
 
         unsmoothed_area = sum(bathymetry_3d[:, :, k])
-        smoothed_3d[:, :, k], optimal_threshold = same_area_smoothed(smoothed, unsmoothed_area; initial_guess)
+        smoothed_3d[:, :, k], optimal_threshold = same_area_smoothed(smoothed, unsmoothed_area; initial_guess, verbose)
         initial_guess = optimal_threshold
     end
 
@@ -221,7 +221,7 @@ function find_interface_height(array3d::AbstractArray{Bool, 3}; smooth=false, x=
 end
 
 
-function smooth_bathymetry_3d(elevation, x, y; window_size_x=10, window_size_y=10, scale_x=nothing, scale_y=nothing, dz=nothing)
+function smooth_bathymetry_3d(elevation, x, y; window_size_x=10, window_size_y=10, scale_x=nothing, scale_y=nothing, dz=nothing, verbose=false)
     dx = minimum(diff(x))
     dy = minimum(diff(y))
 
@@ -234,7 +234,7 @@ function smooth_bathymetry_3d(elevation, x, y; window_size_x=10, window_size_y=1
 
     X, Y, Z, zᶜ = extrude_bathymetry_3d(elevation, x, y; dz, z_max=1.1*H)
     bathymetry_3d = Float64.(Z .< elevation)
-    smoothed_bathymetry_3d = sliced_smooth_bathymetry(bathymetry_3d; window_size_x, window_size_y)
+    smoothed_bathymetry_3d = sliced_smooth_bathymetry(bathymetry_3d; window_size_x, window_size_y, verbose)
     return find_interface_height(smoothed_bathymetry_3d, smooth=true, x=x, y=y, z=zᶜ)
 end
 #---

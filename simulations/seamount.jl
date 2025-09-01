@@ -124,7 +124,8 @@ end
 #---
 
 #+++ Create interpolant for (and maybe smooth) bathymetry
-ds_bathymetry = NCDataset(joinpath(@__DIR__, "../bathymetry/balanus-bathymetry-preprocessed.nc"))
+bathymetry_filepath = joinpath(@__DIR__, "../bathymetry/balanus-bathymetry-preprocessed.nc")
+ds_bathymetry = NCDataset(bathymetry_filepath)
 elevation = ds_bathymetry["periodic_elevation"]
 x = ds_bathymetry["x"]
 y = ds_bathymetry["y"]
@@ -141,11 +142,10 @@ if params.L == 0
     shrunk_smoothed_elevation = shrunk_elevation
 else
     @warn "Smoothing bathymetry with length scale L/FWHM=$(params.L)"
-    shrunk_smoothed_elevation = smooth_bathymetry(shrunk_elevation, x, y;
-                                                  scale_x = params.L * ds_bathymetry.attrib["FWHM"], # Based on the data's FWHM
-                                                  scale_y = params.L * ds_bathymetry.attrib["FWHM"], # Based on the data's FWHM
-                                                  bc_x="circular",
-                                                  bc_y="replicate",)
+    shrunk_smoothed_elevation = smooth_bathymetry_3d(shrunk_elevation, x, y;
+                                                     scale_x = params.L * ds_bathymetry.attrib["FWHM"], # Based on the data's FWHM
+                                                     scale_y = params.L * ds_bathymetry.attrib["FWHM"], # Based on the data's FWHM
+                                                     bathymetry_filepath)
 end
 
 params = (; params..., H_after_smoothing = maximum(shrunk_smoothed_elevation))

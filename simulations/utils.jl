@@ -3,6 +3,8 @@ using ImageFiltering: imfilter, Kernel
 import Optim
 using Optim: GoldenSection, Fminbox, LBFGS, optimize
 using CUDA: devices, device!, functional, totalmem, name, available_memory, memory_status, @time
+using NCDatasets: NCDataset, defDim, defVar
+using Dates: now
 
 #+++ Get good grid size
 """ Rounds `a` to the nearest even number """
@@ -214,14 +216,14 @@ function find_interface_height(array3d::AbstractArray{Bool, 3}; smooth=false, x=
     end
 
     if smooth
-        heights = smooth_bathymetry(heights; window_size_x=10, window_size_y=10)
+        heights = smooth_bathymetry(heights; window_size_x=5, window_size_y=5)
     end
 
     return heights
 end
 
 
-function smooth_bathymetry_3d(elevation, x, y; window_size_x=10, window_size_y=10, scale_x=nothing, scale_y=nothing, dz=nothing, verbose=false)
+function smooth_bathymetry_3d(elevation, x, y; window_size_x=10, window_size_y=10, scale_x=nothing, scale_y=nothing, dz=nothing, verbose=false, cache_dir="../bathymetry")
     dx = minimum(diff(x))
     dy = minimum(diff(y))
 
@@ -232,19 +234,62 @@ function smooth_bathymetry_3d(elevation, x, y; window_size_x=10, window_size_y=1
     # If dz is not provided, use the average of the grid spacing
     dz = dz isa Nothing ? (dx + dy) / 2 : dz
 
+    # Create cache filename based on parameters
+    cache_filename = "smoothed_3d_bathymetry_wx$(round(window_size_x, digits=2))_wy$(round(window_size_y, digits=2))_dz$(round(dz, digits=2)).nc"
+    cache_path = joinpath(cache_dir, cache_filename)
+
+    # Check if cached result exists
+    if isfile(cache_path)
+        verbose && @info "Loading smoothed bathymetry from cache: $cache_path"
+        try
+            NCDataset(cache_path) do ds
+                return ds["smoothed_elevation"][:, :]
+            end
+        catch e
+            @warn "Failed to load smoothed bathymetry from cache: $cache_path: $e"
+            @info "Recomputing..."
+        end
+    end
+
+    # Compute the smoothed bathymetry
+    verbose && @info "Computing 3D smoothed bathymetry with parameters: wx=$window_size_x, wy=$window_size_y, dz=$dz"
     X, Y, Z, zᶜ = extrude_bathymetry_3d(elevation, x, y; dz, z_max=1.1*H)
     bathymetry_3d = Float64.(Z .< elevation)
     smoothed_bathymetry_3d = sliced_smooth_bathymetry(bathymetry_3d; window_size_x, window_size_y, verbose)
-    return find_interface_height(smoothed_bathymetry_3d, smooth=true, x=x, y=y, z=zᶜ)
-end
+    smoothed_elevation = find_interface_height(smoothed_bathymetry_3d, smooth=true, x=x, y=y, z=zᶜ)
 
-function measure_FWHM(x, y, elevation)
-    H = maximum(elevation)
-    Δx = diff(x)[1]
-    Δy = diff(y)[1]
-    area_at_HM = (elevation .> H/2) .* Δx .* Δy
-    FWHM = 2 * √(sum(area_at_HM) / π)
-    return FWHM
+    # Save result to cache in NetCDF format
+    try
+        # Ensure cache directory exists
+        mkpath(cache_dir)
+
+        # Save the result to NetCDF
+        NCDataset(cache_path, "c") do ds
+            # Define coordinate variables
+            defVar(ds, "x", x, ("x",), attrib = Dict("units" => "m", "long_name" => "x coordinate"))
+            defVar(ds, "y", y, ("y",), attrib = Dict("units" => "m", "long_name" => "y coordinate"))
+
+            # Define the smoothed elevation variable
+            defVar(ds, "smoothed_elevation", smoothed_elevation, ("x", "y"),
+                   attrib = Dict("units" => "m",
+                                 "long_name" => "3D smoothed elevation",
+                                 "description" => "Bathymetry smoothed using 3D Gaussian filter"))
+
+            # Add global attributes with smoothing parameters
+            ds.attrib["window_size_x"] = window_size_x
+            ds.attrib["window_size_y"] = window_size_y
+            ds.attrib["dz"] = dz
+            ds.attrib["smoothing_method"] = "3D Gaussian filter"
+            ds.attrib["created_by"] = "smooth_bathymetry_3d function"
+            ds.attrib["creation_date"] = string(now())
+        end
+
+        verbose && @info "Saved result to cache: $cache_path"
+    catch e
+        @warn "Failed to save to cache $cache_path: $e"
+    end
+
+    return smoothed_elevation
 end
 #---
 
@@ -481,4 +526,13 @@ x_distance_from_east(i, j, k, grid, args...) = xnode(grid.Nx + 1, grid, f) - xno
 (dc::DistanceCondition)(i, j, k, grid, co) = (z_distance_from_bottom(i, j, k, grid) > dc.from_bottom) &
                                              (z_distance_from_top(i, j, k, grid) > dc.from_top) &
                                              (x_distance_from_east(i, j, k, grid) > dc.from_east)
+
+function measure_FWHM(x, y, elevation)
+    H = maximum(elevation)
+    Δx = diff(x)[1]
+    Δy = diff(y)[1]
+    area_at_HM = (elevation .> H/2) .* Δx .* Δy
+    FWHM = 2 * √(sum(area_at_HM) / π)
+    return FWHM
+end
 #---

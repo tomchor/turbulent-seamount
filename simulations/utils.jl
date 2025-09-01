@@ -122,14 +122,13 @@ function extrude_bathymetry_3d(bathymetry_2d, x, y; dz=nothing, z_max=nothing)
     dy = minimum(diff(y))
     dz = dz isa Nothing ? (dx + dy) / 2 : dz
     zᶠ = collect(0:dz:z_max)
-    zᶜ = zᶠ[1:end-1] .+ dz/2
 
     # Create 2D grids for x, y, z coordinates
     X = repeat(reshape(x,  :, 1, 1),         1, length(y), length(zᶠ))
     Y = repeat(reshape(y,  1, :, 1), length(x),         1, length(zᶠ))
     Z = repeat(reshape(zᶠ, 1, 1, :), length(x), length(y),          1)
 
-    return X, Y, Z, zᶜ
+    return X, Y, Z, zᶠ
 end
 
 function masked_area(smoothed, target_area; threshold=0.5)
@@ -249,10 +248,10 @@ function smooth_bathymetry_3d(elevation, x, y; window_size_x=10, window_size_y=1
 
     # Compute the smoothed bathymetry
     verbose && @info "Computing 3D smoothed bathymetry with parameters: wx=$window_size_x, wy=$window_size_y, dz=$dz"
-    X, Y, Z, zᶜ = extrude_bathymetry_3d(elevation, x, y; dz, z_max=1.1*H)
+    X, Y, Z, zᶠ = extrude_bathymetry_3d(elevation, x, y; dz, z_max=1.1*maximum(elevation))
     bathymetry_3d = Float64.(Z .< elevation)
     smoothed_bathymetry_3d = sliced_smooth_bathymetry(bathymetry_3d; window_size_x, window_size_y, verbose)
-    smoothed_elevation = find_interface_height(smoothed_bathymetry_3d, smooth=true, x=x, y=y, z=zᶜ)
+    smoothed_elevation = find_interface_height(smoothed_bathymetry_3d, smooth=true, x=x, y=y, z=zᶠ)
 
     # Save the result to NetCDF
     NCDataset(cache_filepath, "c") do ds

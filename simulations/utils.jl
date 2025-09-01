@@ -161,13 +161,14 @@ function same_area_smoothed(smoothed, unsmoothed_area; initial_guess=0.5, verbos
     initial_guess = [initial_guess]
 
     # Use bounded optimization
-    options = Optim.Options(f_abstol=0.05*unsmoothed_area, iterations=10)
+    f_abstol = 0.05*unsmoothed_area
+    options = Optim.Options(f_abstol=f_abstol, iterations=10)
     result = Optim.optimize(objective, lower_bound, upper_bound, initial_guess, Fminbox(LBFGS()), options)
 
     # Get optimal threshold
     optimal_threshold = Optim.minimizer(result)[1]
 
-    if (Optim.minimum(result) > 0.05*unsmoothed_area) && (initial_guess[] > 1e-3)
+    if (Optim.minimum(result) > f_abstol) && (initial_guess[] > 1e-3)
         return same_area_smoothed(smoothed, unsmoothed_area; initial_guess=0.5*initial_guess[])
     end
 
@@ -223,7 +224,9 @@ function find_interface_height(array3d::AbstractArray{Bool, 3}; smooth=false, x=
 end
 
 
-function smooth_bathymetry_3d(elevation, x, y; window_size_x=10, window_size_y=10, scale_x=nothing, scale_y=nothing, dz=nothing, verbose=false, cache_dir="../bathymetry")
+function smooth_bathymetry_3d(elevation, x, y; window_size_x=10, window_size_y=10,
+                              scale_x=nothing, scale_y=nothing, dz=nothing, verbose=false,
+                              bathymetry_filepath="../bathymetry/balanus-bathymetry-preprocessed.nc")
     dx = minimum(diff(x))
     dy = minimum(diff(y))
 
@@ -235,20 +238,13 @@ function smooth_bathymetry_3d(elevation, x, y; window_size_x=10, window_size_y=1
     dz = dz isa Nothing ? (dx + dy) / 2 : dz
 
     # Create cache filename based on parameters
-    cache_filename = "smoothed_3d_bathymetry_wx$(round(window_size_x, digits=2))_wy$(round(window_size_y, digits=2))_dz$(round(dz, digits=2)).nc"
-    cache_path = joinpath(cache_dir, cache_filename)
+    cache_filepath = "$(bathymetry_filepath)_wx$(round(window_size_x, digits=2))_wy$(round(window_size_y, digits=2))_dz$(round(dz, digits=2)).nc"
 
     # Check if cached result exists
-    if isfile(cache_path)
-        verbose && @info "Loading smoothed bathymetry from cache: $cache_path"
-        try
-            NCDataset(cache_path) do ds
-                return ds["smoothed_elevation"][:, :]
-            end
-        catch e
-            @warn "Failed to load smoothed bathymetry from cache: $cache_path: $e"
-            @info "Recomputing..."
-        end
+    if isfile(cache_filepath)
+        verbose && @info "Loading smoothed bathymetry from cache: $cache_filepath"
+        ds = NCDataset(cache_filepath)
+        return ds["smoothed_elevation"][:, :]
     end
 
     # Compute the smoothed bathymetry
@@ -258,36 +254,24 @@ function smooth_bathymetry_3d(elevation, x, y; window_size_x=10, window_size_y=1
     smoothed_bathymetry_3d = sliced_smooth_bathymetry(bathymetry_3d; window_size_x, window_size_y, verbose)
     smoothed_elevation = find_interface_height(smoothed_bathymetry_3d, smooth=true, x=x, y=y, z=zᶜ)
 
-    # Save result to cache in NetCDF format
-    try
-        # Ensure cache directory exists
-        mkpath(cache_dir)
+    # Save the result to NetCDF
+    NCDataset(cache_filepath, "c") do ds
+        defVar(ds, "x", x, ("x",), attrib = Dict("units" => "m", "long_name" => "x coordinate"))
+        defVar(ds, "y", y, ("y",), attrib = Dict("units" => "m", "long_name" => "y coordinate"))
+        defVar(ds, "smoothed_elevation", smoothed_elevation, ("x", "y"),
+               attrib = Dict("units" => "m",
+                             "long_name" => "3D smoothed elevation",
+                             "description" => "Bathymetry smoothed using 3D Gaussian filter"))
 
-        # Save the result to NetCDF
-        NCDataset(cache_path, "c") do ds
-            # Define coordinate variables
-            defVar(ds, "x", x, ("x",), attrib = Dict("units" => "m", "long_name" => "x coordinate"))
-            defVar(ds, "y", y, ("y",), attrib = Dict("units" => "m", "long_name" => "y coordinate"))
-
-            # Define the smoothed elevation variable
-            defVar(ds, "smoothed_elevation", smoothed_elevation, ("x", "y"),
-                   attrib = Dict("units" => "m",
-                                 "long_name" => "3D smoothed elevation",
-                                 "description" => "Bathymetry smoothed using 3D Gaussian filter"))
-
-            # Add global attributes with smoothing parameters
-            ds.attrib["window_size_x"] = window_size_x
-            ds.attrib["window_size_y"] = window_size_y
-            ds.attrib["dz"] = dz
-            ds.attrib["smoothing_method"] = "3D Gaussian filter"
-            ds.attrib["created_by"] = "smooth_bathymetry_3d function"
-            ds.attrib["creation_date"] = string(now())
-        end
-
-        verbose && @info "Saved result to cache: $cache_path"
-    catch e
-        @warn "Failed to save to cache $cache_path: $e"
+        # Add global attributes with smoothing parameters
+        ds.attrib["window_size_x"] = window_size_x
+        ds.attrib["window_size_y"] = window_size_y
+        ds.attrib["dz"] = dz
+        ds.attrib["smoothing_method"] = "3D Gaussian filter"
+        ds.attrib["created_by"] = "smooth_bathymetry_3d function"
+        ds.attrib["creation_date"] = string(now())
     end
+    verbose && @info "Saved result to cache: $cache_path"
 
     return smoothed_elevation
 end

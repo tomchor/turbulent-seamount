@@ -6,7 +6,8 @@ include("../simulations/utils.jl")
 
 #+++ Read bathymetry data
 @info "Reading bathymetry data"
-ds_bathymetry = NCDataset(joinpath(@__DIR__, "../bathymetry/balanus-bathymetry-preprocessed.nc"))
+bathymetry_filepath = joinpath(@__DIR__, "../bathymetry/balanus-bathymetry-preprocessed.nc")
+ds_bathymetry = NCDataset(bathymetry_filepath)
 x = ds_bathymetry["x"] |> collect
 y = ds_bathymetry["y"] |> collect
 
@@ -27,7 +28,7 @@ close(ds_bathymetry)
 #+++ Apply filtering procedures with different sigma values
 
 # Define sigma values as fractions of FWHM
-sigma_fractions = [0.05, 0.2, 0.4, 0.8]
+sigma_fractions = [0.05, 0.1, 0.4, 0.8]
 sigma_values = sigma_fractions .* FWHM
 
 @info "Applying filters for different sigma values: $sigma_values"
@@ -44,7 +45,7 @@ for σ in sigma_values
     push!(gaussian_results, gaussian_filtered)
 
     # 3D Gaussian filter
-    gaussian_filtered_3d = smooth_bathymetry_3d(elevation, x, y; scale_x=σ, scale_y=σ, dz=dx/6)
+    gaussian_filtered_3d = smooth_bathymetry_3d(elevation, x, y; scale_x=σ, scale_y=σ, dz=dx/6, bathymetry_filepath)
     push!(gaussian_3d_results, gaussian_filtered_3d)
 end
 
@@ -92,10 +93,11 @@ Label(fig[1, 0], "Gaussian Filter", rotation=π/2, tellheight=false, fontsize=16
 Label(fig[2, 0], "3D Gaussian Filter", rotation=π/2, tellheight=false, fontsize=16)
 
 # Add a shared colorbar
-Colorbar(fig[:, 6], sf_orig, label="Elevation [m]")
+ncols = length(sigma_values) + 2
+Colorbar(fig[:, ncols], sf_orig, label="Elevation [m]")
 
 # Add overall title
-fig[0, 1:6] = Label(fig, "Bathymetry Filtering Comparison - Multiple Sigma Values", fontsize=20, tellwidth=false)
+fig[0, 1:ncols] = Label(fig, "Bathymetry Filtering Comparison - Multiple Sigma Values", fontsize=20, tellwidth=false)
 
 # Display the figure (optional - comment out if running in batch mode)
 display(fig)

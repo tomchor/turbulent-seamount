@@ -118,7 +118,7 @@ if has_cuda_gpu()
     arch = GPU()
 else
     arch = CPU()
-    params = (; params..., dz = 50meters)
+    params = (; params..., dz = 8meters)
 end
 @info "Starting simulation $(params.simname) with a vertical spacing of $(params.dz) meters and $arch architecture\n"
 #---
@@ -126,32 +126,34 @@ end
 #+++ Create interpolant for (and maybe smooth) bathymetry
 bathymetry_filepath = joinpath(@__DIR__, "../bathymetry/balanus-bathymetry-preprocessed.nc")
 ds_bathymetry = NCDataset(bathymetry_filepath)
-elevation = ds_bathymetry["periodic_elevation"]
+elevation = ds_bathymetry["periodic_elevation"] |> collect
 x = ds_bathymetry["x"]
 y = ds_bathymetry["y"]
 
+# Double check that the FWHM is the same as the data's FWHM
 original_FWHM = measure_FWHM(x, y, elevation)
 @assert isapprox(original_FWHM, ds_bathymetry.attrib["FWHM"], rtol=1e-3)
 
-params = (; params..., H_ratio = params.H / maximum(elevation), # How much do we rescale in the vertical?
-                       FWHM_ratio = params.FWHM / ds_bathymetry.attrib["FWHM"]) # How much do we rescale in the horizontal?
-shrunk_elevation = ds_bathymetry["periodic_elevation"] .* params.H_ratio # Rescale the elevation to the new height
-
 if params.L == 0
     @warn "No smoothing performed on the bathymetry"
-    shrunk_smoothed_elevation = shrunk_elevation
+    smoothed_elevation = elevation
 else
     @warn "Smoothing bathymetry with length scale L/FWHM=$(params.L)"
-    shrunk_smoothed_elevation = smooth_bathymetry_3d(shrunk_elevation, x, y;
-                                                     scale_x = params.L * ds_bathymetry.attrib["FWHM"], # Based on the data's FWHM
-                                                     scale_y = params.L * ds_bathymetry.attrib["FWHM"], # Based on the data's FWHM
-                                                     bathymetry_filepath)
+    smoothed_elevation = smooth_bathymetry_3d(elevation, x, y;
+                                              scale_x = params.L * ds_bathymetry.attrib["FWHM"], # Based on the data's FWHM
+                                              scale_y = params.L * ds_bathymetry.attrib["FWHM"], # Based on the data's FWHM
+                                              bathymetry_filepath)
 end
 
-params = (; params..., H_after_smoothing = maximum(shrunk_smoothed_elevation))
+# Make sure that the total mass of the smoothed bathymetry is about the same as the original bathymetry
+@assert isapprox(sum(smoothed_elevation), sum(elevation), rtol=0.1)
 
-# Rescale the horizontal dimensions to the new FWHM.
-# Note that the smoothed bathymetry is likely a bit shorter than the original, and we do not correct for that on purpose.
+# Now we shrink the bathymetry
+params = (; params..., H_ratio = params.H / maximum(smoothed_elevation), # How much do we rescale in the vertical?
+                       FWHM_ratio = params.FWHM / ds_bathymetry.attrib["FWHM"]) # How much do we rescale in the horizontal?
+
+shrunk_smoothed_elevation = smoothed_elevation .* params.H_ratio
+
 shrunk_x = x .* params.FWHM_ratio
 shrunk_y = y .* params.FWHM_ratio
 

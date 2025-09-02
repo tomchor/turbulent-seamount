@@ -5,27 +5,27 @@ using Printf
 using Oceananigans: prettytime
 
 #+++ Preamble
-fpath_xyzi_1 = "../simulations/data/xyzi.seamount_Ro_h0.2_Fr_h1.25_L0_FWHM400_dz4.nc"
-fpath_xyzi_2 = "../simulations/data/xyzi.seamount_Ro_h0.2_Fr_h1.25_L0.8_FWHM400_dz4.nc"
+fpath_xyzi_1 = "../simulations/data/xyzi.seamount_Ro_h0.1_Fr_h1_L0_FWHM500_dz1.nc"
+fpath_xyzi_2 = "../simulations/data/xyzi.seamount_Ro_h0.1_Fr_h1_L0.8_FWHM500_dz1.nc"
 
 @info "Reading NetCDF files: $fpath_xyzi_1 and $fpath_xyzi_2"
 
 # Load both datasets
-xyzi_1 = RasterStack(fpath_xyzi_1, name=(:εₚ, :bottom_height), lazy=true)
-xyzi_2 = RasterStack(fpath_xyzi_2, name=(:εₚ, :bottom_height), lazy=true)
+xyzi_1 = RasterStack(fpath_xyzi_1, name=(:∫⁵εₖdy, :bottom_height), lazy=true)
+xyzi_2 = RasterStack(fpath_xyzi_2, name=(:∫⁵εₖdy, :bottom_height), lazy=true)
 
 # Get metadata and parameters from first dataset
-md = metadata(xyzi_1)
-params = (; (Symbol(k) => v for (k, v) in md)...)
+params1 = (; (Symbol(k) => v for (k, v) in metadata(xyzi_1))...)
+params2 = (; (Symbol(k) => v for (k, v) in metadata(xyzi_2))...)
 
 # Extract grid coordinates from first dataset
-xyzi_1 = xyzi_1[z_aac = 0..1.1*params.H, x_caa = -Inf..6*params.FWHM]
-xyzi_2 = xyzi_2[z_aac = 0..1.1*params.H, x_caa = -Inf..6*params.FWHM]
+xyzi_1 = xyzi_1[z_aac = 0..1.1*params1.H, x_caa = -Inf..6*params1.FWHM]
+xyzi_2 = xyzi_2[z_aac = 0..1.1*params1.H, x_caa = -Inf..6*params1.FWHM]
 
 x_range = extrema(dims(xyzi_1, :x_caa))
 y_range = extrema(dims(xyzi_1, :y_aca))
 z_range = extrema(dims(xyzi_1, :z_aac))
-times = dims(xyzi_1.εₚ, :Ti)
+times = dims(xyzi_1.∫⁵εₖdy, :Ti)
 
 # Use the last time step for static plotting
 n_final = length(times)
@@ -43,54 +43,61 @@ isorange_εₚ₂ = isovalue_εₚ₂/2
 Lx = diff(x_range |> collect)[]
 Ly = diff(y_range |> collect)[]
 Lz = diff(z_range |> collect)[]
-settings_axis3 = (aspect = (Lx, Ly, 5*Lz), azimuth = 1.6π, elevation = 0.18π,
+settings_axis3 = (aspect = (3params1.FWHM, 3params1.FWHM, 4*Lz), azimuth = 1.6π, elevation = 0.18π,
                   perspectiveness=0.8, viewmode=:fitzoom,
                   xlabel="x [m]", ylabel="y [m]", zlabel="z [m]")
 
-# Create figure with two columns
-fig = Figure(size = (1950, 600))
+# Create figure with two columns (3D plots and heatmaps)
+fig = Figure(size = (1800, 800))
 
-# Create observables for final time step
-εₚₙ_1 = @lift Array(xyzi_1.εₚ)[:,:,:,$n_final]
-εₚₙ_2 = @lift Array(xyzi_2.εₚ)[:,:,:,$n_final]
+colsize!(fig.layout, 1, Relative(0.25))  # 3D plots column - 35% width
+rowgap!(fig.layout, 0)
+colgap!(fig.layout, 0)
 
-# Main 3D axes - two columns
-ax1_εₚ = Axis3(fig[1, 1]; settings_axis3...)
-ax2_εₚ = Axis3(fig[1, 2]; settings_axis3...)
+# Main 3D axes - first column
+ax1 = Axis3(fig[1, 1]; settings_axis3...)
+ax2 = Axis3(fig[2, 1]; settings_axis3...)
+for ax in (ax1, ax2)
+    xlims!(ax, (-1.5params1.FWHM, 1.5params1.FWHM))
+    zlims!(ax, (0, 1.1*params1.H))
+end
 
-#+++ bottom height plot for all axes
-surface!(ax1_εₚ, x_range, y_range, xyzi_1.bottom_height, colormap = :turbid)
-surface!(ax2_εₚ, x_range, y_range, xyzi_2.bottom_height, colormap = :turbid)
+# Heatmap axes - second column
+ax1_heat = Axis(fig[1, 2], ylabel="z [m]", xticksvisible=false, xticklabelsvisible=false)
+ax2_heat = Axis(fig[2, 2], ylabel="z [m]", xlabel="x [m]")
+
+#+++ bottom height plot for 3D axes
+elevation_range = extrema(xyzi_1.bottom_height)
+surface!(ax1, x_range, y_range, xyzi_1.bottom_height, colormap = :turbid, colorrange=elevation_range)
+surface!(ax2, x_range, y_range, xyzi_2.bottom_height, colormap = :turbid, colorrange=elevation_range)
 #---
 
-#+++ PV plots (first column)
-vol1_kwargs = (algorithm = :iso, colormap=:balance, transparency = true, isorange=isorange_εₚ₁, colorrange=εₚ_range)
-vol1_1 = volume!(ax1_εₚ, x_range, y_range, z_range, εₚₙ_1, isovalue=isovalue_εₚ₁, isorange=isorange_εₚ₁, alpha=0.7; vol1_kwargs...)
-vol1_1 = volume!(ax1_εₚ, x_range, y_range, z_range, εₚₙ_1, isovalue=isovalue_εₚ₂, isorange=isorange_εₚ₂, alpha=0.9; vol1_kwargs...)
+#+++ heatmap plots of ∫⁵εₖdy with log scale
+# Extract the energy dissipation data at the final time step
+εₖ_1 = xyzi_1.∫⁵εₖdy[Ti=n_final]
+εₖ_2 = xyzi_2.∫⁵εₖdy[Ti=n_final]
 
-# PV plots (second column)
-vol1_2 = volume!(ax2_εₚ, x_range, y_range, z_range, εₚₙ_2, isovalue=isovalue_εₚ₁, isorange=isorange_εₚ₁, alpha=0.7; vol1_kwargs...)
-vol1_2 = volume!(ax2_εₚ, x_range, y_range, z_range, εₚₙ_2, isovalue=isovalue_εₚ₂, isorange=isorange_εₚ₂, alpha=0.9; vol1_kwargs...)
+# Create heatmaps with log scale and inferno colormap
+hm1 = heatmap!(ax1_heat, x_range, z_range, εₖ_1, 
+               colormap = :inferno, colorscale = log10, colorrange = (1e-7, 1e-4))
+hm2 = heatmap!(ax2_heat, x_range, z_range, εₖ_2, 
+               colormap = :inferno, colorscale = log10, colorrange = (1e-7, 1e-4))
 
-# Colorbars for εₚ
-Colorbar(fig, vol1_1, bbox=ax1_εₚ.scene.viewport,
-         label="εₚ", height=15, width=Relative(0.5), vertical=false,
-         alignmode = Outside(10), halign = 0.15, valign = 1.02)
+# Add colorbars
+Colorbar(fig[1, 3], hm1, label = "∫⁵εₖdy [m³/s³]", height = Relative(0.8))
+Colorbar(fig[2, 3], hm2, label = "∫⁵εₖdy [m³/s³]", height = Relative(0.8))
 
-Colorbar(fig, vol1_2, bbox=ax2_εₚ.scene.viewport,
-         label="εₚ", height=15, width=Relative(0.5), vertical=false,
-         alignmode = Outside(10), halign = 0.15, valign = 1.02)
+# Add titles inside the heatmaps with white font
+label_options = (space=:relative, color=:white, fontsize=16, align=(:left, :top))
+text!(ax1_heat, 0.05, 0.95, text="L/FWHM = $(params1.L)"; label_options...)
+text!(ax2_heat, 0.05, 0.95, text="L/FWHM = $(params2.L)"; label_options...)
 #---
 
 #+++ Create title, labels, and save the plot
-title = "Roₕ = $(params.Ro_h), Frₕ = $(params.Fr_h), L = $(params.L) m; " *
+title = "Roₕ = $(params1.Ro_h), Frₕ = $(params1.Fr_h); " *
         "Time = $(@sprintf "%s" prettytime(times[n_final]))"
-fig[0, 1:2] = Label(fig, title, fontsize=18, tellwidth=false, height=8)
-
-# Add column labels
-fig[0, 1] = Label(fig, "Dataset 1 (L=$(metadata(xyzi_1)["L"]) FWHM)", fontsize=14, tellwidth=false, height=6)
-fig[0, 2] = Label(fig, "Dataset 2 (L=$(metadata(xyzi_2)["L"]) FWHM)", fontsize=14, tellwidth=false, height=6)
+fig[0, 1:3] = Label(fig, title, fontsize=18, tellwidth=false, height=8)
 
 # Save the plot
-save("$(@__DIR__)/../figures/seamount_3d_eps_p_comparison.png", fig, px_per_unit=2)
+save("$(@__DIR__)/../figures/seamount_3d_eps_comparison.png", fig, px_per_unit=2)
 #---

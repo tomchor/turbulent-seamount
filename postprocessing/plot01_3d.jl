@@ -5,8 +5,8 @@ using Printf
 using Oceananigans: prettytime
 
 #+++ Preamble
-fpath_xyzi_1 = "../simulations/data/xyzi.seamount_Ro_h0.1_Fr_h1_L0_FWHM500_dz2.nc"
-fpath_xyzi_2 = "../simulations/data/xyzi.seamount_Ro_h0.1_Fr_h1_L0.8_FWHM500_dz2.nc"
+fpath_xyzi_1 = "../simulations/data/xyzi.seamount_Ro_h0.1_Fr_h1_L0_FWHM500_dz1.nc"
+fpath_xyzi_2 = "../simulations/data/xyzi.seamount_Ro_h0.1_Fr_h1_L0.8_FWHM500_dz1.nc"
 
 @info "Reading NetCDF files: $fpath_xyzi_1 and $fpath_xyzi_2"
 
@@ -67,8 +67,9 @@ ax1_heat = Axis(fig[1, 2], ylabel="z [m]", xticksvisible=false, xticklabelsvisib
 ax2_heat = Axis(fig[2, 2], ylabel="z [m]", xlabel="x [m]")
 
 #+++ bottom height plot for 3D axes
-surface!(ax1, x_range, y_range, xyzi_1.bottom_height, colormap = :turbid)
-surface!(ax2, x_range, y_range, xyzi_2.bottom_height, colormap = :turbid)
+elevation_range = extrema(xyzi_1.bottom_height)
+surface!(ax1, x_range, y_range, xyzi_1.bottom_height, colormap = :turbid, colorrange=elevation_range)
+surface!(ax2, x_range, y_range, xyzi_2.bottom_height, colormap = :turbid, colorrange=elevation_range)
 #---
 
 #+++ heatmap plots of ∫⁵εₖdy with log scale
@@ -77,9 +78,9 @@ surface!(ax2, x_range, y_range, xyzi_2.bottom_height, colormap = :turbid)
 εₖ_2 = xyzi_2.∫⁵εₖdy[Ti=n_final]
 
 # Create heatmaps with log scale and inferno colormap
-hm1 = heatmap!(ax1_heat, x_range, z_range, εₖ_1,
+hm1 = heatmap!(ax1_heat, x_range, z_range, εₖ_1, 
                colormap = :inferno, colorscale = log10, colorrange = (1e-7, 1e-4))
-hm2 = heatmap!(ax2_heat, x_range, z_range, εₖ_2,
+hm2 = heatmap!(ax2_heat, x_range, z_range, εₖ_2, 
                colormap = :inferno, colorscale = log10, colorrange = (1e-7, 1e-4))
 
 # Add colorbars

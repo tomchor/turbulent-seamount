@@ -5,27 +5,29 @@ using Printf
 using Oceananigans: prettytime
 
 #+++ Preamble
-fpath_xyzi_1 = "../simulations/data/xyzi.seamount_Ro_h0.1_Fr_h1_L0_FWHM500_dz1.nc"
-fpath_xyzi_2 = "../simulations/data/xyzi.seamount_Ro_h0.1_Fr_h1_L0.8_FWHM500_dz1.nc"
+fpath_xyzi_1 = "../simulations/data/xyzi.seamount_Ro_h0.1_Fr_h1_L0_FWHM500_dz2.nc"
+fpath_xyzi_2 = "../simulations/data/xyzi.seamount_Ro_h0.1_Fr_h1_L0.8_FWHM500_dz2.nc"
+
+variable = :∫⁵εₖdy
 
 @info "Reading NetCDF files: $fpath_xyzi_1 and $fpath_xyzi_2"
 
 # Load both datasets
-xyzi_1 = RasterStack(fpath_xyzi_1, name=(:∫⁵εₖdy, :bottom_height), lazy=true)
-xyzi_2 = RasterStack(fpath_xyzi_2, name=(:∫⁵εₖdy, :bottom_height), lazy=true)
+xyzi_1 = RasterStack(fpath_xyzi_1, name=(variable, :bottom_height), lazy=true)
+xyzi_2 = RasterStack(fpath_xyzi_2, name=(variable, :bottom_height), lazy=true)
 
 # Get metadata and parameters from first dataset
 params1 = (; (Symbol(k) => v for (k, v) in metadata(xyzi_1))...)
 params2 = (; (Symbol(k) => v for (k, v) in metadata(xyzi_2))...)
 
 # Extract grid coordinates from first dataset
-xyzi_1 = xyzi_1[z_aac = 0..1.1*params1.H, x_caa = -Inf..6*params1.FWHM]
-xyzi_2 = xyzi_2[z_aac = 0..1.1*params1.H, x_caa = -Inf..6*params1.FWHM]
+xyzi_1 = xyzi_1[z_aac = 0..1.2*params1.H, x_caa = -Inf..6*params1.FWHM]
+xyzi_2 = xyzi_2[z_aac = 0..1.2*params1.H, x_caa = -Inf..6*params1.FWHM]
 
 x_range = extrema(dims(xyzi_1, :x_caa))
 y_range = extrema(dims(xyzi_1, :y_aca))
 z_range = extrema(dims(xyzi_1, :z_aac))
-times = dims(xyzi_1.∫⁵εₖdy, :Ti)
+times = dims(xyzi_1[variable], :Ti)
 
 # Use the last time step for static plotting
 n_final = length(times)
@@ -67,15 +69,16 @@ ax1_heat = Axis(fig[1, 2], ylabel="z [m]", xticksvisible=false, xticklabelsvisib
 ax2_heat = Axis(fig[2, 2], ylabel="z [m]", xlabel="x [m]")
 
 #+++ bottom height plot for 3D axes
-elevation_range = extrema(xyzi_1.bottom_height)
-surface!(ax1, x_range, y_range, xyzi_1.bottom_height, colormap = :turbid, colorrange=elevation_range)
-surface!(ax2, x_range, y_range, xyzi_2.bottom_height, colormap = :turbid, colorrange=elevation_range)
+colorrange = extrema(xyzi_1.bottom_height)
+colormap = :terrain
+surface!(ax1, x_range, y_range, xyzi_1.bottom_height; colormap, colorrange)
+surface!(ax2, x_range, y_range, xyzi_2.bottom_height; colormap, colorrange)
 #---
 
 #+++ heatmap plots of ∫⁵εₖdy with log scale
 # Extract the energy dissipation data at the final time step
-εₖ_1 = xyzi_1.∫⁵εₖdy[Ti=n_final]
-εₖ_2 = xyzi_2.∫⁵εₖdy[Ti=n_final]
+εₖ_1 = xyzi_1[variable][Ti=n_final]
+εₖ_2 = xyzi_2[variable][Ti=n_final]
 
 # Create heatmaps with log scale and inferno colormap
 hm1 = heatmap!(ax1_heat, x_range, z_range, εₖ_1, 
@@ -84,8 +87,8 @@ hm2 = heatmap!(ax2_heat, x_range, z_range, εₖ_2,
                colormap = :inferno, colorscale = log10, colorrange = (1e-7, 1e-4))
 
 # Add colorbars
-Colorbar(fig[1, 3], hm1, label = "∫⁵εₖdy [m³/s³]", height = Relative(0.8))
-Colorbar(fig[2, 3], hm2, label = "∫⁵εₖdy [m³/s³]", height = Relative(0.8))
+Colorbar(fig[1, 3], hm1, label = "$variable [m³/s³]", height = Relative(0.8))
+Colorbar(fig[2, 3], hm2, label = "$variable [m³/s³]", height = Relative(0.8))
 
 # Add titles inside the heatmaps with white font
 label_options = (space=:relative, color=:white, fontsize=16, align=(:left, :top))

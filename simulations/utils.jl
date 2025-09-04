@@ -1,7 +1,10 @@
 using Parameters
 using ImageFiltering: imfilter, Kernel
-using Optim: GoldenSection, optimize
+import Optim
+using Optim: GoldenSection, Fminbox, LBFGS, optimize
 using CUDA: devices, device!, functional, totalmem, name, available_memory, memory_status, @time
+using NCDatasets: NCDataset, defDim, defVar
+using Dates: now
 
 #+++ Get good grid size
 """ Rounds `a` to the nearest even number """
@@ -75,7 +78,7 @@ function closest_factor_number(primes::NTuple{1, Int}, target::Int)
 end
 #---
 
-#+++ Smooth bathymetry
+#+++ Smooth bathymetry using regular 2D Gaussian filter
 function smooth_bathymetry(elevation; window_size_x, window_size_y, bc_x="circular", bc_y="replicate", target_height=nothing)
     # Create separate Gaussian kernels for x and y directions
     kernel_x = Kernel.gaussian((window_size_x, 0))
@@ -99,29 +102,177 @@ function smooth_bathymetry(elevation; window_size_x, window_size_y, bc_x="circul
     return smoothed
 end
 
-function smooth_bathymetry(elevation, x, y; scale_x, scale_y, bc_x="circular", bc_y="replicate", target_height=nothing)
-    # Get minimum grid spacing in x and y directions from coordinate arrays
+function smooth_bathymetry(elevation, x, y; scale_x, scale_y, kwargs...)
     Δx_min = minimum(diff(x))
     Δy_min = minimum(diff(y))
 
-    # Convert physical scales to window sizes
-    # We use ceil to ensure we have enough points to cover the scale
-    # The factor of 2 is because the Gaussian kernel's standard deviation
+    # The factor of 2 is there because the Gaussian kernel's standard deviation
     # should be about half the desired smoothing length
     window_size_x = scale_x / (2 * Δx_min)
     window_size_y = scale_y / (2 * Δy_min)
 
     # Call the original method with calculated window sizes
-    return smooth_bathymetry(elevation; window_size_x, window_size_y, bc_x, bc_y, target_height)
+    return smooth_bathymetry(elevation; window_size_x, window_size_y, kwargs...)
+end
+#---
+
+#+++ Smooth bathymetry using 3D Gaussian filter
+function extrude_bathymetry_3d(bathymetry_2d, x, y; dz=nothing, z_max=nothing)
+    dx = minimum(diff(x))
+    dy = minimum(diff(y))
+    dz = dz isa Nothing ? (dx + dy) / 2 : dz
+    zᶠ = collect(0:dz:z_max)
+
+    # Create 2D grids for x, y, z coordinates
+    X = repeat(reshape(x,  :, 1, 1),         1, length(y), length(zᶠ))
+    Y = repeat(reshape(y,  1, :, 1), length(x),         1, length(zᶠ))
+    Z = repeat(reshape(zᶠ, 1, 1, :), length(x), length(y),          1)
+
+    return X, Y, Z, zᶠ
 end
 
-function measure_FWHM(x, y, elevation)
-    H = maximum(elevation)
-    Δx = diff(x)[1]
-    Δy = diff(y)[1]
-    area_at_HM = (elevation .> H/2) .* Δx .* Δy
-    FWHM = 2 * √(sum(area_at_HM) / π)
-    return FWHM
+function masked_area(smoothed, target_area; threshold=0.5)
+    masked_smoothed = smoothed .> threshold
+    return (sum(masked_smoothed) - target_area)^2
+end
+
+function same_area_smoothed(smoothed, unsmoothed_area; initial_guess=0.5, verbose=false)
+    """
+    Find the optimal threshold that minimizes the area difference between
+    smoothed and unsmoothed area using optimization.
+
+    Parameters:
+    - smoothed: smoothed bathymetry data
+    - unsmoothed_area: original unsmoothed bathymetry data
+
+    Returns:
+    - Binary mask of smoothed bathymetry with optimal threshold
+    """
+
+    # Define objective function to minimize
+    objective(threshold) = abs(masked_area(smoothed, unsmoothed_area; threshold=threshold[1]))
+
+    # Set bounds for threshold search (0 to 1 for probability-like values)
+    lower_bound = [0.0]
+    upper_bound = [1.0]
+
+    # Initial guess (start with middle value)
+    initial_guess = [initial_guess]
+
+    # Use bounded optimization
+    f_abstol = 0.05*unsmoothed_area
+    options = Optim.Options(f_abstol=f_abstol, iterations=10)
+    result = Optim.optimize(objective, lower_bound, upper_bound, initial_guess, Fminbox(LBFGS()), options)
+
+    # Get optimal threshold
+    optimal_threshold = Optim.minimizer(result)[1]
+
+    if (Optim.minimum(result) > f_abstol) && (initial_guess[] > 1e-3)
+        return same_area_smoothed(smoothed, unsmoothed_area; initial_guess=0.5*initial_guess[])
+    end
+
+    verbose && @info "Optimal threshold found: $optimal_threshold, objective value: $(Optim.minimum(result))"
+
+    # Return binary mask using optimal threshold
+    return smoothed .> optimal_threshold, optimal_threshold
+end
+
+
+function sliced_smooth_bathymetry(bathymetry_3d; window_size_x, window_size_y, bc_x="circular", bc_y="replicate", verbose=false)
+    nx, ny, nz = size(bathymetry_3d)
+    kernel_x = Kernel.gaussian((window_size_x, 0))
+    kernel_y = Kernel.gaussian((0, window_size_y))
+
+    smoothed_3d = zeros(nx, ny, nz)
+    initial_guess = 0.5
+    for k in 1:nz
+        verbose && @info "Smoothing layer $k of $nz"
+        smoothed_x = imfilter(bathymetry_3d[:,:,k], kernel_x, bc_x)
+        smoothed = imfilter(smoothed_x, kernel_y, bc_y)
+
+        unsmoothed_area = sum(bathymetry_3d[:, :, k])
+        smoothed_3d[:, :, k], optimal_threshold = same_area_smoothed(smoothed, unsmoothed_area; initial_guess, verbose)
+        initial_guess = optimal_threshold
+    end
+
+    return smoothed_3d
+end
+
+find_interface_height(array3d::AbstractArray{Float64, 3}; kwargs...) = find_interface_height(Bool.(array3d); kwargs...)
+
+function find_interface_height(array3d::AbstractArray{Bool, 3}; smooth=false, x=nothing, y=nothing, z=nothing)
+    nx, ny, nz = size(array3d)
+    heights = zeros(nx, ny)
+
+    # For each x,y point, find first false value from bottom up
+    for i in 1:nx, j in 1:ny
+        column = view(array3d, i, j, :)
+        k = findlast(column)
+
+        # If found, set height to corresponding z value
+        if !isnothing(k) && k > 0
+            heights[i, j] = z[k]
+        end
+    end
+
+    if smooth
+        heights = smooth_bathymetry(heights; window_size_x=5, window_size_y=5)
+    end
+
+    return heights
+end
+
+
+function smooth_bathymetry_3d(elevation, x, y; window_size_x=10, window_size_y=10,
+                              scale_x=nothing, scale_y=nothing, dz=nothing, verbose=false,
+                              bathymetry_filepath="../bathymetry/balanus-bathymetry-preprocessed.nc")
+    dx = minimum(diff(x))
+    dy = minimum(diff(y))
+
+    # If scale_x or scale_y are provided, overwride window size
+    window_size_x = scale_x isa Nothing ? window_size_x : scale_x / (2 * dx)
+    window_size_y = scale_y isa Nothing ? window_size_y : scale_y / (2 * dy)
+
+    # If dz is not provided, use the average of the grid spacing
+    dz = dz isa Nothing ? (dx + dy) / 2 : dz
+
+    # Create cache filename based on parameters
+    cache_filepath = "$(bathymetry_filepath)_wx$(round(window_size_x, digits=2))_wy$(round(window_size_y, digits=2))_dz$(round(dz, digits=2)).nc"
+
+    # Check if cached result exists
+    if isfile(cache_filepath)
+        verbose && @info "Loading smoothed bathymetry from cache: $cache_filepath"
+        ds = NCDataset(cache_filepath)
+        return ds["smoothed_elevation"][:, :]
+    end
+
+    # Compute the smoothed bathymetry
+    verbose && @info "Computing 3D smoothed bathymetry with parameters: wx=$window_size_x, wy=$window_size_y, dz=$dz"
+    X, Y, Z, zᶠ = extrude_bathymetry_3d(elevation, x, y; dz, z_max=1.1*maximum(elevation))
+    bathymetry_3d = Float64.(Z .< elevation)
+    smoothed_bathymetry_3d = sliced_smooth_bathymetry(bathymetry_3d; window_size_x, window_size_y, verbose)
+    smoothed_elevation = find_interface_height(smoothed_bathymetry_3d, smooth=true, x=x, y=y, z=zᶠ)
+
+    # Save the result to NetCDF
+    NCDataset(cache_filepath, "c") do ds
+        defVar(ds, "x", x, ("x",), attrib = Dict("units" => "m", "long_name" => "x coordinate"))
+        defVar(ds, "y", y, ("y",), attrib = Dict("units" => "m", "long_name" => "y coordinate"))
+        defVar(ds, "smoothed_elevation", smoothed_elevation, ("x", "y"),
+               attrib = Dict("units" => "m",
+                             "long_name" => "3D smoothed elevation",
+                             "description" => "Bathymetry smoothed using 3D Gaussian filter"))
+
+        # Add global attributes with smoothing parameters
+        ds.attrib["window_size_x"] = window_size_x
+        ds.attrib["window_size_y"] = window_size_y
+        ds.attrib["dz"] = dz
+        ds.attrib["smoothing_method"] = "3D Gaussian filter"
+        ds.attrib["created_by"] = "smooth_bathymetry_3d function"
+        ds.attrib["creation_date"] = string(now())
+    end
+    verbose && @info "Saved result to cache: $cache_path"
+
+    return smoothed_elevation
 end
 #---
 
@@ -320,6 +471,7 @@ end
 #---
 
 #+++ Auxiliary immersed boundary metrics
+using Oceananigans: Center, Face
 using Oceananigans.Fields: @compute
 import Oceananigans.Grids: xnode, ynode, znode
 using Adapt
@@ -357,4 +509,13 @@ x_distance_from_east(i, j, k, grid, args...) = xnode(grid.Nx + 1, grid, f) - xno
 (dc::DistanceCondition)(i, j, k, grid, co) = (z_distance_from_bottom(i, j, k, grid) > dc.from_bottom) &
                                              (z_distance_from_top(i, j, k, grid) > dc.from_top) &
                                              (x_distance_from_east(i, j, k, grid) > dc.from_east)
+
+function measure_FWHM(x, y, elevation)
+    H = maximum(elevation)
+    Δx = diff(x)[1]
+    Δy = diff(y)[1]
+    area_at_HM = (elevation .> H/2) .* Δx .* Δy
+    FWHM = 2 * √(sum(area_at_HM) / π)
+    return FWHM
+end
 #---

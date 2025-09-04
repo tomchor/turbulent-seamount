@@ -3,7 +3,7 @@ import numpy as np
 
 # Read the seamount database CSV file
 # Skip the description lines and read the data
-df = pd.read_csv("data/KWSMTSv01.txt", 
+df = pd.read_csv("data/KWSMTSv01.txt",
                  sep=r"\s+",  # whitespace separator
                  skiprows=15,  # skip the description lines
                  engine="python")

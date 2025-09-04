@@ -1541,8 +1541,8 @@ version = "0.5.5"
 
 [[deps.Oceananigans]]
 deps = ["Adapt", "Crayons", "CubedSphere", "Dates", "Distances", "DocStringExtensions", "FFTW", "GPUArrays", "GPUArraysCore", "Glob", "InteractiveUtils", "IterativeSolvers", "JLD2", "KernelAbstractions", "Krylov", "KrylovPreconditioners", "LinearAlgebra", "Logging", "MPI", "MuladdMacro", "OffsetArrays", "OrderedCollections", "Pkg", "Printf", "Random", "ReactantCore", "Rotations", "SeawaterPolynomials", "SparseArrays", "StaticArrays", "Statistics", "StructArrays"]
-git-tree-sha1 = "955edb7de8328bd1a08219ee4b89bdc2c4770b8b"
-repo-rev = "0f4daed7e4107c202ec39d9a0e33d7cd1e22688e"
+git-tree-sha1 = "204972c5208750f8237903e22f3888c1e51ddd27"
+repo-rev = "main"
 repo-url = "https://github.com/CliMA/Oceananigans.jl.git"
 uuid = "9e8cae18-63c1-5223-a75c-80ca9d6e9a09"
 version = "0.98.0"
@@ -1571,11 +1571,11 @@ version = "0.98.0"
 
 [[deps.Oceanostics]]
 deps = ["DocStringExtensions", "Oceananigans", "Printf", "SeawaterPolynomials"]
-git-tree-sha1 = "d60b392dd8f6d363209c9026ee0919c5e002491f"
+git-tree-sha1 = "67893aece0bb7a4b41bc62ee2f844b383cd14a81"
 repo-rev = "tc/update-compat"
 repo-url = "https://github.com/tomchor/Oceanostics.jl.git"
 uuid = "d0ccf422-c8fb-49b5-a76d-74acdde946ac"
-version = "0.16.0"
+version = "0.16.1"
 
 [[deps.OffsetArrays]]
 git-tree-sha1 = "117432e406b5c023f665fa73dc26e79ec3630151"

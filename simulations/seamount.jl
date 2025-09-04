@@ -118,7 +118,7 @@ if has_cuda_gpu()
     arch = GPU()
 else
     arch = CPU()
-    params = (; params..., dz = 8meters)
+    params = (; params..., dz = 50meters)
 end
 @info "Starting simulation $(params.simname) with a vertical spacing of $(params.dz) meters and $arch architecture\n"
 #---

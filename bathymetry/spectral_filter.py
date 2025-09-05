@@ -72,6 +72,51 @@ def gaussian_filter_2d(data, sigma_x, sigma_y):
     return filtered_data
 
 
+def butterworth_filter_2d(data, cutoff_wavelength, x_coord, y_coord, order=2):
+    """
+    Apply Butterworth low-pass filter to 2D data using xrft.
+
+    Parameters:
+    -----------
+    data : xarray.DataArray
+        2D DataArray to be filtered
+    cutoff_wavelength : float
+        Cutoff wavelength in same units as coordinates
+    x_coord, y_coord : str
+        Names of x and y coordinate dimensions
+    order : int
+        Order of Butterworth filter (default=2)
+
+    Returns:
+    --------
+    filtered_data : xarray.DataArray
+        Filtered 2D DataArray
+    """
+    # 2D FFT using xrft
+    data_fft = xrft.fft(data, dim=[y_coord, x_coord], real_dim=x_coord)
+    freq_x = data_fft.coords[f'freq_{x_coord}']
+    freq_y = data_fft.coords[f'freq_{y_coord}']
+
+    # 2D frequency grids
+    FREQ_X, FREQ_Y = xr.broadcast(freq_x, freq_y)
+
+    # Wavenumber magnitude (frequency = wavenumber / 2π)
+    K = 2 * np.pi * np.sqrt(FREQ_X**2 + FREQ_Y**2)
+
+    # Cutoff wavenumber (2π/wavelength)
+    k_cutoff = 2 * np.pi / cutoff_wavelength
+
+    # Butterworth filter: H = 1 / (1 + (k/k_cutoff)^(2*order))
+    filter_mask = 1 / (1 + (K / k_cutoff)**(2 * order))
+    filtered_fft = data_fft * filter_mask
+
+    # Transform back to spatial domain
+    filtered_data = xrft.ifft(filtered_fft, dim=[f'freq_{y_coord}', f'freq_{x_coord}'],
+                              real_dim=f'freq_{x_coord}')
+
+    return filtered_data.real
+
+
 # Read the bathymetry data
 print("Reading bathymetry data...")
 ds = xr.open_dataset("balanus-bathymetry-preprocessed.nc")
@@ -106,12 +151,19 @@ for cutoff_wavelength in cutoff_wavelengths:
     gaussian_filtered_da = gaussian_filter_2d(elevation_da, sigma_x, sigma_y)
     gaussian_filtered_data.append(gaussian_filtered_da)
 
+# Apply Butterworth filters for corresponding length scales
+butterworth_filtered_data = []
+for cutoff_wavelength in cutoff_wavelengths:
+    print(f"Processing Butterworth filter with cutoff wavelength: {cutoff_wavelength/1000:.1f} km")
+    butterworth_filtered_da = butterworth_filter_2d(elevation_da, cutoff_wavelength, "x", "y", order=3)
+    butterworth_filtered_data.append(butterworth_filtered_da)
+
 print("All filtering completed!")
 
 
 
-# Create comparison figure: Gaussian vs Spectral filtering
-fig_comparison = plt.figure(figsize=(25, 12))
+# Create comparison figure: Gaussian vs Spectral vs Butterworth filtering
+fig_comparison = plt.figure(figsize=(25, 18))
 
 # Convert coordinates to km for better display
 elevation_da_km = elevation_da.assign_coords(x=elevation_da.x/1000, y=elevation_da.y/1000)
@@ -119,36 +171,74 @@ gaussian_filtered_data_km = [filtered_da.assign_coords(x=filtered_da.x/1000, y=f
                             for filtered_da in gaussian_filtered_data]
 spectral_filtered_data_km = [filtered_da.assign_coords(x=filtered_da.x/1000, y=filtered_da.y/1000)
                             for filtered_da in spectral_filtered_data]
+butterworth_filtered_data_km = [filtered_da.assign_coords(x=filtered_da.x/1000, y=filtered_da.y/1000)
+                               for filtered_da in butterworth_filtered_data]
 
 # Common colormap settings for comparison
-all_data = [elevation_da] + gaussian_filtered_data + spectral_filtered_data
-vmin = min([data.min().values for data in all_data])
+all_data = [elevation_da] + gaussian_filtered_data + spectral_filtered_data + butterworth_filtered_data
+vmin = 0
 vmax = max([data.max().values for data in all_data])
 
 # Top row: Gaussian filtering
 for i, (cutoff_wavelength, gaussian_da_km) in enumerate(zip(cutoff_wavelengths, gaussian_filtered_data_km)):
-    ax = fig_comparison.add_subplot(2, 5, i+1)  # positions 1-5 (top row)
+    ax = fig_comparison.add_subplot(3, 5, i+1)  # positions 1-5 (top row)
     im = gaussian_da_km.plot.contourf(ax=ax, x='x', y='y', levels=50, cmap='terrain',
                                      vmin=vmin, vmax=vmax, extend='both', add_colorbar=False)
+
+    # Get maximum height for this filtered data
+    max_height = gaussian_filtered_data[i].max().values
+
     ax.set_title(f'Gaussian (σ={cutoff_wavelength/1000:.2f} km)', fontsize=11)
     ax.set_xlabel('X (km)')
     ax.set_ylabel('Y (km)')
     ax.set_aspect('equal')
 
-# Bottom row: Spectral filtering
+    # Add maximum height annotation above the panel
+    ax.text(0.5, 1.15, f'Max: {max_height:.0f} m', transform=ax.transAxes,
+            ha='center', va='bottom', fontsize=10, fontweight='bold', color='red')
+
+# Middle row: Spectral filtering
 for i, (cutoff_wavelength, spectral_da_km) in enumerate(zip(cutoff_wavelengths, spectral_filtered_data_km)):
-    ax = fig_comparison.add_subplot(2, 5, i+6)  # positions 6-10 (bottom row)
+    ax = fig_comparison.add_subplot(3, 5, i+6)  # positions 6-10 (middle row)
     im = spectral_da_km.plot.contourf(ax=ax, x='x', y='y', levels=50, cmap='terrain',
                                      vmin=vmin, vmax=vmax, extend='both', add_colorbar=False)
+
+    # Get maximum height for this filtered data
+    max_height = spectral_filtered_data[i].max().values
+
     ax.set_title(f'Spectral (λ>{cutoff_wavelength/1000:.2f} km)', fontsize=11)
     ax.set_xlabel('X (km)')
     ax.set_ylabel('Y (km)')
     ax.set_aspect('equal')
 
+    # Add maximum height annotation above the panel
+    ax.text(0.5, 1.15, f'Max: {max_height:.0f} m', transform=ax.transAxes,
+            ha='center', va='bottom', fontsize=10, fontweight='bold', color='red')
+
+# Bottom row: Butterworth filtering
+for i, (cutoff_wavelength, butterworth_da_km) in enumerate(zip(cutoff_wavelengths, butterworth_filtered_data_km)):
+    ax = fig_comparison.add_subplot(3, 5, i+11)  # positions 11-15 (bottom row)
+    im = butterworth_da_km.plot.contourf(ax=ax, x='x', y='y', levels=50, cmap='terrain',
+                                        vmin=vmin, vmax=vmax, extend='both', add_colorbar=False)
+
+    # Get maximum height for this filtered data
+    max_height = butterworth_filtered_data[i].max().values
+
+    ax.set_title(f'Butterworth (fc={cutoff_wavelength/1000:.2f} km)', fontsize=11)
+    ax.set_xlabel('X (km)')
+    ax.set_ylabel('Y (km)')
+    ax.set_aspect('equal')
+
+    # Add maximum height annotation above the panel
+    ax.text(0.5, 1.15, f'Max: {max_height:.0f} m', transform=ax.transAxes,
+            ha='center', va='bottom', fontsize=10, fontweight='bold', color='red')
+
 # Add row labels
-fig_comparison.text(0.02, 0.75, 'Gaussian\nFiltering', fontsize=14, fontweight='bold',
+fig_comparison.text(0.02, 0.83, 'Gaussian\nFiltering', fontsize=14, fontweight='bold',
                    rotation=90, va='center', ha='center')
-fig_comparison.text(0.02, 0.25, 'Spectral\nFiltering', fontsize=14, fontweight='bold',
+fig_comparison.text(0.02, 0.50, 'Spectral\nFiltering', fontsize=14, fontweight='bold',
+                   rotation=90, va='center', ha='center')
+fig_comparison.text(0.02, 0.17, 'Butterworth\nFiltering', fontsize=14, fontweight='bold',
                    rotation=90, va='center', ha='center')
 
 # Add colorbar for comparison figure
@@ -157,8 +247,8 @@ cbar_comparison = fig_comparison.colorbar(im, ax=fig_comparison.axes, shrink=0.6
 cbar_comparison.set_label('Elevation (m)')
 
 # Add overall title for comparison
-fig_comparison.suptitle('Filtering Comparison: Gaussian vs Spectral Filtering at Different Length Scales',
-                       fontsize=16, y=0.95)
+fig_comparison.suptitle('Filtering Comparison: Gaussian vs Spectral vs Butterworth Filtering at Different Length Scales',
+                       fontsize=16, y=0.96)
 
 plt.show()
 
@@ -170,6 +260,9 @@ for i, (cutoff_wavelength, filtered_da) in enumerate(zip(cutoff_wavelengths, gau
     print(f"  Scale {cutoff_wavelength/1000:.2f} km - min: {filtered_da.min().values:.1f} m, max: {filtered_da.max().values:.1f} m, std: {filtered_da.std().values:.1f} m")
 print("\nSpectral Filtering:")
 for i, (cutoff_wavelength, filtered_da) in enumerate(zip(cutoff_wavelengths, spectral_filtered_data)):
+    print(f"  Cutoff {cutoff_wavelength/1000:.2f} km - min: {filtered_da.min().values:.1f} m, max: {filtered_da.max().values:.1f} m, std: {filtered_da.std().values:.1f} m")
+print("\nButterworth Filtering:")
+for i, (cutoff_wavelength, filtered_da) in enumerate(zip(cutoff_wavelengths, butterworth_filtered_data)):
     print(f"  Cutoff {cutoff_wavelength/1000:.2f} km - min: {filtered_da.min().values:.1f} m, max: {filtered_da.max().values:.1f} m, std: {filtered_da.std().values:.1f} m")
 
 print("\nScript completed successfully!")

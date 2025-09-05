@@ -217,7 +217,7 @@ for (i, variable) in enumerate(variables)
     catch
         string(variable)
     end
-    
+
     # Use the same height for the colorbar since both panels have the same height
     Colorbar(fig[i+2, 3], hm_xyii;
              label=cbar_label, vertical=true,

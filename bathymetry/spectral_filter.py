@@ -1,6 +1,7 @@
 import numpy as np
 import xarray as xr
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 import xrft
 
 def spectral_cutoff_filter(data, cutoff_wavelength, x_coord, y_coord):
@@ -61,56 +62,43 @@ filtered_elevation_da = spectral_cutoff_filter(elevation_da, cutoff_wavelength, 
 
 print("Filtering completed!")
 
-# Plot with km coordinates
-fig, axes = plt.subplots(1, 2, figsize=(16, 8))
+# Create 3D surface plots using xarray's native plotting
+fig = plt.figure(figsize=(18, 8))
 
 vmax = elevation_da.max().values
 
-# Plot original bathymetry
-im1 = elevation_da.plot.contourf(ax=axes[0], x='x', y='y', levels=50, cmap='terrain',
-                                   vmin=0, vmax=vmax, extend='both', add_colorbar=False)
-axes[0].set_title('Original Bathymetry')
-axes[0].set_aspect('equal')
+# Plot original bathymetry using xarray's surface plot
+ax1 = fig.add_subplot(121, projection='3d')
+surf1 = elevation_da.plot.surface(ax=ax1, x='x', y='y', cmap='terrain', 
+                                  alpha=1, linewidth=0, antialiased=True,
+                                  add_colorbar=False)
+ax1.set_title('Original Bathymetry')
+ax1.set_zlabel('Elevation (m)')
+ax1.view_init(elev=30, azim=45)
 
-# Plot filtered bathymetry
-im2 = filtered_elevation_da.plot.contourf(ax=axes[1], x='x', y='y', levels=50, cmap='terrain',
-                                            vmin=0, vmax=vmax, extend='both', add_colorbar=False)
-axes[1].set_title(f'Filtered Bathymetry (λ > {cutoff_wavelength/1000:.1f} km)')
-axes[1].set_aspect('equal')
+# Plot filtered bathymetry using xarray's surface plot
+ax2 = fig.add_subplot(122, projection='3d')
+surf2 = filtered_elevation_da.plot.surface(ax=ax2, x='x', y='y', cmap='terrain',
+                                           alpha=1, linewidth=0, antialiased=True,
+                                           add_colorbar=False)
+ax2.set_title(f'Filtered Bathymetry (λ > {cutoff_wavelength/1000:.1f} km)')
+ax2.set_zlabel('Elevation (m)')
+ax2.view_init(elev=30, azim=45)
+
+# Set same z-limits for both plots using xarray data
+z_min = min(elevation_da.min().values, filtered_elevation_da.min().values)
+z_max = max(elevation_da.max().values, filtered_elevation_da.max().values)
+ax1.set_zlim(z_min, z_max)
+ax2.set_zlim(z_min, z_max)
 
 # Add colorbar
 plt.tight_layout()
-cbar = fig.colorbar(im1, ax=axes, shrink=0.8, aspect=30)
+cbar = fig.colorbar(surf1, ax=[ax1, ax2], shrink=0.6, aspect=30, pad=0.1)
 cbar.set_label('Elevation (m)')
 
 # Add overall title
-fig.suptitle('Spectral Filtering of Seamount Bathymetry', fontsize=16, y=0.95)
+fig.suptitle('3D Surface: Spectral Filtering of Seamount Bathymetry', fontsize=16, y=0.95)
 
 plt.show()
-
-# Calculate and display some statistics using xarray
-print(f"\nStatistics:")
-print(f"Original elevation - min: {elevation_da.min().values:.1f} m, max: {elevation_da.max().values:.1f} m, std: {elevation_da.std().values:.1f} m")
-print(f"Filtered elevation - min: {filtered_elevation_da.min().values:.1f} m, max: {filtered_elevation_da.max().values:.1f} m, std: {filtered_elevation_da.std().values:.1f} m")
-
-# Calculate difference using xarray
-difference_da = elevation_da - filtered_elevation_da
-print(f"Difference (original - filtered) - min: {difference_da.min().values:.1f} m, max: {difference_da.max().values:.1f} m, std: {difference_da.std().values:.1f} m")
-
-# Save filtered data (optional)
-save_filtered_data = False
-if save_filtered_data:
-    # Create new dataset with filtered data
-    ds_filtered = ds.copy()
-    ds_filtered["filtered_elevation"] = (["y", "x"], filtered_elevation)
-    ds_filtered.attrs["filter_cutoff_wavelength_m"] = cutoff_wavelength
-    ds_filtered.attrs["filter_type"] = "sharp_spectral_cutoff"
-
-    output_file = f"balanus-bathymetry-filtered_{cutoff_wavelength/1000:.1f}km.nc"
-    ds_filtered.to_netcdf(output_file)
-    print(f"\nFiltered data saved to: {output_file}")
-
-# Close the dataset
-ds.close()
 
 print("\nScript completed successfully!")

@@ -27,3 +27,13 @@ seamounts.plot.scatter(ax=axes[1, 1], hue="dissip_width",  **fixed_options, norm
 
 seamounts.plot.scatter(ax=axes[2, 0], hue="total_dissip_height", **fixed_options, norm=LogNorm(), vmin=1e3, vmax=1e6)
 seamounts.plot.scatter(ax=axes[2, 1], hue="total_dissip_width",  **fixed_options, norm=LogNorm(), vmin=1e2, vmax=1e5)
+
+
+if False:
+    # Bin seamounts data by latitude and longitude with 1 degree resolution
+    lat_bins = np.arange(-90, 91, 1)
+    lon_bins = np.arange(-180, 181, 1)
+
+    # Create binned statistics for various quantities
+    binned_seamounts = seamounts.groupby_bins("latitude", lat_bins).sum()
+    binned_seamounts.total_dissip_height.plot()

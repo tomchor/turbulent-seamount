@@ -1571,9 +1571,7 @@ version = "0.98.0"
 
 [[deps.Oceanostics]]
 deps = ["DocStringExtensions", "Oceananigans", "Printf", "SeawaterPolynomials"]
-git-tree-sha1 = "67893aece0bb7a4b41bc62ee2f844b383cd14a81"
-repo-rev = "tc/update-compat"
-repo-url = "https://github.com/tomchor/Oceanostics.jl.git"
+git-tree-sha1 = "588a31e6943e9d9c388645d2a12f87c5484b287c"
 uuid = "d0ccf422-c8fb-49b5-a76d-74acdde946ac"
 version = "0.16.1"
 

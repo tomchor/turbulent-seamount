@@ -98,11 +98,11 @@ function parse_command_line_arguments()
             arg_type = Float64
 
         "--T_advective_spinup"
-            default = 10 # Should be a multiple of interval_time_avg
+            default = 8 # Should be a multiple of interval_time_avg
             arg_type = Float64
 
         "--T_advective_statistics"
-            default = 10 # Should be a multiple of interval_time_avg
+            default = 8 # Should be a multiple of interval_time_avg
             arg_type = Float64
 
     end

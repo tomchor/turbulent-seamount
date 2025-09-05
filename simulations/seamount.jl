@@ -98,11 +98,11 @@ function parse_command_line_arguments()
             arg_type = Float64
 
         "--T_advective_spinup"
-            default = 10 # Should be a multiple of interval_time_avg
+            default = 8 # Should be a multiple of interval_time_avg
             arg_type = Float64
 
         "--T_advective_statistics"
-            default = 10 # Should be a multiple of interval_time_avg
+            default = 8 # Should be a multiple of interval_time_avg
             arg_type = Float64
 
     end
@@ -255,10 +255,8 @@ params = (; params..., c_dz = (κᵛᵏ / log(z₁/z₀))^2) # quadratic drag co
 #---
 
 #+++ Open boundary conditions for velocitities
-using Oceananigans.BoundaryConditions: PerturbationAdvectionOpenBoundaryCondition
-
 u_west = OpenBoundaryCondition(params.U∞)
-u_east = PerturbationAdvectionOpenBoundaryCondition(params.U∞; inflow_timescale = 2minutes, outflow_timescale = 30minutes)
+u_east = OpenBoundaryCondition(params.U∞; scheme = PerturbationAdvection(inflow_timescale = 2minutes, outflow_timescale = 30minutes))
 
 v_west = w_west = ValueBoundaryCondition(0)
 v_east = w_east = FluxBoundaryCondition(0)
@@ -298,9 +296,6 @@ if params.closure == "CSM"
 elseif params.closure == "DSM"
     closure = Smagorinsky(coefficient=DynamicCoefficient(averaging=LagrangianAveraging(), schedule=IterationInterval(5)), Pr=1)
 elseif params.closure == "AMD"
-    closure = AnisotropicMinimumDissipation(C=1/12)
-elseif params.closure == "AMC"
-    include("AMD.jl")
     closure = AnisotropicMinimumDissipation(C=1/12)
 elseif params.closure == "NON"
     closure = nothing

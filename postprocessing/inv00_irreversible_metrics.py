@@ -15,10 +15,10 @@ simname_base = "seamount"
 
 Rossby_numbers = cycler(Ro_h = [0.08, 0.2, 0.5, 1.2])
 Froude_numbers = cycler(Fr_h = [0.08, 0.2, 0.5, 1.2])
-L              = cycler(L = [0.8])
+L              = cycler(L = [0, 0.8])
 FWHM           = cycler(FWHM = [500])
 
-resolutions    = cycler(dz = [8, 4, 2])
+resolutions    = cycler(dz = [2])
 
 paramspace = Rossby_numbers * Froude_numbers * L * FWHM
 configs    = resolutions
@@ -61,11 +61,11 @@ aaaa["𝒦⁵"].attrs = dict(long_name=r"Norm buoyancy diffusivity $\mathcal{K}$
 figs = []
 
 # plt.figure()
-aaaa.sel(dz=0, method="nearest").plot.scatter(y="ℰₖ", x="Slope_Bu", col="buffer", cmap="bwr", yscale="log", xscale="log")
+aaaa.sel(dz=0, FWHM=500, method="nearest").plot.scatter(y="ℰₖ", x="Slope_Bu", col="buffer", hue="L", cmap="bwr", yscale="log", xscale="log")
 figs.append(plt.gcf())
 
 # plt.figure()
-aaaa.sel(dz=0, method="nearest").plot.scatter(y="ℰₚ", x="Slope_Bu", col="buffer", cmap="bwr", yscale="log", xscale="log")
+aaaa.sel(dz=0, FWHM=500, method="nearest").plot.scatter(y="ℰₚ", x="Slope_Bu", col="buffer", hue="L", cmap="bwr", yscale="log", xscale="log")
 figs.append(plt.gcf())
 
 for fig in figs:

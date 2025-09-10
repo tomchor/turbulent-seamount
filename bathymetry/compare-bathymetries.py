@@ -3,10 +3,10 @@ import xarray as xr
 import matplotlib.pyplot as plt
 from IPython import embed
 
-def convert_gebco_to_meters(ds_gebco, reference_lat=39.4):
+def convert_GEBCO_to_meters(ds_GEBCO, reference_lat=39.4):
     """Convert GEBCO coordinates from degrees to meters, centered on seamount peak"""
     # Find the peak (maximum elevation) in GEBCO data
-    peak_location = ds_gebco.elevation.where(ds_gebco.elevation == ds_gebco.elevation.max(), drop=True)
+    peak_location = ds_GEBCO.elevation.where(ds_GEBCO.elevation == ds_GEBCO.elevation.max(), drop=True)
     peak_lat = float(peak_location.lat.mean())
     peak_lon = float(peak_location.lon.mean())
 
@@ -15,56 +15,94 @@ def convert_gebco_to_meters(ds_gebco, reference_lat=39.4):
     lon2meter = lat2meter * np.cos(np.deg2rad(reference_lat))  # meters per degree longitude
 
     # Convert to meters and center on peak
-    ds_converted = ds_gebco.copy()
+    ds_converted = ds_GEBCO.copy()
     ds_converted = ds_converted.assign_coords(
-        lon=(ds_gebco.lon - peak_lon) * lon2meter,
-        lat=(ds_gebco.lat - peak_lat) * lat2meter
+        lon=(ds_GEBCO.lon - peak_lon) * lon2meter,
+        lat=(ds_GEBCO.lat - peak_lat) * lat2meter
     )
     ds_converted = ds_converted.rename({"lon": "x", "lat": "y"})
 
     return ds_converted
 
 # Load datasets
-ds_prep = xr.open_dataset("balanus-bathymetry-preprocessed.nc")
-ds_gebco = xr.open_dataset("GEBCO/balanus-gebco_2024_n39.8_s39.0_w-65.8_e-65.0.nc")
-ds_gebco_meters = convert_gebco_to_meters(ds_gebco)
+ds_GMRT = xr.open_dataset("balanus-GMRT-bathymetry-preprocessed.nc")
+ds_GEBCO = xr.open_dataset("GEBCO/balanus-gebco_2024_n39.8_s39.0_w-65.8_e-65.0.nc")
+ds_GEBCO = convert_GEBCO_to_meters(ds_GEBCO)
 
-# Create figure with two subplots
-fig, axes = plt.subplots(ncols=2, figsize=(12, 5),
+# Calculate gradients using xarray
+ds_GMRT_grad_mag = np.sqrt(ds_GMRT.z.differentiate('x')**2 + ds_GMRT.z.differentiate('y')**2)
+ds_GEBCO_grad_mag = np.sqrt(ds_GEBCO.elevation.differentiate('x')**2 + ds_GEBCO.elevation.differentiate('y')**2)
+
+# Create figure with 2x2 subplots
+fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(12, 10),
                          sharex=True, sharey=True,
                          constrained_layout=True)
 fig.suptitle("Bathymetry Comparison: Preprocessed vs GEBCO", fontsize=14, fontweight="bold")
 
 # Define common colormap and limits
-vmin = min(float(ds_prep.z.min()), float(ds_gebco_meters.elevation.min()))
-vmax = max(float(ds_prep.z.max()), float(ds_gebco_meters.elevation.max()))
+vmin = min(float(ds_GMRT.z.min()), float(ds_GEBCO.elevation.min()))
+vmax = max(float(ds_GMRT.z.max()), float(ds_GEBCO.elevation.max()))
 
-# Plot 1: Preprocessed bathymetry
-ds_prep.z.plot.contourf(
-    ax=axes[0],
+# Define common gradient limits
+grad_vmin = min(float(ds_GMRT_grad_mag.min()), float(ds_GEBCO_grad_mag.min()))
+grad_vmax = max(float(ds_GMRT_grad_mag.max()), float(ds_GEBCO_grad_mag.max()))
+
+# Calculate max heights for display
+gmrt_max_height = float(ds_GMRT.z.max())
+gebco_max_height = float(ds_GEBCO.elevation.max())
+
+# Plot 1: GMRT bathymetry
+im1 = ds_GMRT.z.plot.imshow(
+    ax=axes[0,0],
     x="x", y="y",
-    levels=50,
     cmap="terrain",
     vmin=vmin, vmax=vmax,
-    add_colorbar=True,
-    cbar_kwargs={"shrink": 0.8}
+    add_colorbar=False
 )
-
-axes[0].set_title("GMRT Bathymetry", fontweight="bold")
+axes[0,0].set_title(f"GMRT Bathymetry\nMax height: {gmrt_max_height:.0f} m", fontweight="bold")
 
 # Plot 2: GEBCO bathymetry
-ds_gebco_meters.elevation.plot.contourf(
-    ax=axes[1],
+im2 = ds_GEBCO.elevation.plot.imshow(
+    ax=axes[0,1],
     x="x", y="y",
-    levels=50,
     cmap="terrain",
     vmin=vmin, vmax=vmax,
-    add_colorbar=True,
-    cbar_kwargs={"shrink": 0.8}
+    add_colorbar=False
 )
-axes[1].set_title("GEBCO Bathymetry", fontweight="bold")
+axes[0,1].set_title(f"GEBCO Bathymetry\nMax height: {gebco_max_height:.0f} m", fontweight="bold")
 
-# Convert axes to km
+# Add shared colorbar for bathymetry (top row)
+cbar1 = fig.colorbar(im1, ax=axes[0,:], shrink=0.8, aspect=30)
+cbar1.set_label("Elevation (m)", rotation=270, labelpad=20)
 
-for ax in axes:
-    ax.set_aspect("equal")
+# Plot 3: GMRT bathymetry gradient
+im3 = ds_GMRT_grad_mag.plot.imshow(
+    ax=axes[1,0],
+    x="x", y="y",
+    cmap="plasma",
+    vmin=grad_vmin, vmax=grad_vmax,
+    add_colorbar=False
+)
+axes[1,0].set_title("GMRT Gradient Magnitude", fontweight="bold")
+
+# Plot 4: GEBCO bathymetry gradient
+im4 = ds_GEBCO_grad_mag.plot.imshow(
+    ax=axes[1,1],
+    x="x", y="y",
+    cmap="plasma",
+    vmin=grad_vmin, vmax=grad_vmax,
+    add_colorbar=False
+)
+axes[1,1].set_title("GEBCO Gradient Magnitude", fontweight="bold")
+
+# Add shared colorbar for gradients (bottom row)
+cbar2 = fig.colorbar(im3, ax=axes[1,:], shrink=0.8, aspect=30)
+cbar2.set_label("Gradient Magnitude", rotation=270, labelpad=20)
+
+# Convert axes to km and set equal aspect
+for i in range(2):
+    for j in range(2):
+        ax = axes[i,j]
+        ax.set_xlim(-23000, 23000)
+        ax.set_ylim(-22000, 22000)
+        ax.set_aspect("equal")

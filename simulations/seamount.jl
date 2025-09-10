@@ -124,7 +124,7 @@ end
 #---
 
 #+++ Create interpolant for (and maybe smooth) bathymetry
-bathymetry_filepath = joinpath(@__DIR__, "../bathymetry/balanus-bathymetry-preprocessed.nc")
+bathymetry_filepath = joinpath(@__DIR__, "../bathymetry/balanus-GMRT-bathymetry-preprocessed.nc")
 ds_bathymetry = NCDataset(bathymetry_filepath)
 elevation = ds_bathymetry["periodic_elevation"] |> collect
 x = ds_bathymetry["x"]

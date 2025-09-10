@@ -29,6 +29,9 @@ ds_GMRT = xr.open_dataset("balanus-GMRT-bathymetry-preprocessed.nc")
 ds_GEBCO = xr.open_dataset("GEBCO/balanus-gebco_2024_n39.8_s39.0_w-65.8_e-65.0.nc")
 ds_GEBCO = convert_GEBCO_to_meters(ds_GEBCO)
 
+ds_GMRT = ds_GMRT.sel(x=slice(-23000, 23000), y=slice(-22000, 22000))
+ds_GEBCO = ds_GEBCO.sel(x=slice(-23000, 23000), y=slice(-22000, 22000))
+
 # Calculate gradients using xarray
 ds_GMRT_grad_mag = np.sqrt(ds_GMRT.z.differentiate('x')**2 + ds_GMRT.z.differentiate('y')**2)
 ds_GEBCO_grad_mag = np.sqrt(ds_GEBCO.elevation.differentiate('x')**2 + ds_GEBCO.elevation.differentiate('y')**2)
@@ -37,19 +40,34 @@ ds_GEBCO_grad_mag = np.sqrt(ds_GEBCO.elevation.differentiate('x')**2 + ds_GEBCO.
 fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(12, 10),
                          sharex=True, sharey=True,
                          constrained_layout=True)
-fig.suptitle("Bathymetry Comparison: Preprocessed vs GEBCO", fontsize=14, fontweight="bold")
+fig.suptitle("Bathymetry Comparison: GMRT vs GEBCO", fontsize=14, fontweight="bold")
 
 # Define common colormap and limits
 vmin = min(float(ds_GMRT.z.min()), float(ds_GEBCO.elevation.min()))
 vmax = max(float(ds_GMRT.z.max()), float(ds_GEBCO.elevation.max()))
 
 # Define common gradient limits
-grad_vmin = min(float(ds_GMRT_grad_mag.min()), float(ds_GEBCO_grad_mag.min()))
-grad_vmax = max(float(ds_GMRT_grad_mag.max()), float(ds_GEBCO_grad_mag.max()))
+grad_vmin = 0
+grad_vmax = 1
 
 # Calculate max heights for display
 gmrt_max_height = float(ds_GMRT.z.max())
 gebco_max_height = float(ds_GEBCO.elevation.max())
+
+# Calculate mean spacing in x and y directions
+gmrt_dx = float(ds_GMRT.x.diff('x').mean())
+gmrt_dy = float(ds_GMRT.y.diff('y').mean())
+gebco_dx = float(ds_GEBCO.x.diff('x').mean())
+gebco_dy = float(ds_GEBCO.y.diff('y').mean())
+
+# Calculate bathymetry volume above minimum elevation
+# Volume = integrated elevation above the minimum elevation
+gmrt_min_elev = float(ds_GMRT.z.min())
+gebco_min_elev = gmrt_min_elev
+
+# Calculate volume by integrating elevation above minimum
+gmrt_volume = float((ds_GMRT.z - gmrt_min_elev).integrate(['x', 'y'])) / 1e9  # Convert to km³
+gebco_volume = float((ds_GEBCO.elevation - gebco_min_elev).integrate(['x', 'y'])) / 1e9  # Convert to km³
 
 # Plot 1: GMRT bathymetry
 im1 = ds_GMRT.z.plot.imshow(
@@ -59,7 +77,7 @@ im1 = ds_GMRT.z.plot.imshow(
     vmin=vmin, vmax=vmax,
     add_colorbar=False
 )
-axes[0,0].set_title(f"GMRT Bathymetry\nMax height: {gmrt_max_height:.0f} m", fontweight="bold")
+axes[0,0].set_title(f"GMRT Bathymetry\nMax height: {gmrt_max_height:.0f} m | Volume: {gmrt_volume:.2f} km³\nSpacing: Δx={gmrt_dx:.0f} m, Δy={gmrt_dy:.0f} m", fontweight="bold")
 
 # Plot 2: GEBCO bathymetry
 im2 = ds_GEBCO.elevation.plot.imshow(
@@ -69,7 +87,7 @@ im2 = ds_GEBCO.elevation.plot.imshow(
     vmin=vmin, vmax=vmax,
     add_colorbar=False
 )
-axes[0,1].set_title(f"GEBCO Bathymetry\nMax height: {gebco_max_height:.0f} m", fontweight="bold")
+axes[0,1].set_title(f"GEBCO Bathymetry\nMax height: {gebco_max_height:.0f} m | Volume: {gebco_volume:.2f} km³\nSpacing: Δx={gebco_dx:.0f} m, Δy={gebco_dy:.0f} m", fontweight="bold")
 
 # Add shared colorbar for bathymetry (top row)
 cbar1 = fig.colorbar(im1, ax=axes[0,:], shrink=0.8, aspect=30)
@@ -103,6 +121,4 @@ cbar2.set_label("Gradient Magnitude", rotation=270, labelpad=20)
 for i in range(2):
     for j in range(2):
         ax = axes[i,j]
-        ax.set_xlim(-23000, 23000)
-        ax.set_ylim(-22000, 22000)
         ax.set_aspect("equal")

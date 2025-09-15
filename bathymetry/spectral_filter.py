@@ -119,7 +119,7 @@ def butterworth_filter_2d(data, cutoff_wavelength, x_coord, y_coord, order=2):
 
 # Read the bathymetry data
 print("Reading bathymetry data...")
-ds = xr.open_dataset("balanus-bathymetry-preprocessed.nc")
+ds = xr.open_dataset("balanus-GMRT-bathymetry-preprocessed.nc")
 
 # Extract variables as DataArrays (keep xarray structure)
 elevation_da = ds["periodic_elevation"]

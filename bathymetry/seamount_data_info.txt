@@ -1,0 +1,26 @@
+seamount_data.mat contains fields of length 23353, corresponding to seamounts in Kim & Wessel 2011 (KW2011) seamount census. Seamounts have been removed if the half-height depth is above 1000m.
+
+sm_id: seamount identifier (KW2011)
+sm_lon: seamount longitude (KW2011)
+sm_lat: seamount latitude (KW2011)
+sm_depth: depth of ocean surrounding seamount in metres (KW2011)
+sm_basin: oceanic basin: 1= Atlantic, 2 = Pacific, 3 = Southern Ocean, 4 = Indian Ocean
+sm_height: seamount height in metres (KW2011)
+sm_maj_axis: (a) major axis of basal ellipse in metres (KW2011)
+sm_min_axis: (b) minor axis of basal ellipse in metres (KW2011)
+sm_azimuth: azimuth of basal ellipse in degrees (KW2011)
+sm_L: basal approx radius calculated as 0.5*sqrt(ab), in metres (KW2011)
+sm_f: absolute value of Coriolis parameter
+sm_hh_depth: depth of seamount half-height (KW2011)
+sm_N: stratification N in s^{-1}, calculated from WOCE at nearest vertical level and horizontal grid point to seamount half height.
+sm_KE_ts: time series of KE from LLC4320 at two-week intervals at days ‘days_ts’. For one day, velocities are decided with a 3 hourly average before KE is found and spatially averaged spatially averaged over a disk of radius sm_L + 10km at vertical level nearest to seamount half height,  in m^2/s^2. This is performed for one day every 2 weeks for a year.
+days_ts: days after 1 Dec 2011 of KE time series from LLC4320
+sm_vel: mean velocity at seamount, calculated as the square root of the mean of sm_KE_ts, in m/s
+sm_Ro: Rossby number calculated as sm_vel/sm_f/sm_L
+sm_Fr_depth: Froude number calculated as sm_vel/sm_N/sm_depth
+sm_Fr_height: Froude number calculated as sm_vel/sm_N/sm_height
+sm_Bu_depth: Burger number calculated as (sm_N*sm_depth/sm_f/sm_L)^2
+sm_Bu_height: Burger number calculated as (sm_N*sm_height/sm_f/sm_L)^2
+sm_vel_50m_Atl: Seamount velocity from Jonathan Gula’s Atlantic simulations, 50m above bottom and interpolated onto seamount location,  in m/s
+sm_vel_bot_Atl: As above in the bottom grid cell,  in m/s
+

@@ -23,4 +23,4 @@ figures_check/*.png
 figures_check/*.pdf
 figures/*.png
 figures/*.pdf
-bathymetry/*
+bathymetry/*nc

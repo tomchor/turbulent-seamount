@@ -6,7 +6,7 @@ include("../simulations/utils.jl")
 
 #+++ Read bathymetry data
 @info "Reading bathymetry data"
-bathymetry_filepath = joinpath(@__DIR__, "../bathymetry/balanus-bathymetry-preprocessed.nc")
+bathymetry_filepath = joinpath(@__DIR__, "../bathymetry/balanus-GMRT-bathymetry-preprocessed.nc")
 ds_bathymetry = NCDataset(bathymetry_filepath)
 x = ds_bathymetry["x"] |> collect
 y = ds_bathymetry["y"] |> collect

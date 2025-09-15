@@ -212,8 +212,10 @@ while y_current <= y_target_max:
 x_extended = np.concatenate([x_west, ds.x.values, x_east])
 y_extended = np.concatenate([y_south, ds.y.values, y_north])
 
-ds_extended = ds.reindex(x=x_extended, y=y_extended, fill_value=0)
+ds_extended = ds.reindex(x=x_extended, y=y_extended, fill_value=np.nan)
+
+ds_extended["periodic_elevation"] = ds_extended.periodic_elevation.fillna(0)
 #---
 
 encoding = { var : dict(zlib=True, complevel=9, shuffle=True) for var in ds_extended.data_vars }
-ds_extended.to_netcdf("balanus-bathymetry-preprocessed.nc", encoding = encoding)
+ds_extended.to_netcdf("balanus-GMRT-bathymetry-preprocessed.nc", encoding = encoding)

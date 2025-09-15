@@ -225,7 +225,7 @@ end
 
 function smooth_bathymetry_3d(elevation, x, y; window_size_x=10, window_size_y=10,
                               scale_x=nothing, scale_y=nothing, dz=nothing, verbose=false,
-                              bathymetry_filepath="../bathymetry/balanus-bathymetry-preprocessed.nc")
+                              bathymetry_filepath="../bathymetry/balanus-GMRT-bathymetry-preprocessed.nc")
     dx = minimum(diff(x))
     dy = minimum(diff(y))
 

@@ -32,7 +32,7 @@ for ds in [ds_L00, ds_L08]:
 
 #+++ Create 4x2 subplot grid
 print("Creating subplot grid")
-fig, axes = plt.subplots(nrows=4, ncols=2, figsize=(12, 20), sharex=True)
+fig, axes = plt.subplots(nrows=4, ncols=2, figsize=(18, 18), sharex=True)
 #---
 
 #+++ Plot PV for both cases

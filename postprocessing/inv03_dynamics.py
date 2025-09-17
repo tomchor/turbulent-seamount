@@ -25,9 +25,14 @@ ds_L08 = open_simulation(path + "xyzi.seamount_Ro_h0.1_Fr_h1_L0.8_FWHM500_dz2.nc
                            open_dataset_kwargs=dict(chunks="auto"))
 #---
 
-#+++ Create 3x2 subplot grid
+#+++ Create new variables
+for ds in [ds_L00, ds_L08]:
+    ds["dUdz"] = np.sqrt(ds["∂u∂z"]**2 + ds["∂v∂z"]**2)
+#---
+
+#+++ Create 4x2 subplot grid
 print("Creating subplot grid")
-fig, axes = plt.subplots(nrows=3, ncols=2, figsize=(12, 15), sharex=True)
+fig, axes = plt.subplots(nrows=4, ncols=2, figsize=(12, 20), sharex=True)
 #---
 
 #+++ Plot PV for both cases
@@ -74,6 +79,19 @@ for i, (ds, L_str) in enumerate(datasets):
                                      vmin = -1.5*ds.attrs["U∞"],
                                      vmax = +1.5*ds.attrs["U∞"])
     ax.set_title(f"u velocity (xz), L/FWHM = {L_str}")
+#---
+
+#+++ Plot dUdz xz cross-sections
+print("Plotting dUdz xz cross-sections")
+for i, (ds, L_str) in enumerate(datasets):
+    ax = axes[3, i]
+    ds.dUdz.pnsel(**xz_sel_opts).pnplot(ax=ax, x="x", y="z",
+                                        cmap="plasma", robust=True,
+                                        add_colorbar=True,
+                                        rasterized=True,
+                                        vmin = 0,
+                                        vmax = 5e-3)
+    ax.set_title(f"Vertical shear |dU/dz| (xz), L/FWHM = {L_str}")
 #---
 
 #+++ Save

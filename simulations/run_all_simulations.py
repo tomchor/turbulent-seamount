@@ -15,7 +15,7 @@ L              = cycler(L = [0, 0.05, 0.1, 0.2, 0.4, 0.8,
 FWHM           = cycler(FWHM = [500, 500, 500, 500, 500, 500,
                                 200, 100])
 
-resolutions    = cycler(dz = [1])
+resolutions    = cycler(dz = [4, 2, 1])
 
 paramspace = Rossby_numbers * Froude_numbers * (L + FWHM)
 configs    = resolutions

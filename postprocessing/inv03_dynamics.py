@@ -8,7 +8,7 @@ from src.aux00_utils import open_simulation
 # plt.rcParams["figure.constrained_layout.use"] = True
 
 #+++ Load datasets
-print("Loading xyzi datasets...")
+print("Reading xyzi datasets...")
 path = "../simulations/data/"
 
 grid00, ds_L00 = open_simulation(path + "xyzi.seamount_Ro_h0.1_Fr_h1_L0_FWHM500_dz2.nc",
@@ -40,11 +40,11 @@ def prepare_ds(ds, grid):
     # Create derived variables
     ds["dUdz"] = np.sqrt(ds["∂u∂z"]**2 + ds["∂v∂z"]**2)
 
-    mask = ds.distance_condition_5meters
-    ds_masked = ds.where(mask)
-    ds["Ro_zavg"] = grid.average(ds_masked.Ro, "z")
-    ds["εₖ_zavg"] = grid.average(ds_masked["εₖ"], "z")
-    ds["εₚ_zavg"] = grid.average(ds_masked["εₚ"], "z")
+    print("Loading mask to disk")
+    ds["mask"] = ds.distance_condition_5meters.where(ds.distance_condition_5meters, other=np.nan).load()
+    ds["Ro_zavg"] = grid.average(ds.mask * ds.Ro, "z")
+    ds["εₖ_zavg"] = grid.average(ds.mask * ds["εₖ"], "z")
+    ds["εₚ_zavg"] = grid.average(ds.mask * ds["εₚ"], "z")
     return ds
 
 ds_L00 = prepare_ds(ds_L00, grid00)
@@ -94,11 +94,11 @@ for i, (ds, L_str) in enumerate(datasets):
     ax = axes[1, i]
     # Data is already time-selected, so just plot directly
     im = ds.Ro_zavg.pnplot(ax=ax, x="x", y="y",
-                          cmap="RdBu_r", robust=True,
-                          add_colorbar=False,
-                          rasterized=True,
-                          vmin = -0.4,
-                          vmax = +0.4)
+                           cmap="RdBu_r", robust=True,
+                           add_colorbar=False,
+                           rasterized=True,
+                           vmin = -0.4,
+                           vmax = +0.4)
     ax.set_title("")
     ax.set_xlabel("")
     ax.set_yticks(yticks)
@@ -116,10 +116,10 @@ for i, (ds, L_str) in enumerate(datasets):
     ax = axes[2, i]
     # Data is already time-selected, so just plot directly
     im = ds["εₖ_zavg"].pnplot(ax=ax, x="x", y="y",
-                             cmap="inferno", robust=True,
-                             add_colorbar=False,
-                             rasterized=True,
-                             norm=LogNorm(vmin=1e-10, vmax=1e-8))
+                              cmap="inferno", robust=True,
+                              add_colorbar=False,
+                              rasterized=True,
+                              norm=LogNorm(vmin=1e-10, vmax=1e-8))
     ax.set_title("")
     ax.set_xlabel("")
     ax.set_yticks(yticks)
@@ -137,7 +137,7 @@ for i, (ds, L_str) in enumerate(datasets):
     ax = axes[3, i]
     # Data is already time-selected, so just plot directly
     im = ds["εₚ_zavg"].pnplot(ax=ax, x="x", y="y",
-                              cmap="plasma", robust=True,
+                              cmap="inferno", robust=True,
                               add_colorbar=False,
                               rasterized=True,
                               norm=LogNorm(vmin=1e-11, vmax=1e-9))

@@ -16,16 +16,14 @@ print("Starting h00 script")
 path = "../simulations/data/"
 simname_base = "seamount"
 
-Rossby_numbers = cycler(Ro_h = [0.1])
-Froude_numbers = cycler(Fr_h = [1])
-L              = cycler(L = [0, 0.05, 0.1, 0.2, 0.4, 0.8,
-                             0.8, 0.8])
-FWHM           = cycler(FWHM = [500, 500, 500, 500, 500, 500,
-                                200, 100])
+Rossby_numbers = cycler(Ro_h = [0.08, 0.2, 0.5, 1.2])
+Froude_numbers = cycler(Fr_h = [0.08, 0.2, 0.5, 1.2])
+L              = cycler(L = [0, 0.8])
+FWHM           = cycler(FWHM = [500])
 
-resolutions    = cycler(dz = [4, 2, 1])
+resolutions    = cycler(dz = [2])
 
-paramspace = Rossby_numbers * Froude_numbers * (L + FWHM)
+paramspace = Rossby_numbers * Froude_numbers * L * FWHM
 configs    = resolutions
 
 runs = paramspace * configs
@@ -39,9 +37,5 @@ for config in configs:
     check_simulation_completion(simnames, slice_name="xyzi", path="../simulations/data/", verbose=False)
     print()
 
-pause
 print(Back.LIGHTWHITE_EX + Fore.BLUE + "\nStarting 01 post-processing of results using `configs`", Style.RESET_ALL, configs)
 exec(open("01_create_aaaa.py").read())
-exec(open("02_create_xyzd.py").read())
-exec(open("03_create_xyza_xyia.py").read())
-exec(open("04_turbulent_quantities.py").read())

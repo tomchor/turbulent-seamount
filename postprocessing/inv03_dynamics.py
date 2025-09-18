@@ -41,9 +41,10 @@ def prepare_ds(ds, grid):
     ds["dUdz"] = np.sqrt(ds["∂u∂z"]**2 + ds["∂v∂z"]**2)
 
     mask = ds.distance_condition_5meters
-    ds["Ro_zavg"] = grid.average(mask * ds.Ro, "z")
-    ds["εₖ_zavg"] = grid.average(mask * ds["εₖ"], "z")
-    ds["εₚ_zavg"] = grid.average(mask * ds["εₚ"], "z")
+    ds_masked = ds.where(mask)
+    ds["Ro_zavg"] = grid.average(ds_masked.Ro, "z")
+    ds["εₖ_zavg"] = grid.average(ds_masked["εₖ"], "z")
+    ds["εₚ_zavg"] = grid.average(ds_masked["εₚ"], "z")
     return ds
 
 ds_L00 = prepare_ds(ds_L00, grid00)
@@ -147,7 +148,7 @@ for i, (ds, L_str) in enumerate(datasets):
         ax.set_ylabel("y [m]")
 
 # Add colorbar for εₚ row
-cbar_ax = fig.add_axes([0.92, 0.175, 0.02, 0.2])  # [left, bottom, width, height]
+cbar_ax = fig.add_axes([0.92, 0.05, 0.01, 0.2])  # [left, bottom, width, height]
 plt.colorbar(im, cax=cbar_ax, label="εₚ")
 #---
 

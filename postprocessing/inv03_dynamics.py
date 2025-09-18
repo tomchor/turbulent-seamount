@@ -11,23 +11,33 @@ print("Loading xyzi datasets...")
 path = "../simulations/data/"
 
 ds_L00 = open_simulation(path + "xyzi.seamount_Ro_h0.1_Fr_h1_L0_FWHM500_dz2.nc",
-                           use_advective_periods=True,
-                           squeeze=True,
-                           load=False,
-                           get_grid=False,
-                           open_dataset_kwargs=dict(chunks="auto"))
+                         use_advective_periods=True,
+                         squeeze=True,
+                         load=False,
+                         get_grid=False,
+                         open_dataset_kwargs=dict(chunks="auto"))
 
 ds_L08 = open_simulation(path + "xyzi.seamount_Ro_h0.1_Fr_h1_L0.8_FWHM500_dz2.nc",
-                           use_advective_periods=True,
-                           squeeze=True,
-                           load=False,
-                           get_grid=False,
-                           open_dataset_kwargs=dict(chunks="auto"))
+                         use_advective_periods=True,
+                         squeeze=True,
+                         load=False,
+                         get_grid=False,
+                         open_dataset_kwargs=dict(chunks="auto"))
 #---
 
-#+++ Create new variables
+#+++ Create new variables and restrict volume
+z_slice = slice(0, ds_L00.Lz - ds_L00.h_sponge) # Exclude sponge layer
+t_slice = np.inf
+ds_L00 = ds_L00.sel(z_aac=z_slice, z_aaf=z_slice)
+ds_L08 = ds_L08.sel(z_aac=z_slice, z_aaf=z_slice)
+
 for ds in [ds_L00, ds_L08]:
     ds["dUdz"] = np.sqrt(ds["∂u∂z"]**2 + ds["∂v∂z"]**2)
+
+    ds_masked = ds.where(ds.distance_condition_5meters)
+    ds["dz_zsum"] = ds.Δz_aac.pnsum("z")
+    ds["Ro_zsum"] = ds.Ro.sel(time=t_slice, method="nearest").pnsum("z")
+    ds["Ro_zavg"] = ds.Ro_zsum / ds.dz_zsum
 #---
 
 #+++ Create 4x2 subplot grid

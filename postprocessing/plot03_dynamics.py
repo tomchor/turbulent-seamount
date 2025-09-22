@@ -45,7 +45,7 @@ def prepare_ds(ds, grid,
     ds["εₖ_zavg"] = grid.average(ds["εₖ"] * mask, "z")  
     ds["εₚ_zavg"] = grid.average(ds["εₚ"] * mask, "z")
 
-    # -print("  Loading computed data...")
+    # print("  Loading computed data...")
     # Load only what we need for plotting
     # ds["PV"] = ds.PV.load()
     # ds["Ro_zavg"] = ds["Ro_zavg"].load()
@@ -81,7 +81,7 @@ for i, (ds, L_str) in enumerate(datasets):
     # Data is already loaded and time-selected
     pv_data = ds.PV.pnsel(**xyi_sel_opts)
     im = pv_data.pnplot(ax=ax, x="x", y="y",
-                        cmap="RdBu_r", 
+                        cmap="RdBu_r",
                         add_colorbar=False,
                         rasterized=True,
                         vmin = -1.5*PV_inf,
@@ -106,7 +106,7 @@ for i, (ds, L_str) in enumerate(datasets):
     ax = axes[1, i]
     # Data is already loaded and processed
     im = ds.Ro_zavg.pnplot(ax=ax, x="x", y="y",
-                           cmap="RdBu_r", 
+                           cmap="RdBu_r",
                            add_colorbar=False,
                            rasterized=True,
                            vmin = -0.4,
@@ -130,7 +130,7 @@ for i, (ds, L_str) in enumerate(datasets):
     ax = axes[2, i]
     # Data is already loaded and processed
     im = ds["εₖ_zavg"].pnplot(ax=ax, x="x", y="y",
-                              cmap="inferno", 
+                              cmap="inferno",
                               add_colorbar=False,
                               rasterized=True,
                               norm=LogNorm(vmin=1e-10, vmax=1e-8))
@@ -153,7 +153,7 @@ for i, (ds, L_str) in enumerate(datasets):
     ax = axes[3, i]
     # Data is already loaded and processed
     im = ds["εₚ_zavg"].pnplot(ax=ax, x="x", y="y",
-                              cmap="plasma", 
+                              cmap="plasma",
                               add_colorbar=False,
                               rasterized=True,
                               norm=LogNorm(vmin=1e-11, vmax=1e-9))

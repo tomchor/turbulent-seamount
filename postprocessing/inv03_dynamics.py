@@ -11,14 +11,15 @@ from src.aux00_utils import open_simulation
 print("Reading xyzi datasets...")
 path = "../simulations/data/"
 
-grid00, ds_L00 = open_simulation(path + "xyzi.seamount_Ro_h0.1_Fr_h1_L0_FWHM500_dz2.nc",
+resolution = "dz4"
+grid00, ds_L00 = open_simulation(path + f"xyzi.seamount_Ro_h0.1_Fr_h1_L0_FWHM500_{resolution}.nc",
                                  use_advective_periods=True,
                                  squeeze=True,
                                  load=False,
                                  get_grid=True,
                                  open_dataset_kwargs=dict(chunks="auto"))
 
-grid08, ds_L08 = open_simulation(path + "xyzi.seamount_Ro_h0.1_Fr_h1_L0.8_FWHM500_dz2.nc",
+grid08, ds_L08 = open_simulation(path + f"xyzi.seamount_Ro_h0.1_Fr_h1_L0.8_FWHM500_{resolution}.nc",
                                  use_advective_periods=True,
                                  squeeze=True,
                                  load=False,

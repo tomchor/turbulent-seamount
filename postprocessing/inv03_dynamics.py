@@ -11,15 +11,14 @@ from src.aux00_utils import open_simulation
 print("Reading xyzi datasets...")
 path = "../simulations/data/"
 
-resolution = "dz1"
-grid00, ds_L00 = open_simulation(path + f"xyzi.seamount_Ro_h0.1_Fr_h1_L0_FWHM500_{resolution}.nc",
+grid00, ds_L00 = open_simulation(path + "xyzi.seamount_Ro_h0.1_Fr_h1_L0_FWHM500_dz2.nc",
                                  use_advective_periods=True,
                                  squeeze=True,
                                  load=False,
                                  get_grid=True,
                                  open_dataset_kwargs=dict(chunks="auto"))
 
-grid08, ds_L08 = open_simulation(path + f"xyzi.seamount_Ro_h0.1_Fr_h1_L0.8_FWHM500_{resolution}.nc",
+grid08, ds_L08 = open_simulation(path + "xyzi.seamount_Ro_h0.1_Fr_h1_L0.8_FWHM500_dz2.nc",
                                  use_advective_periods=True,
                                  squeeze=True,
                                  load=False,
@@ -54,7 +53,7 @@ ds_L08 = prepare_ds(ds_L08, grid08)
 
 #+++ Create 4x2 subplot grid
 print("Creating subplot grid")
-fig, axes = plt.subplots(nrows=4, ncols=2, figsize=(18, 18), sharex=True, layout=None)
+fig, axes = plt.subplots(nrows=4, ncols=2, figsize=(14, 14), sharex=True, layout=None)
 plt.subplots_adjust(wspace=0, hspace=-10)
 #---
 

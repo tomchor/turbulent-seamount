@@ -11,7 +11,7 @@ from src.aux00_utils import open_simulation
 print("Reading xyzi datasets...")
 path = "../simulations/data/"
 
-resolution = "dz2"
+resolution = "dz4"
 grid00, ds_L00 = open_simulation(path + f"xyzi.seamount_Ro_h0.1_Fr_h1_L0_FWHM500_{resolution}.nc",
                                  use_advective_periods=True,
                                  squeeze=True,
@@ -29,7 +29,7 @@ grid08, ds_L08 = open_simulation(path + f"xyzi.seamount_Ro_h0.1_Fr_h1_L0.8_FWHM5
 
 #+++ Create new variables and restrict volume
 def prepare_ds(ds, grid,
-               x_slice = slice(-ds_L00.FWHM, np.inf),
+               x_slice = slice(-1.5*ds_L00.FWHM, np.inf),
                z_slice = slice(0, ds_L00.Lz - ds_L00.h_sponge),
                t_slice = 20):
     print("  Restricting domain and selecting time...")
@@ -45,12 +45,12 @@ def prepare_ds(ds, grid,
     ds["εₖ_zavg"] = grid.average(ds["εₖ"] * mask, "z")  
     ds["εₚ_zavg"] = grid.average(ds["εₚ"] * mask, "z")
 
-    # print("  Loading computed data...")
+    print("  Loading computed data...")
     # Load only what we need for plotting
-    # ds["PV"] = ds.PV.load()
-    # ds["Ro_zavg"] = ds["Ro_zavg"].load()
-    # ds["εₖ_zavg"] = ds["εₖ_zavg"].load()
-    # ds["εₚ_zavg"] = ds["εₚ_zavg"].load()
+    ds["PV"] = ds.PV.load()
+    ds["Ro_zavg"] = ds["Ro_zavg"].load()
+    ds["εₖ_zavg"] = ds["εₖ_zavg"].load()
+    ds["εₚ_zavg"] = ds["εₚ_zavg"].load()
     
     return ds
 
@@ -63,7 +63,7 @@ print("Data preparation complete!")
 
 #+++ Create 4x2 subplot grid
 print("Creating subplot grid")
-fig, axes = plt.subplots(nrows=4, ncols=2, figsize=(18, 18), sharex=True, layout=None)
+fig, axes = plt.subplots(nrows=4, ncols=2, figsize=(15, 15), sharex=True, layout=None)
 plt.subplots_adjust(wspace=0.05, hspace=0)
 #---
 
@@ -89,6 +89,7 @@ for i, (ds, L_str) in enumerate(datasets):
     ax.set_title(f"L/FWHM = {L_str}")
     ax.set_xlabel("")
     ax.set_yticks(yticks)
+    ax.set_aspect('equal')
     if i == 0:
         ax.set_ylabel("y [m]")
     else:
@@ -114,6 +115,7 @@ for i, (ds, L_str) in enumerate(datasets):
     ax.set_title("")
     ax.set_xlabel("")
     ax.set_yticks(yticks)
+    ax.set_aspect('equal')
     if i == 0:
         ax.set_ylabel("y [m]")
     else:
@@ -137,6 +139,7 @@ for i, (ds, L_str) in enumerate(datasets):
     ax.set_title("")
     ax.set_xlabel("")
     ax.set_yticks(yticks)
+    ax.set_aspect('equal')
     if i == 0:
         ax.set_ylabel("y [m]")
     else:
@@ -153,13 +156,14 @@ for i, (ds, L_str) in enumerate(datasets):
     ax = axes[3, i]
     # Data is already loaded and processed
     im = ds["εₚ_zavg"].pnplot(ax=ax, x="x", y="y",
-                              cmap="plasma",
+                              cmap="inferno",
                               add_colorbar=False,
                               rasterized=True,
                               norm=LogNorm(vmin=1e-11, vmax=1e-9))
     ax.set_title("")
     ax.set_xlabel("x [m]")
     ax.set_yticks(yticks)
+    ax.set_aspect('equal')
     if i == 0:
         ax.set_ylabel("y [m]")
     else:
@@ -172,6 +176,6 @@ plt.colorbar(im, cax=cbar_ax, label="εₚ")
 
 #+++ Save
 print("Saving figure...")
-fig.savefig(f"../figures/dynamics_comparison_{resolution}.png", dpi=300, bbox_inches="tight")
+fig.savefig(f"../figures/dynamics_comparison_{resolution}.png", dpi=300, bbox_inches="tight", pad_inches=0)
 print("Done!")
 #---

@@ -1,5 +1,6 @@
 import sys
 sys.path.append("/glade/u/home/tomasc/repos/pynanigans")
+sys.path.append("../postprocessing")
 import subprocess
 import numpy as np
 import xarray as xr
@@ -16,8 +17,8 @@ print("Starting h00 script")
 path = "../simulations/data/"
 simname_base = "seamount"
 
-Rossby_numbers = cycler(Ro_h = [0.08, 0.2, 0.5, 1.2])
-Froude_numbers = cycler(Fr_h = [0.08, 0.2, 0.5, 1.2])
+Rossby_numbers = cycler(Ro_h = [0.05, 0.1, 0.2, 0.5])
+Froude_numbers = cycler(Fr_h = [0.02, 0.08, 0.3, 1])
 L              = cycler(L = [0, 0.8])
 FWHM           = cycler(FWHM = [500])
 

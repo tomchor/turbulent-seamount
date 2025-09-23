@@ -3,6 +3,7 @@ import xarray as xr
 from matplotlib import pyplot as plt
 import pynanigans as pn
 from matplotlib.colors import LogNorm
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 from src.aux00_utils import open_simulation
 
 # plt.rcParams["figure.constrained_layout.use"] = True
@@ -11,7 +12,7 @@ from src.aux00_utils import open_simulation
 print("Reading xyzi datasets...")
 path = "../simulations/data/"
 
-resolution = "dz4"
+resolution = "dz1"
 grid00, ds_L00 = open_simulation(path + f"xyzi.seamount_Ro_h0.1_Fr_h1_L0_FWHM500_{resolution}.nc",
                                  use_advective_periods=True,
                                  squeeze=True,
@@ -28,7 +29,7 @@ grid08, ds_L08 = open_simulation(path + f"xyzi.seamount_Ro_h0.1_Fr_h1_L0.8_FWHM5
 #---
 
 #+++ Create new variables and restrict volume
-def prepare_ds(ds, grid,
+def prepare_ds(ds,
                x_slice = slice(-1.5*ds_L00.FWHM, np.inf),
                z_slice = slice(0, ds_L00.Lz - ds_L00.h_sponge),
                t_slice = 20):
@@ -39,25 +40,18 @@ def prepare_ds(ds, grid,
     print("  Computing z-averages efficiently...")
     # Use the mask directly without converting to NaN (much faster)
     mask = ds.distance_condition_5meters
+    masked_volume = (mask * ds.Δz_aac).pnsum("z").load()
 
-    # Use simple weighted sum operations (much faster than grid.average)
-    ds["Ro_zavg"] = grid.average(ds.Ro * mask, "z")
-    ds["εₖ_zavg"] = grid.average(ds["εₖ"] * mask, "z")  
-    ds["εₚ_zavg"] = grid.average(ds["εₚ"] * mask, "z")
-
-    print("  Loading computed data...")
-    # Load only what we need for plotting
-    ds["PV"] = ds.PV.load()
-    ds["Ro_zavg"] = ds["Ro_zavg"].load()
-    ds["εₖ_zavg"] = ds["εₖ_zavg"].load()
-    ds["εₚ_zavg"] = ds["εₚ_zavg"].load()
+    ds["Ro_zavg"] = (mask * ds["Ro"] * ds.Δz_aac).pnsum("z") / masked_volume
+    ds["εₖ_zavg"] = (mask * ds["εₖ"] * ds.Δz_aac).pnsum("z") / masked_volume
+    ds["εₚ_zavg"] = (mask * ds["εₚ"] * ds.Δz_aac).pnsum("z") / masked_volume
     
     return ds
 
 print("Preparing L=0 dataset...")
-ds_L00 = prepare_ds(ds_L00, grid00)
+ds_L00 = prepare_ds(ds_L00)
 print("Preparing L=0.8 dataset...")
-ds_L08 = prepare_ds(ds_L08, grid08)
+ds_L08 = prepare_ds(ds_L08)
 print("Data preparation complete!")
 #---
 
@@ -80,7 +74,7 @@ for i, (ds, L_str) in enumerate(datasets):
     ax = axes[0, i]
     # Data is already loaded and time-selected
     pv_data = ds.PV.pnsel(**xyi_sel_opts)
-    im = pv_data.pnplot(ax=ax, x="x", y="y",
+    im = pv_data.pnimshow(ax=ax, x="x", y="y",
                         cmap="RdBu_r",
                         add_colorbar=False,
                         rasterized=True,
@@ -95,9 +89,10 @@ for i, (ds, L_str) in enumerate(datasets):
     else:
         ax.set_ylabel("")
 
-# Add colorbar for PV row
-cbar_ax = fig.add_axes([0.92, 0.775, 0.02, 0.2])  # [left, bottom, width, height]
-plt.colorbar(im, cax=cbar_ax, label="PV")
+# Add colorbar for PV row (aligned with rightmost panel)
+divider = make_axes_locatable(axes[0, 1])
+cbar_ax = divider.append_axes("right", size="5%", pad=0.1)
+plt.colorbar(im, cax=cbar_ax, label="PV", shrink=0.5)
 #---
 
 #+++ Plot Ro for both cases
@@ -106,12 +101,12 @@ print("Plotting Ro_zavg")
 for i, (ds, L_str) in enumerate(datasets):
     ax = axes[1, i]
     # Data is already loaded and processed
-    im = ds.Ro_zavg.pnplot(ax=ax, x="x", y="y",
-                           cmap="RdBu_r",
-                           add_colorbar=False,
-                           rasterized=True,
-                           vmin = -0.4,
-                           vmax = +0.4)
+    im = ds.Ro_zavg.pnimshow(ax=ax, x="x",
+                             cmap="RdBu_r",
+                             add_colorbar=False,
+                             rasterized=True,
+                             vmin = -0.4,
+                             vmax = +0.4)
     ax.set_title("")
     ax.set_xlabel("")
     ax.set_yticks(yticks)
@@ -121,9 +116,10 @@ for i, (ds, L_str) in enumerate(datasets):
     else:
         ax.set_ylabel("")
 
-# Add colorbar for Ro row
-cbar_ax = fig.add_axes([0.92, 0.575, 0.02, 0.2])  # [left, bottom, width, height]
-plt.colorbar(im, cax=cbar_ax, label="Ro")
+# Add colorbar for Ro row (aligned with rightmost panel)
+divider = make_axes_locatable(axes[1, 1])
+cbar_ax = divider.append_axes("right", size="5%", pad=0.1)
+plt.colorbar(im, cax=cbar_ax, label="Ro", shrink=0.5)
 #---
 
 #+++ Plot εₖ z-averaged
@@ -131,7 +127,7 @@ print("Plotting εₖ_zavg")
 for i, (ds, L_str) in enumerate(datasets):
     ax = axes[2, i]
     # Data is already loaded and processed
-    im = ds["εₖ_zavg"].pnplot(ax=ax, x="x", y="y",
+    im = ds["εₖ_zavg"].pnimshow(ax=ax, x="x", y="y",
                               cmap="inferno",
                               add_colorbar=False,
                               rasterized=True,
@@ -145,9 +141,10 @@ for i, (ds, L_str) in enumerate(datasets):
     else:
         ax.set_ylabel("")
 
-# Add colorbar for εₖ row
-cbar_ax = fig.add_axes([0.92, 0.375, 0.02, 0.2])  # [left, bottom, width, height]
-plt.colorbar(im, cax=cbar_ax, label="εₖ")
+# Add colorbar for εₖ row (aligned with rightmost panel)
+divider = make_axes_locatable(axes[2, 1])
+cbar_ax = divider.append_axes("right", size="5%", pad=0.1)
+plt.colorbar(im, cax=cbar_ax, label="εₖ" , shrink=0.5)
 #---
 
 #+++ Plot εₚ z-averaged
@@ -155,7 +152,7 @@ print("Plotting εₚ_zavg")
 for i, (ds, L_str) in enumerate(datasets):
     ax = axes[3, i]
     # Data is already loaded and processed
-    im = ds["εₚ_zavg"].pnplot(ax=ax, x="x", y="y",
+    im = ds["εₚ_zavg"].pnimshow(ax=ax, x="x", y="y",
                               cmap="inferno",
                               add_colorbar=False,
                               rasterized=True,
@@ -169,9 +166,10 @@ for i, (ds, L_str) in enumerate(datasets):
     else:
         ax.set_ylabel("")
 
-# Add colorbar for εₚ row
-cbar_ax = fig.add_axes([0.92, 0.05, 0.01, 0.2])  # [left, bottom, width, height]
-plt.colorbar(im, cax=cbar_ax, label="εₚ")
+# Add colorbar for εₚ row (aligned with rightmost panel)
+divider = make_axes_locatable(axes[3, 1])
+cbar_ax = divider.append_axes("right", size="5%", pad=0.1)
+plt.colorbar(im, cax=cbar_ax, label="εₚ", shrink=0.5)
 #---
 
 #+++ Save

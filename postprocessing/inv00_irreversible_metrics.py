@@ -1,12 +1,8 @@
 import sys
 sys.path.append("/glade/u/home/tomasc/repos/pynanigans")
-from os.path import basename
-import numpy as np
 import pynanigans as pn
-import xarray as xr
 from cycler import cycler
 from matplotlib import pyplot as plt
-from matplotlib.colors import LogNorm
 from src.aux00_utils import merge_datasets, condense
 plt.rcParams["figure.constrained_layout.use"] = True
 
@@ -20,7 +16,7 @@ L              = cycler(L = [0, 0.05, 0.1, 0.2, 0.4, 0.8,
 FWHM           = cycler(FWHM = [500, 500, 500, 500, 500, 500,
                                 200, 100])
 
-resolutions    = cycler(dz = [4, 2])
+resolutions    = cycler(dz = [4, 2, 1])
 
 paramspace = Rossby_numbers * Froude_numbers * (L + FWHM)
 configs    = resolutions

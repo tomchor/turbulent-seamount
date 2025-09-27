@@ -189,9 +189,9 @@ let
     #---
 
     #+++ Dynamically-relevant secondary parameters
-    f₀ = f_0 = params.U∞ / (params.Ro_h * params.FWHM)
+    f₀ = f_0 = -params.U∞ / (params.Ro_h * params.FWHM)
     N²∞ = N2_inf = (params.U∞ / (params.Fr_h * params.H))^2
-    R1 = √N²∞ * params.H / f₀
+    R1 = √N²∞ * params.H / abs(f₀)
     z₀ = z_0 = params.Rz * params.H
     #---
 
@@ -199,11 +199,11 @@ let
     Γ = params.α * params.Fr_h # nonhydrostatic parameter (Schar 2002)
     Bu_h = (params.Ro_h / params.Fr_h)^2
     Slope_Bu = params.Ro_h / params.Fr_h # approximate slope Burger number
-    @assert Slope_Bu ≈ params.α * √N²∞ / f₀
+    @assert Slope_Bu ≈ params.α * √N²∞ / abs(f₀)
     #---
 
     #+++ Time scales
-    T_inertial = 2π / f₀
+    T_inertial = 2π / abs(f₀)
     T_cycle = params.Lx / params.U∞
     T_advective = params.FWHM / params.U∞
     #---

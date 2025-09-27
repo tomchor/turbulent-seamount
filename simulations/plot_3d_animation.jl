@@ -23,7 +23,7 @@ times = dims(xyzi.PV, :Ti)
 #---
 
 #+++ Set limits based on data range or physical considerations
-interior_q = params.N²∞ * params.f₀
+interior_q = params.N²∞ * abs(params.f₀)
 isovalue_q = 1.4 * interior_q  # Adjust this based on data
 isorange_q = isovalue_q/10
 PV_range = 1.2 .* (-isovalue_q, +isovalue_q)

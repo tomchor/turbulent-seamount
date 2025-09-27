@@ -389,7 +389,7 @@ def collect_datasets(simnames_filtered, slice_name="xyii", path="./simulations/d
 
         #+++ Create auxiliary variables and organize them into a Dataset
         if "PV" in ds.variables.keys():
-            ds["PV_norm"] = ds.PV / (ds.N2_inf * ds.f_0)
+            ds["PV_norm"] = ds.PV / (ds.N2_inf * abs(ds.f_0))
         ds["simulation"] = simname
         ds["sim_number"] = sim_number
         ds["f₀"] = ds.f_0

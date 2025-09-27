@@ -33,7 +33,7 @@ xyza = xyza.reindex(Ro_h = list(reversed(xyza.Ro_h)))
 xyza = xyza.squeeze()
 
 Ĥ = xyza.bottom_height.pnmax(("x", "y")) # Actual height of seamount
-q_scale = 5 * xyza.N2_inf * xyza.f_0
+q_scale = 5 * xyza.N2_inf * abs(xyza.f_0)
 xyia = xyza.sel(z_aac=Ĥ/5, method="nearest").sel(L = [0, 0.2, 0.8])
 #---
 

@@ -5,6 +5,7 @@ using Optim: GoldenSection, Fminbox, LBFGS, optimize
 using CUDA: devices, device!, functional, totalmem, name, available_memory, memory_status, @time
 using NCDatasets: NCDataset, defDim, defVar
 using Dates: now
+using Interpolations: interpolate, BSpline, Linear, extrapolate, scale
 
 #+++ Get good grid size
 """ Rounds `a` to the nearest even number """
@@ -274,6 +275,45 @@ function smooth_bathymetry_3d(elevation, x, y; window_size_x=10, window_size_y=1
 
     return smoothed_elevation
 end
+
+"""
+    coarsen_smooth_bathymetry(elevation; window_x=2, window_y=2, interpolation_method=BSpline(Linear()))
+
+Alternative method for coarsen-smooth that works with window sizes instead of coordinate vectors.
+
+# Arguments
+- `elevation`: 2D array of elevation values
+- `window_x`: Coarsening window size in x-direction (default: 2)
+- `window_y`: Coarsening window size in y-direction (default: 2)
+- `interpolation_method`: Interpolation method from Interpolations.jl (default: BSpline(Linear()))
+
+# Returns
+- Smoothed elevation array with same dimensions as input
+"""
+function coarsen_smooth_bathymetry(elevation; window_x=2, window_y=2, interpolation_method=BSpline(Linear()))
+    nx, ny = size(elevation)
+
+    # Create coordinate vectors (assuming unit spacing)
+    x = collect(1.0:Float64(nx))
+    y = collect(1.0:Float64(ny))
+
+    # Create coarse indices
+    coarse_x_indices = 1:window_x:nx
+    coarse_y_indices = 1:window_y:ny
+
+    # Extract coarse coordinates and elevation
+    x_coarse = x[coarse_x_indices]
+    y_coarse = y[coarse_y_indices]
+    elevation_coarse = elevation[coarse_x_indices, coarse_y_indices]
+
+    # Handle missing values by replacing with nearest non-missing or zero
+    if any(ismissing.(elevation_coarse))
+        elevation_coarse = coalesce.(elevation_coarse, 0.0)
+    end
+
+    return elevation_coarse
+end
+
 #---
 
 #+++ Functions to create z coordinate

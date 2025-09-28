@@ -163,7 +163,7 @@ print("All filtering completed!")
 
 
 # Create comparison figure: Gaussian vs Spectral vs Butterworth filtering
-fig_comparison = plt.figure(figsize=(25, 18))
+fig_comparison = plt.figure(figsize=(25, 18), constrained_layout=True)
 
 # Convert coordinates to km for better display
 elevation_da_km = elevation_da.assign_coords(x=elevation_da.x/1000, y=elevation_da.y/1000)
@@ -245,10 +245,6 @@ fig_comparison.text(0.02, 0.17, 'Butterworth\nFiltering', fontsize=14, fontweigh
 plt.tight_layout()
 cbar_comparison = fig_comparison.colorbar(im, ax=fig_comparison.axes, shrink=0.6, aspect=40, pad=0.02)
 cbar_comparison.set_label('Elevation (m)')
-
-# Add overall title for comparison
-fig_comparison.suptitle('Filtering Comparison: Gaussian vs Spectral vs Butterworth Filtering at Different Length Scales',
-                       fontsize=16, y=0.96)
 
 plt.show()
 

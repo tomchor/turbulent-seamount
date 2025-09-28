@@ -7,7 +7,7 @@ using CUDA: has_cuda_gpu
 using PrettyPrinting: pprintln
 using TickTock: tick, tock
 using NCDatasets: NCDataset
-import Interpolations
+import Interpolations # To use Flat in a way that doesn't conflict with Oceananigans.Flat
 
 using Oceananigans
 using Oceananigans.Units

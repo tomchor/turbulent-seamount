@@ -5,7 +5,9 @@ using Optim: GoldenSection, Fminbox, LBFGS, optimize
 using CUDA: devices, device!, functional, totalmem, name, available_memory, memory_status, @time
 using NCDatasets: NCDataset, defDim, defVar
 using Dates: now
-using Interpolations: interpolate, BSpline, Linear, extrapolate, scale, OnGrid, Cubic, Line
+
+import Interpolations # To use Flat in a way that doesn't conflict with Oceananigans.Flat
+using Interpolations: interpolate, BSpline, extrapolate, OnGrid, Cubic, Line
 using Statistics: mean
 
 #+++ Get good grid size
@@ -195,7 +197,7 @@ function smooth_bathymetry_with_coarsening(elevation, x, y; scale_x, scale_y)
     # and then normalize the coordinates to the range of the coarse grid
     # and then interpolate. This is a hack to get around the fact that the grid is not uniform and
     # Interpolations.jl does not support bicubic interpolation on non-uniform grids.
-    itp = interpolate(elevation_coarse, Interpolations.BSpline(Interpolations.Cubic(Interpolations.Line(Interpolations.OnGrid()))), Interpolations.OnGrid())
+    itp = interpolate(elevation_coarse, BSpline(Cubic(Line(OnGrid()))), OnGrid())
     itp = extrapolate(itp, Interpolations.Flat())
     x_norm = (x .- x[1]) / (x[end] - x[1]) * nx_coarse # From 0 to nx_coarse
     y_norm = (y .- y[1]) / (y[end] - y[1]) * ny_coarse # From 0 to ny_coarse

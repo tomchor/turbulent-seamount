@@ -145,7 +145,7 @@ else
 end
 
 # Make sure that the total mass of the smoothed bathymetry is about the same as the original bathymetry
-@assert isapprox(sum(smoothed_elevation), sum(elevation), rtol=0.1)
+@assert isapprox(sum(smoothed_elevation), sum(elevation), rtol=0.05)
 
 # Now we shrink the bathymetry
 params = (; params..., H_ratio = params.H / maximum(smoothed_elevation), # How much do we rescale in the vertical?

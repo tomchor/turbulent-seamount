@@ -5,7 +5,7 @@ using Optim: GoldenSection, Fminbox, LBFGS, optimize
 using CUDA: devices, device!, functional, totalmem, name, available_memory, memory_status, @time
 using NCDatasets: NCDataset, defDim, defVar
 using Dates: now
-using Interpolations: interpolate, BSpline, Linear, extrapolate, scale
+using Interpolations: interpolate, BSpline, Linear, extrapolate, scale, OnGrid, Cubic, Line
 using Statistics: mean
 
 #+++ Get good grid size
@@ -118,166 +118,6 @@ function smooth_bathymetry(elevation, x, y; scale_x, scale_y, kwargs...)
 end
 #---
 
-#+++ Smooth bathymetry using 3D Gaussian filter
-function extrude_bathymetry_3d(bathymetry_2d, x, y; dz=nothing, z_max=nothing)
-    dx = minimum(diff(x))
-    dy = minimum(diff(y))
-    dz = dz isa Nothing ? (dx + dy) / 2 : dz
-    zᶠ = collect(0:dz:z_max)
-
-    # Create 2D grids for x, y, z coordinates
-    X = repeat(reshape(x,  :, 1, 1),         1, length(y), length(zᶠ))
-    Y = repeat(reshape(y,  1, :, 1), length(x),         1, length(zᶠ))
-    Z = repeat(reshape(zᶠ, 1, 1, :), length(x), length(y),          1)
-
-    return X, Y, Z, zᶠ
-end
-
-function masked_area(smoothed, target_area; threshold=0.5)
-    masked_smoothed = smoothed .> threshold
-    return (sum(masked_smoothed) - target_area)^2
-end
-
-function same_area_smoothed(smoothed, unsmoothed_area; initial_guess=0.5, verbose=false)
-    """
-    Find the optimal threshold that minimizes the area difference between
-    smoothed and unsmoothed area using optimization.
-
-    Parameters:
-    - smoothed: smoothed bathymetry data
-    - unsmoothed_area: original unsmoothed bathymetry data
-
-    Returns:
-    - Binary mask of smoothed bathymetry with optimal threshold
-    """
-
-    # Define objective function to minimize
-    objective(threshold) = abs(masked_area(smoothed, unsmoothed_area; threshold=threshold[1]))
-
-    # Set bounds for threshold search (0 to 1 for probability-like values)
-    lower_bound = [0.0]
-    upper_bound = [1.0]
-
-    # Initial guess (start with middle value)
-    initial_guess = [initial_guess]
-
-    # Use bounded optimization
-    f_abstol = 0.05*unsmoothed_area
-    options = Optim.Options(f_abstol=f_abstol, iterations=10)
-    result = Optim.optimize(objective, lower_bound, upper_bound, initial_guess, Fminbox(LBFGS()), options)
-
-    # Get optimal threshold
-    optimal_threshold = Optim.minimizer(result)[1]
-
-    if (Optim.minimum(result) > f_abstol) && (initial_guess[] > 1e-3)
-        return same_area_smoothed(smoothed, unsmoothed_area; initial_guess=0.5*initial_guess[])
-    end
-
-    verbose && @info "Optimal threshold found: $optimal_threshold, objective value: $(Optim.minimum(result))"
-
-    # Return binary mask using optimal threshold
-    return smoothed .> optimal_threshold, optimal_threshold
-end
-
-
-function sliced_smooth_bathymetry(bathymetry_3d; window_size_x, window_size_y, bc_x="circular", bc_y="replicate", verbose=false)
-    nx, ny, nz = size(bathymetry_3d)
-    kernel_x = Kernel.gaussian((window_size_x, 0))
-    kernel_y = Kernel.gaussian((0, window_size_y))
-
-    smoothed_3d = zeros(nx, ny, nz)
-    initial_guess = 0.5
-    for k in 1:nz
-        verbose && @info "Smoothing layer $k of $nz"
-        smoothed_x = imfilter(bathymetry_3d[:,:,k], kernel_x, bc_x)
-        smoothed = imfilter(smoothed_x, kernel_y, bc_y)
-
-        unsmoothed_area = sum(bathymetry_3d[:, :, k])
-        smoothed_3d[:, :, k], optimal_threshold = same_area_smoothed(smoothed, unsmoothed_area; initial_guess, verbose)
-        initial_guess = optimal_threshold
-    end
-
-    return smoothed_3d
-end
-
-find_interface_height(array3d::AbstractArray{Float64, 3}; kwargs...) = find_interface_height(Bool.(array3d); kwargs...)
-
-function find_interface_height(array3d::AbstractArray{Bool, 3}; smooth=false, x=nothing, y=nothing, z=nothing)
-    nx, ny, nz = size(array3d)
-    heights = zeros(nx, ny)
-
-    # For each x,y point, find first false value from bottom up
-    for i in 1:nx, j in 1:ny
-        column = view(array3d, i, j, :)
-        k = findlast(column)
-
-        # If found, set height to corresponding z value
-        if !isnothing(k) && k > 0
-            heights[i, j] = z[k]
-        end
-    end
-
-    if smooth
-        heights = smooth_bathymetry(heights; window_size_x=5, window_size_y=5)
-    end
-
-    return heights
-end
-
-
-function smooth_bathymetry_3d(elevation, x, y; window_size_x=10, window_size_y=10,
-                              scale_x=nothing, scale_y=nothing, dz=nothing, verbose=false,
-                              bathymetry_filepath="../bathymetry/balanus-GMRT-bathymetry-preprocessed.nc")
-    dx = minimum(diff(x))
-    dy = minimum(diff(y))
-
-    # If scale_x or scale_y are provided, overwride window size
-    window_size_x = scale_x isa Nothing ? window_size_x : scale_x / (2 * dx)
-    window_size_y = scale_y isa Nothing ? window_size_y : scale_y / (2 * dy)
-
-    # If dz is not provided, use the average of the grid spacing
-    dz = dz isa Nothing ? (dx + dy) / 2 : dz
-
-    # Create cache filename based on parameters
-    cache_filepath = "$(bathymetry_filepath)_wx$(round(window_size_x, digits=2))_wy$(round(window_size_y, digits=2))_dz$(round(dz, digits=2)).nc"
-
-    # Check if cached result exists
-    if isfile(cache_filepath)
-        verbose && @info "Loading smoothed bathymetry from cache: $cache_filepath"
-        ds = NCDataset(cache_filepath)
-        return ds["smoothed_elevation"][:, :]
-    end
-
-    # Compute the smoothed bathymetry
-    verbose && @info "Computing 3D smoothed bathymetry with parameters: wx=$window_size_x, wy=$window_size_y, dz=$dz"
-    X, Y, Z, zᶠ = extrude_bathymetry_3d(elevation, x, y; dz, z_max=1.1*maximum(elevation))
-    bathymetry_3d = Float64.(Z .< elevation)
-    smoothed_bathymetry_3d = sliced_smooth_bathymetry(bathymetry_3d; window_size_x, window_size_y, verbose)
-    smoothed_elevation = find_interface_height(smoothed_bathymetry_3d, smooth=true, x=x, y=y, z=zᶠ)
-
-    # Save the result to NetCDF
-    NCDataset(cache_filepath, "c") do ds
-        defVar(ds, "x", x, ("x",), attrib = Dict("units" => "m", "long_name" => "x coordinate"))
-        defVar(ds, "y", y, ("y",), attrib = Dict("units" => "m", "long_name" => "y coordinate"))
-        defVar(ds, "smoothed_elevation", smoothed_elevation, ("x", "y"),
-               attrib = Dict("units" => "m",
-                             "long_name" => "3D smoothed elevation",
-                             "description" => "Bathymetry smoothed using 3D Gaussian filter"))
-
-        # Add global attributes with smoothing parameters
-        ds.attrib["window_size_x"] = window_size_x
-        ds.attrib["window_size_y"] = window_size_y
-        ds.attrib["dz"] = dz
-        ds.attrib["smoothing_method"] = "3D Gaussian filter"
-        ds.attrib["created_by"] = "smooth_bathymetry_3d function"
-        ds.attrib["creation_date"] = string(now())
-    end
-    verbose && @info "Saved result to cache: $cache_path"
-
-    return smoothed_elevation
-end
-#---
-
 #+++ Smooth bathymetry by coarsening and then interpolating
 """
     coarsen_smooth_bathymetry(elevation; window_x=2, window_y=2, interpolation_method=BSpline(Linear()))
@@ -341,9 +181,18 @@ function smooth_bathymetry_with_coarsening(elevation, x, y; scale_x, scale_y, kw
     window_y = scale_y / (2 * dy) |> round |> Int
 
     x_coarse, y_coarse, elevation_coarse = coarsen_bathymetry(elevation, x, y; window_x, window_y, kwargs...)
+    nx_coarse, ny_coarse = map(length, (x_coarse, y_coarse))
 
-    itp = Interpolations.LinearInterpolation((x_coarse, y_coarse), elevation_coarse, extrapolation_bc=Interpolations.Flat())
-    elevation_smooth = itp.(reshape(x, (length(x), 1)), reshape(y, (1, length(y))))
+    # In order to make bicubic interpolation, we need to assume that the grid is uniform
+    # and then normalize the coordinates to the range of the coarse grid
+    # and then interpolate. This is a hack to get around the fact that the grid is not uniform and
+    # Interpolations.jl does not support bicubic interpolation on non-uniform grids.
+    itp = interpolate(elevation_coarse, Interpolations.BSpline(Interpolations.Cubic(Interpolations.Line(Interpolations.OnGrid()))), Interpolations.OnGrid())
+    itp = extrapolate(itp, Interpolations.Flat())
+    x_norm = (x .- x[1]) / (x[end] - x[1]) * nx_coarse # From 0 to nx_coarse
+    y_norm = (y .- y[1]) / (y[end] - y[1]) * ny_coarse # From 0 to ny_coarse
+
+    elevation_smooth = itp.(reshape(x_norm, (length(x_norm), 1)), reshape(y_norm, (1, length(y_norm))))
     return elevation_smooth
 end
 #---

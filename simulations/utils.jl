@@ -120,18 +120,11 @@ end
 
 #+++ Smooth bathymetry by coarsening and then interpolating
 """
-    coarsen_smooth_bathymetry(elevation; window_x=2, window_y=2, interpolation_method=BSpline(Linear()))
+    coarsen_bathymetry(elevation, x, y; window_x=2, window_y=2)
 
-Alternative method for coarsen-smooth that works with window sizes instead of coordinate vectors.
+Coarsens the grid using window averaging.
 
-# Arguments
-- `elevation`: 2D array of elevation values
-- `window_x`: Coarsening window size in x-direction (default: 2)
-- `window_y`: Coarsening window size in y-direction (default: 2)
-- `interpolation_method`: Interpolation method from Interpolations.jl (default: BSpline(Linear()))
-
-# Returns
-- Smoothed elevation array with same dimensions as input
+Returns coarse x and y, and elevation array.
 """
 function coarsen_bathymetry(elevation, x, y; window_x=2, window_y=2)
     nx, ny = size(elevation)
@@ -173,14 +166,29 @@ function coarsen_bathymetry(elevation, x, y; window_x=2, window_y=2)
     return x_coarse, y_coarse, elevation_coarse
 end
 
-function smooth_bathymetry_with_coarsening(elevation, x, y; scale_x, scale_y, kwargs...)
+"""
+    smooth_bathymetry_with_coarsening(elevation, x, y; scale_x, scale_y, kwargs...)
+
+# Arguments
+- `elevation`: 2D array of elevation values
+- `x`: 1D array of x coordinates
+- `y`: 1D array of y coordinates
+- `scale_x`: Scale factor for x direction
+- `scale_y`: Scale factor for y direction
+
+# Returns
+- Smoothed elevation array with same dimensions (and coordinates) as input
+Smooths bathymetry by coarsening the grid using window averaging, and then upscaling again by interpolating.
+Returns smoothed elevation array with same dimensions (and coordinates) as input.
+"""
+function smooth_bathymetry_with_coarsening(elevation, x, y; scale_x, scale_y)
     dx = minimum(diff(x))
     dy = minimum(diff(y))
 
     window_x = scale_x / (2 * dx) |> round |> Int
     window_y = scale_y / (2 * dy) |> round |> Int
 
-    x_coarse, y_coarse, elevation_coarse = coarsen_bathymetry(elevation, x, y; window_x, window_y, kwargs...)
+    x_coarse, y_coarse, elevation_coarse = coarsen_bathymetry(elevation, x, y; window_x, window_y)
     nx_coarse, ny_coarse = map(length, (x_coarse, y_coarse))
 
     # In order to make bicubic interpolation, we need to assume that the grid is uniform

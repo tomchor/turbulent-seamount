@@ -6,6 +6,7 @@ using CUDA: devices, device!, functional, totalmem, name, available_memory, memo
 using NCDatasets: NCDataset, defDim, defVar
 using Dates: now
 using Interpolations: interpolate, BSpline, Linear, extrapolate, scale
+using Statistics: mean
 
 #+++ Get good grid size
 """ Rounds `a` to the nearest even number """
@@ -275,7 +276,9 @@ function smooth_bathymetry_3d(elevation, x, y; window_size_x=10, window_size_y=1
 
     return smoothed_elevation
 end
+#---
 
+#+++ Smooth bathymetry by coarsening and then interpolating
 """
     coarsen_smooth_bathymetry(elevation; window_x=2, window_y=2, interpolation_method=BSpline(Linear()))
 
@@ -290,30 +293,59 @@ Alternative method for coarsen-smooth that works with window sizes instead of co
 # Returns
 - Smoothed elevation array with same dimensions as input
 """
-function coarsen_smooth_bathymetry(elevation; window_x=2, window_y=2, interpolation_method=BSpline(Linear()))
+function coarsen_bathymetry(elevation, x, y; window_x=2, window_y=2)
     nx, ny = size(elevation)
+    dx = minimum(diff(x))
+    dy = minimum(diff(y))
 
     # Create coordinate vectors (assuming unit spacing)
-    x = collect(1.0:Float64(nx))
-    y = collect(1.0:Float64(ny))
+    x_coarse = x[1]:window_x*dx:x[end] |> collect
+    y_coarse = y[1]:window_y*dy:y[end] |> collect
 
-    # Create coarse indices
-    coarse_x_indices = 1:window_x:nx
-    coarse_y_indices = 1:window_y:ny
+    # Calculate coarse grid dimensions
+    nx_coarse = cld(nx, window_x) # ceiling division
+    ny_coarse = cld(ny, window_y) # ceiling division
 
-    # Extract coarse coordinates and elevation
-    x_coarse = x[coarse_x_indices]
-    y_coarse = y[coarse_y_indices]
-    elevation_coarse = elevation[coarse_x_indices, coarse_y_indices]
+    # Initialize coarse elevation array
+    elevation_coarse = zeros(Float64, nx_coarse, ny_coarse)
 
-    # Handle missing values by replacing with nearest non-missing or zero
-    if any(ismissing.(elevation_coarse))
-        elevation_coarse = coalesce.(elevation_coarse, 0.0)
+    # Compute coarse values as mean of high-res values in each window
+    for i in 1:nx_coarse, j in 1:ny_coarse
+            # Define window bounds
+            x_coarse_start = 1 + (i-1) * window_x
+            x_coarse_end = min(i * window_x, nx)
+            y_coarse_start = 1 + (j-1) * window_y
+            y_coarse_end = min(j * window_y, ny)
+
+            # Extract window data
+            window_data = elevation[x_coarse_start:x_coarse_end, y_coarse_start:y_coarse_end]
+
+            # Compute mean, handling missing values
+            if any(ismissing.(window_data))
+                # Filter out missing values and compute mean of non-missing
+                valid_data = filter(!ismissing, window_data)
+                elevation_coarse[i, j] = isempty(valid_data) ? 0.0 : mean(valid_data)
+            else
+                elevation_coarse[i, j] = mean(window_data)
+            end
     end
 
-    return elevation_coarse
+    return x_coarse, y_coarse, elevation_coarse
 end
 
+function smooth_bathymetry_with_coarsening(elevation, x, y; scale_x, scale_y, kwargs...)
+    dx = minimum(diff(x))
+    dy = minimum(diff(y))
+
+    window_x = scale_x / (2 * dx) |> round |> Int
+    window_y = scale_y / (2 * dy) |> round |> Int
+
+    x_coarse, y_coarse, elevation_coarse = coarsen_bathymetry(elevation, x, y; window_x, window_y, kwargs...)
+
+    itp = Interpolations.LinearInterpolation((x_coarse, y_coarse), elevation_coarse, extrapolation_bc=Interpolations.Flat())
+    elevation_smooth = itp.(reshape(x, (length(x), 1)), reshape(y, (1, length(y))))
+    return elevation_smooth
+end
 #---
 
 #+++ Functions to create z coordinate

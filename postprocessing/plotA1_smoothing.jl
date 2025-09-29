@@ -35,18 +35,18 @@ sigma_values = sigma_fractions .* FWHM
 
 # Store filtered results
 gaussian_results = []
-gaussian_3d_results = []
+coarsening_results = []
 
 for σ in sigma_values
     @info "Processing σ = $σ"
 
     # Gaussian filter
-    gaussian_filtered = smooth_bathymetry(elevation, x, y; scale_x=σ, scale_y=σ)
+    gaussian_filtered = smooth_bathymetry_with_gaussian(elevation, x, y; scale_x=σ, scale_y=σ)
     push!(gaussian_results, gaussian_filtered)
 
-    # 3D Gaussian filter
-    gaussian_filtered_3d = smooth_bathymetry_3d(elevation, x, y; scale_x=σ, scale_y=σ, dz=dx/6, bathymetry_filepath)
-    push!(gaussian_3d_results, gaussian_filtered_3d)
+    # Coarsening-based filter
+    coarsening_filtered = smooth_bathymetry_with_coarsening(elevation, x, y; scale_x=σ, scale_y=σ)
+    push!(coarsening_results, coarsening_filtered)
 end
 
 #+++ Create comparison plot using GLMakie
@@ -54,7 +54,7 @@ using GLMakie
 
 @info "Creating comparison plot"
 
-# Create figure with 2 rows x 6 columns (original + 5 sigma values)
+# Create figure with 2 rows x 6 columns (original + 4 sigma values + 1 for colorbar)
 fig = Figure(size = (2400, 800));
 
 # Define common colormap and range for all plots
@@ -72,7 +72,7 @@ ax_orig_2 = Axis3(fig[2, 1], title="Original Bathymetry",
 surface!(ax_orig_2, x, y, elevation, colormap=common_colormap, colorrange=elevation_range)
 zlims!(ax_orig_2, (0, 1.2*H))
 
-# Plot Gaussian filtered results (top row, columns 2-6)
+# Plot Gaussian filtered results (top row, columns 2-5)
 for (i, (σ, result)) in enumerate(zip(sigma_values, gaussian_results))
     ax = Axis3(fig[1, i+1], title="Gaussian (σ=$(round(σ/FWHM, digits=2))×FWHM)",
                xlabel="x [m]", ylabel="y [m]", zlabel="z [m]")
@@ -80,9 +80,9 @@ for (i, (σ, result)) in enumerate(zip(sigma_values, gaussian_results))
     zlims!(ax, (0, 1.2*H))
 end
 
-# Plot 3D Gaussian filtered results (bottom row, columns 2-6)
-for (i, (σ, result)) in enumerate(zip(sigma_values, gaussian_3d_results))
-    ax = Axis3(fig[2, i+1], title="3D Gaussian (σ=$(round(σ/FWHM, digits=2))×FWHM)",
+# Plot Coarsening filtered results (bottom row, columns 2-5)
+for (i, (σ, result)) in enumerate(zip(sigma_values, coarsening_results))
+    ax = Axis3(fig[2, i+1], title="Coarsening (σ=$(round(σ/FWHM, digits=2))×FWHM)",
                xlabel="x [m]", ylabel="y [m]", zlabel="z [m]")
     surface!(ax, x, y, result, colormap=common_colormap, colorrange=elevation_range)
     zlims!(ax, (0, 1.2*H))
@@ -90,15 +90,17 @@ end
 
 # Add row labels
 Label(fig[1, 0], "Gaussian Filter", rotation=π/2, tellheight=false, fontsize=16)
-Label(fig[2, 0], "3D Gaussian Filter", rotation=π/2, tellheight=false, fontsize=16)
+Label(fig[2, 0], "Coarsening Filter", rotation=π/2, tellheight=false, fontsize=16)
 
 # Add a shared colorbar
-ncols = length(sigma_values) + 2
-Colorbar(fig[:, ncols], sf_orig, label="Elevation [m]")
+ncols = length(sigma_values) + 1
+Colorbar(fig[:, ncols+1], sf_orig, label="Elevation [m]")
 
 # Add overall title
-fig[0, 1:ncols] = Label(fig, "Bathymetry Filtering Comparison - Multiple Sigma Values", fontsize=20, tellwidth=false)
+fig[0, 1:ncols+1] = Label(fig, "Bathymetry Filtering Comparison: Gaussian vs Coarsening Methods", fontsize=20, tellwidth=false)
 
-# Display the figure (optional - comment out if running in batch mode)
-display(fig)
+# Save the figure to the figures directory
+@info "Saving figure to figures/"
+mkpath(joinpath(@__DIR__, "../figures"))
+save(joinpath(@__DIR__, "../figures/bathymetry_smoothing_comparison.png"), fig)
 #---

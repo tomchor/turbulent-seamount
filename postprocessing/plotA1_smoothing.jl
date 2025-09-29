@@ -41,7 +41,7 @@ for σ in sigma_values
     @info "Processing σ = $σ"
 
     # Gaussian filter
-    gaussian_filtered = smooth_bathymetry(elevation, x, y; scale_x=σ, scale_y=σ)
+    gaussian_filtered = smooth_bathymetry_with_gaussian(elevation, x, y; scale_x=σ, scale_y=σ)
     push!(gaussian_results, gaussian_filtered)
 
     # Coarsening-based filter

@@ -83,7 +83,7 @@ end
 #---
 
 #+++ Smooth bathymetry using regular 2D Gaussian filter
-function smooth_bathymetry(elevation; window_size_x, window_size_y, bc_x="circular", bc_y="replicate", target_height=nothing)
+function smooth_bathymetry_with_gaussian(elevation; window_size_x, window_size_y, bc_x="circular", bc_y="replicate", target_height=nothing)
     # Create separate Gaussian kernels for x and y directions
     kernel_x = Kernel.gaussian((window_size_x, 0))
     kernel_y = Kernel.gaussian((0, window_size_y))
@@ -106,7 +106,7 @@ function smooth_bathymetry(elevation; window_size_x, window_size_y, bc_x="circul
     return smoothed
 end
 
-function smooth_bathymetry(elevation, x, y; scale_x, scale_y, kwargs...)
+function smooth_bathymetry_with_gaussian(elevation, x, y; scale_x, scale_y, kwargs...)
     Δx_min = minimum(diff(x))
     Δy_min = minimum(diff(y))
 
@@ -116,7 +116,7 @@ function smooth_bathymetry(elevation, x, y; scale_x, scale_y, kwargs...)
     window_size_y = scale_y / (2 * Δy_min)
 
     # Call the original method with calculated window sizes
-    return smooth_bathymetry(elevation; window_size_x, window_size_y, kwargs...)
+    return smooth_bathymetry_with_gaussian(elevation; window_size_x, window_size_y, kwargs...)
 end
 #---
 
@@ -169,7 +169,9 @@ function coarsen_bathymetry(elevation, x, y; window_x=2, window_y=2)
 end
 
 """
-    smooth_bathymetry_with_coarsening(elevation, x, y; scale_x, scale_y, kwargs...)
+    smooth_bathymetry_with_coarsening(elevation, x, y; scale_x, scale_y, clip_negative=true)
+
+Smooths bathymetry by coarsening the grid using window averaging, and then upscaling again by interpolating.
 
 # Arguments
 - `elevation`: 2D array of elevation values
@@ -177,13 +179,12 @@ end
 - `y`: 1D array of y coordinates
 - `scale_x`: Scale factor for x direction
 - `scale_y`: Scale factor for y direction
+- `clip_negative`: If true, clips negative values to zero before returning (default: true)
 
 # Returns
 - Smoothed elevation array with same dimensions (and coordinates) as input
-Smooths bathymetry by coarsening the grid using window averaging, and then upscaling again by interpolating.
-Returns smoothed elevation array with same dimensions (and coordinates) as input.
 """
-function smooth_bathymetry_with_coarsening(elevation, x, y; scale_x, scale_y)
+function smooth_bathymetry_with_coarsening(elevation, x, y; scale_x, scale_y, clip_negative=true)
     dx = minimum(diff(x))
     dy = minimum(diff(y))
 
@@ -203,6 +204,10 @@ function smooth_bathymetry_with_coarsening(elevation, x, y; scale_x, scale_y)
     y_norm = (y .- y[1]) / (y[end] - y[1]) * ny_coarse # From 0 to ny_coarse
 
     elevation_smooth = itp.(reshape(x_norm, (length(x_norm), 1)), reshape(y_norm, (1, length(y_norm))))
+
+    # Clip negative values to zero if requested
+    clip_negative && (elevation_smooth = max.(elevation_smooth, 0.0))
+
     return elevation_smooth
 end
 #---

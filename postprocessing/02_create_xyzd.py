@@ -13,20 +13,21 @@ from colorama import Fore, Back, Style
 from dask.diagnostics import ProgressBar
 xr.set_options(display_width=140, display_max_rows=30)
 
-print("Starting xyza and xyia dataset creation script")
+print("Starting xyzd dataset creation script")
 
 #+++ Define directory and simulation name
 if basename(__file__) != "00_run_postproc.py":
     path = "../simulations/data/"
     simname_base = "seamount"
 
-    Rossby_numbers = cycler(Ro_h = [0.2])
-    Froude_numbers = cycler(Fr_h = [1.25])
+    Rossby_numbers = cycler(Ro_h = [0.1])
+    Froude_numbers = cycler(Fr_h = [1])
     L              = cycler(L = [0])
 
-    resolutions    = cycler(dz = [8])
+    resolutions    = cycler(dz = [4])
+    FWHM           = cycler(FWHM = [500])
 
-    paramspace = Rossby_numbers * Froude_numbers * L
+    paramspace = Rossby_numbers * Froude_numbers * (L + FWHM)
     configs    = resolutions
 
     runs = paramspace * configs

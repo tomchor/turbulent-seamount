@@ -65,17 +65,17 @@ def plot_variable(ax, data, var_name):
     """Create a scatter plot for a given variable on the specified axis"""
     for fwhm_val in data.FWHM.values:
         subset = data.sel(FWHM=fwhm_val)
-        ax.scatter(subset.L, subset.values, label=f'FWHM={fwhm_val}', alpha=0.7)
+        ax.scatter(subset.L, subset.values, label=f"FWHM={fwhm_val}", alpha=0.7)
 
-    # Use symlog scale for w'b' variable (can be positive or negative)
-    if var_name == '∭⁵⟨w′b′⟩ₜdV':
-        ax.set_yscale('symlog', linthresh=1e-6)
+    # Use symlog scale for w"b" variable (can be positive or negative)
+    if var_name == "∭⁵⟨w′b′⟩ₜdV":
+        ax.set_yscale("symlog", linthresh=1e-6)
     else:
-        ax.set_yscale('log')
+        ax.set_yscale("log")
 
-    ax.set_xlabel('L')
+    ax.set_xlabel("L")
     ax.set_ylabel(var_name)
-    ax.set_title(f'{var_name}')
+    ax.set_title(f"{var_name}")
     ax.grid(True)
     ax.axvline(x=1, color="black", linestyle="--", alpha=0.5)
     ax.legend()
@@ -84,8 +84,8 @@ def plot_variable(ax, data, var_name):
 fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(12, 10))
 plt.subplots_adjust(hspace=0.4, wspace=0.3)
 
-# Variables to plot (first 3 use buffer=5m, last 2 don't have buffer dimension)
-variables = ['ℰₖ', 'ℰₚ', '∭⁵⟨w′b′⟩ₜdV', '∭⁵SPRdxdy']
+# Variables to plot (first 3 use buffer=5m, last 2 don"t have buffer dimension)
+variables = ["ℰₖ", "ℰₚ", "∭⁵⟨w′b′⟩ₜdV", "∭⁵SPRdxdy"]
 
 aaaa = aaaa.sel(dz=0, buffer=5, method="nearest").sum("j")
 # Create plots for each variable
@@ -95,6 +95,6 @@ for i, var_name in enumerate(variables):
 
 #+++ Save figure
 figure_name = f"../figures/bulk_metrics_{simname_base}.png"
-plt.savefig(figure_name, dpi=300, bbox_inches='tight')
+plt.savefig(figure_name, dpi=300, bbox_inches="tight")
 print(f"Figure saved to: {figure_name}")
 #---

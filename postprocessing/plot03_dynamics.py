@@ -9,23 +9,28 @@ from src.aux00_utils import open_simulation
 # plt.rcParams["figure.constrained_layout.use"] = True
 
 #+++ Load datasets
-print("Reading xyzi datasets...")
-path = "../simulations/data/"
+print("Reading datasets...")
+simdata_path = "../simulations/data/"
+postproc_path = "../postprocessing/data/"
 
-resolution = "dz1"
-grid00, ds_L00 = open_simulation(path + f"xyzi.seamount_Ro_h0.1_Fr_h1_L0_FWHM500_{resolution}.nc",
-                                 use_advective_periods=True,
-                                 squeeze=True,
-                                 load=False,
-                                 get_grid=True,
-                                 open_dataset_kwargs=dict(chunks="auto"))
+resolution = "dz2"
+snap_opts = dict(use_advective_periods=True,
+                 unique_times=True,
+                 squeeze=True,
+                 load=False,
+                 get_grid=False,
+                 open_dataset_kwargs=dict(chunks="auto"))
+opensim_opts = dict(unique_times=False,
+                    load=False,
+                    get_grid=False,
+                    open_dataset_kwargs=dict(chunks="auto"))
+xyzi_L00 = open_simulation(simdata_path + f"xyzi.seamount_Ro_h0.1_Fr_h1_L0_FWHM500_{resolution}.nc", **snap_opts)
+xyzd_L00 = open_simulation(postproc_path + f"xyzd.seamount_Ro_h0.1_Fr_h1_L0_FWHM500_{resolution}.nc", **opensim_opts)
+ds_L00 = xr.merge([xyzi_L00, xyzd_L00])
 
-grid08, ds_L08 = open_simulation(path + f"xyzi.seamount_Ro_h0.1_Fr_h1_L0.8_FWHM500_{resolution}.nc",
-                                 use_advective_periods=True,
-                                 squeeze=True,
-                                 load=False,
-                                 get_grid=True,
-                                 open_dataset_kwargs=dict(chunks="auto"))
+xyzi_L08 = open_simulation(simdata_path + f"xyzi.seamount_Ro_h0.1_Fr_h1_L0.8_FWHM500_{resolution}.nc", **snap_opts)
+xyzd_L08 = open_simulation(postproc_path + f"xyzd.seamount_Ro_h0.1_Fr_h1_L0.8_FWHM500_{resolution}.nc", **opensim_opts)
+ds_L08 = xr.merge([xyzi_L08, xyzd_L08])
 #---
 
 #+++ Create new variables and restrict volume

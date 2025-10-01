@@ -91,6 +91,7 @@ for j, config in enumerate(runs):
     #+++ Condense and time-average tensors
     xyzd = temporal_average(xyzd)
     #---
+    #---
 
     #+++ Get turbulent variables
     xyzd = get_turbulent_Reynolds_stress_tensor_diagonal(xyzd)

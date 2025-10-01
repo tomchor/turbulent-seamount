@@ -92,6 +92,7 @@ for j, config in enumerate(runs):
     xyzi = xyzi.sel(time=t_slice_inclusive, x_caa=x_slice, x_faa=x_slice, y_aca=y_slice, y_afa=y_slice, z_aac=z_slice, z_aaf=z_slice)
     xyii = xyii.sel(time=t_slice_inclusive, x_caa=x_slice, x_faa=x_slice, y_aca=y_slice, y_afa=y_slice)
     #---
+    #---
 
     #+++ Condense and time-average tensors
     xyzi = condense_velocities(xyzi, indices=indices)

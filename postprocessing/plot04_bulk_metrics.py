@@ -39,7 +39,7 @@ aaaa = xr.merge([aaaa, turbstats], compat="override")
 #+++ Process data and create derived variables
 # Condense buffer variables
 for var in ["ε̄ₚ", "ε̄ₖ"]:
-    aaaa = condense(aaaa, [f"∭⁵{var}dV", f"∭¹⁰{var}dV"], f"∭ᵇ{var}dV", 
+    aaaa = condense(aaaa, [f"∭⁵{var}dV", f"∭¹⁰{var}dV"], f"∭ᵇ{var}dV",
                    dimname="buffer", indices=[5, 10])
 
 # Create normalized variables
@@ -66,8 +66,13 @@ def plot_variable(ax, data, var_name):
     for fwhm_val in data.FWHM.values:
         subset = data.sel(FWHM=fwhm_val)
         ax.scatter(subset.L, subset.values, label=f'FWHM={fwhm_val}', alpha=0.7)
-    
-    ax.set_yscale('log')
+
+    # Use symlog scale for w'b' variable (can be positive or negative)
+    if var_name == '∭⁵⟨w′b′⟩ₜdV':
+        ax.set_yscale('symlog', linthresh=1e-6)
+    else:
+        ax.set_yscale('log')
+
     ax.set_xlabel('L')
     ax.set_ylabel(var_name)
     ax.set_title(f'{var_name}')

@@ -10,6 +10,7 @@ from src.aux00_utils import (open_simulation, adjust_times, aggregate_parameters
 from src.aux01_physfuncs import temporal_average
 from colorama import Fore, Back, Style
 from dask.diagnostics import ProgressBar
+from concurrent.futures import ThreadPoolExecutor, as_completed
 xr.set_options(display_width=140, display_max_rows=30)
 
 print("Starting xyza and xyia dataset creation script")
@@ -23,7 +24,7 @@ if basename(__file__) != "00_run_postproc.py":
     Froude_numbers = cycler(Fr_h = [1])
     L              = cycler(L = [0])
 
-    resolutions    = cycler(dz = [4])
+    resolutions    = cycler(dz = [8])
     FWHM           = cycler(FWHM = [500])
 
     paramspace = Rossby_numbers * Froude_numbers * (L + FWHM)
@@ -36,6 +37,16 @@ if basename(__file__) != "00_run_postproc.py":
 indices = [1, 2, 3]
 write_xyza = True
 #---
+
+def process_dataset(ds, dataset_type, indices):
+    """Process a dataset with tensor condensation and temporal averaging"""
+    print(f"Processing {dataset_type} tensors...")
+    ds = condense_velocities(ds, indices=indices)
+    ds = condense_velocity_gradient_tensor(ds, indices=indices)
+    ds = condense_reynolds_stress_tensor(ds, indices=indices)
+    print(f"Computing {dataset_type} temporal average...")
+    ds_avg = temporal_average(ds)
+    return ds_avg
 
 for j, config in enumerate(runs):
     simname = f"{simname_base}_" + aggregate_parameters(config, sep="_", prefix="")
@@ -94,16 +105,22 @@ for j, config in enumerate(runs):
     #---
     #---
 
-    #+++ Condense and time-average tensors
-    xyzi = condense_velocities(xyzi, indices=indices)
-    xyzi = condense_velocity_gradient_tensor(xyzi, indices=indices)
-    xyzi = condense_reynolds_stress_tensor(xyzi, indices=indices)
-    xyza = temporal_average(xyzi)
-
-    xyii = condense_velocities(xyii, indices=indices)
-    xyii = condense_velocity_gradient_tensor(xyii, indices=indices)
-    xyii = condense_reynolds_stress_tensor(xyii, indices=indices)
-    xyia = temporal_average(xyii)
+    #+++ Condense and time-average tensors in parallel
+    print("Processing datasets in parallel...")
+    results = {}
+    with ThreadPoolExecutor(max_workers=16) as executor:
+        # Submit both processing tasks
+        future_xyzi = executor.submit(process_dataset, xyzi, 'xyzi', indices)
+        future_xyii = executor.submit(process_dataset, xyii, 'xyii', indices)
+        
+        # Collect results as they complete
+        for future in as_completed([future_xyzi, future_xyii]):
+            if future == future_xyzi:
+                xyza = future.result()
+                print("✓ Completed xyzi processing")
+            else:
+                xyia = future.result()
+                print("✓ Completed xyii processing")
     #---
 
     #+++ Save xyia

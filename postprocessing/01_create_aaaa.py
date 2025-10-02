@@ -15,7 +15,7 @@ print("Starting aaaa dataset creation script")
 
 #+++ Define directory and simulation name
 if basename(__file__) != "00_run_postproc.py":
-    path = "../simulations/data/"
+    simdata_path = "../simulations/data/"
     simname_base = "seamount"
 
     Rossby_numbers = cycler(Ro_h = [0.1])
@@ -38,7 +38,7 @@ for j, config in enumerate(runs):
 
     #+++ Open aaai dataset
     print(f"\nOpening {simname} aaai")
-    aaai = open_simulation(path+f"aaai.{simname}.nc",
+    aaai = open_simulation(simdata_path+f"aaai.{simname}.nc",
                            use_advective_periods = True,
                            squeeze = True,
                            load = False,

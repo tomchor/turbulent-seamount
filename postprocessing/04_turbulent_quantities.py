@@ -7,8 +7,6 @@ from cycler import cycler
 import pynanigans as pn
 from src.aux00_utils import (aggregate_parameters, normalize_unicode_names_in_dataset, integrate,
                              drop_faces, mask_immersed, gather_attributes_as_variables)
-from src.aux01_physfuncs import (get_turbulent_Reynolds_stress_tensor, get_shear_production_rates)
-from colorama import Fore, Back, Style
 from dask.diagnostics.progress import ProgressBar
 xr.set_options(display_width=140, display_max_rows=30)
 π = np.pi
@@ -24,7 +22,7 @@ if basename(__file__) != "00_run_postproc.py":
     Froude_numbers = cycler(Fr_h = [1])
     L              = cycler(L = [0])
 
-    resolutions    = cycler(dz = [4])
+    resolutions    = cycler(dz = [8])
     FWHM           = cycler(FWHM = [500])
 
     paramspace = Rossby_numbers * Froude_numbers * (L + FWHM)
@@ -40,57 +38,48 @@ for j, config in enumerate(runs):
     print(f"\nLoading time-averaged data for {simname}")
     xyza = xr.open_dataset(f"data/xyza.{simname}.nc", chunks="auto")
     xyzd = xr.open_dataset(f"data/xyzd.{simname}.nc", chunks="auto")
+
+    xyza = xr.merge([xyza, xyzd])
     #---
 
     #+++ Normalize Unicode variable names
     xyza = normalize_unicode_names_in_dataset(xyza)
     #---
 
-    #+++ Get turbulent variables (only those not already calculated in xyzd)
-    xyza = get_turbulent_Reynolds_stress_tensor(xyza)
-    xyza = get_shear_production_rates(xyza)
-    #---
-
-    #+++ Volume-average/integrate results so far
+    #+++ Volume-average/integrate departure from base state
     xyza["ΔxΔyΔz"] = xyza["Δx_caa"] * xyza["Δy_aca"] * xyza["Δz_aac"]
-    xyza["ΔxΔy"] = xyza["Δx_caa"] * xyza["Δy_aca"]
-    xyza["ΔyΔz"] = xyza["Δy_aca"] * xyza["Δz_aac"]
+    xyza["ΔxΔy"]   = xyza["Δx_caa"] * xyza["Δy_aca"]
+    xyza["ΔyΔz"]   = xyza["Δy_aca"] * xyza["Δz_aac"]
 
     xyza = drop_faces(xyza, drop_coords=True).where(xyza.distance_condition_10meters, other=np.nan)
-    for var in ["ε̄ₚ", "ε̄ₖ", "SPR"]:
+    aaad = xr.Dataset()
+    aaad.attrs = xyza.attrs
+    for var in ["ε̄ₚ", "ε̄ₖ", "SPR", "⟨Ek′⟩ₜ", "⟨w′b′⟩ₜ"]:
         int_buf = f"∭⁵{var}dV"
-        xyza[int_buf] = integrate(xyza[var], dV=xyza.ΔxΔyΔz)
+        aaad[int_buf] = integrate(xyza[var], dV=xyza.ΔxΔyΔz)
+    #---
 
-    xyza["average_turbulence_mask"] = xyza["ε̄ₖ"] > 1e-11
+    #+++ Calculate turbulent quantities for the average turbulence region
+    aaad["average_turbulence_mask"] = xyza["ε̄ₖ"] > 1e-11
     xyza["1"] = mask_immersed(xr.ones_like(xyza["ε̄ₖ"]), xyza.peripheral_nodes_ccc)
     for var in ["ε̄ₖ", "1"]:
         int_turb = f"∭ᵋ{var}dxdy"
-        xyza[int_turb] = integrate(xyza[var], dV=xyza.ΔxΔyΔz.where(xyza.average_turbulence_mask))
+        aaad[int_turb] = integrate(xyza[var], dV=xyza.ΔxΔyΔz.where(aaad.average_turbulence_mask))
     #---
 
-    #+++ Create bulk dataset
-    bulk = xr.Dataset()
-    bulk.attrs = xyza.attrs
+    #+++ Create aaad dataset
+    aaad["U∞∬⟨Ek′⟩ₜdxdz"] = xyza["U∞∬⟨Ek′⟩ₜdydz"]
+    aaad["⟨ε̄ₖ⟩ᵋ"]     = aaad["∭ᵋε̄ₖdxdy"] / aaad["∭ᵋ1dxdy"]
+    aaad["Loᵋ"]       = 2*π * np.sqrt(aaad["⟨ε̄ₖ⟩ᵋ"] / aaad.N2_inf**(3/2))
+    aaad["Δz̃"]        = aaad.Δz_min / aaad["Loᵋ"]
 
-    # Use pre-calculated values from xyzd dataset
-    bulk["∭⁵⟨Ek′⟩ₜdV"]  = xyzd["∭⁵⟨Ek′⟩ₜdV"]
-    bulk["∭⁵⟨w′b′⟩ₜdV"] = xyzd["∭⁵⟨w′b′⟩ₜdV"]
-    bulk["∭⁵SPRdxdy"]   = xyza["∭⁵SPRdV"]
-
-    bulk["U∞∬⟨Ek′⟩ₜdxdz"] = xyzd["U∞∬⟨Ek′⟩ₜdxdz"]
-
-    bulk["∭ᵋε̄ₖdxdy"] = xyza["∭ᵋε̄ₖdxdy"]
-    bulk["⟨ε̄ₖ⟩ᵋ"]    = xyza["∭ᵋε̄ₖdxdy"] / xyza["∭ᵋ1dxdy"]
-    bulk["Loᵋ"]      = 2*π * np.sqrt(bulk["⟨ε̄ₖ⟩ᵋ"] / bulk.N2_inf**(3/2))
-    bulk["Δz̃"]       = bulk.Δz_min / bulk["Loᵋ"]
-
-    bulk = gather_attributes_as_variables(bulk, ds_ref=xyza)
+    aaad = gather_attributes_as_variables(aaad, ds_ref=xyza)
     #---
 
-    #+++ Save turbstats
-    outname = f"data/turbstats_{simname}.nc"
+    #+++ Save aaad
+    outname = f"data/aaad.{simname}.nc"
     with ProgressBar(minimum=2, dt=5):
-        print(f"Saving bulk results to {outname}...")
-        bulk.to_netcdf(outname)
+        print(f"Saving aaad results to {outname}...")
+        aaad.to_netcdf(outname)
         print("Done!\n")
     #---

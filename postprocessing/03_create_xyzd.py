@@ -36,7 +36,7 @@ if basename(__file__) != "00_run_postproc.py":
 for j, config in enumerate(runs):
     simname = f"{simname_base}_" + aggregate_parameters(config, sep="_", prefix="")
 
-    #+++ Open datasets
+    #+++ Open dataset
     print(f"\nOpening {simname} xyzi")
     xyzi = open_simulation(simdata_path+f"xyzi.{simname}.nc",
                            use_advective_periods = True,
@@ -51,7 +51,7 @@ for j, config in enumerate(runs):
     indices = xyza.i.values
     #---
 
-    #+++ Get datasets ready
+    #+++ Get dataset ready
     xyzi = adjust_times(xyzi, round_times=True)
     xyzi = xyzi.reindex_like(xyza)
 

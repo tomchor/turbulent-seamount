@@ -25,8 +25,9 @@ if basename(__file__) != "00_run_postproc.py":
     L              = cycler(L = [0])
 
     resolutions    = cycler(dz = [4])
+    FWHM           = cycler(FWHM = [500])
 
-    paramspace = Rossby_numbers * Froude_numbers * L
+    paramspace = Rossby_numbers * Froude_numbers * (L + FWHM)
     configs    = resolutions
 
     runs = paramspace * configs
@@ -38,21 +39,16 @@ for j, config in enumerate(runs):
     #+++ Load time-averaged datasets
     print(f"\nLoading time-averaged data for {simname}")
     xyza = xr.open_dataset(f"data/xyza.{simname}.nc", chunks="auto")
-    xyia = xr.open_dataset(f"data/xyia.{simname}.nc", chunks="auto")
     xyzd = xr.open_dataset(f"data/xyzd.{simname}.nc", chunks="auto")
     #---
 
     #+++ Normalize Unicode variable names
     xyza = normalize_unicode_names_in_dataset(xyza)
-    xyia = normalize_unicode_names_in_dataset(xyia)
     #---
 
     #+++ Get turbulent variables (only those not already calculated in xyzd)
     xyza = get_turbulent_Reynolds_stress_tensor(xyza)
     xyza = get_shear_production_rates(xyza)
-
-    xyia = get_turbulent_Reynolds_stress_tensor(xyia)
-    xyia = get_shear_production_rates(xyia)
     #---
 
     #+++ Volume-average/integrate results so far

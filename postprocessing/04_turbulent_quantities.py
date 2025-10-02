@@ -67,6 +67,19 @@ for j, config in enumerate(runs):
         aaad[int_turb] = integrate(xyza[var], dV=xyza.ΔxΔyΔz.where(aaad.average_turbulence_mask))
     #---
 
+    #+++ Calculate masked vertical averages of turbulent quantities
+    print("Computing masked vertical averages...")
+    # Create vertical average datasets with turbulence mask
+    for var in ["ε̄ₚ", "ε̄ₖ", "SPR", "⟨Ek′⟩ₜ", "⟨w′b′⟩ₜ"]:
+        # Masked vertical average (only where turbulence is significant)
+        masked_var = xyza[var].where(aaad.average_turbulence_mask)
+        masked_dz = xyza.ΔxΔyΔz.where(aaad.average_turbulence_mask)
+
+        # Vertical average: sum(var * dz) / sum(dz) along z dimension
+        vert_avg_name = f"⟨{var}⟩ᶻ"  # vertical average with turbulence mask
+        aaad[vert_avg_name] = (masked_var * masked_dz).sum("z_aac") / masked_dz.sum("z_aac")
+    #---
+
     #+++ Create aaad dataset
     aaad["U∞∬⟨Ek′⟩ₜdxdz"] = xyza["U∞∬⟨Ek′⟩ₜdydz"]
     aaad["⟨ε̄ₖ⟩ᵋ"]     = aaad["∭ᵋε̄ₖdxdy"] / aaad["∭ᵋ1dxdy"]

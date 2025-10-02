@@ -40,6 +40,6 @@ for config in configs:
 
 print(Back.LIGHTWHITE_EX + Fore.BLUE + "\nStarting 01 post-processing of results using `configs`", Style.RESET_ALL, configs)
 exec(open("01_create_aaaa.py").read())
-exec(open("02_create_xyzd.py").read())
-exec(open("03_create_xyza_xyia.py").read())
+exec(open("02_create_xyza_xyia.py").read())
+exec(open("03_create_xyzd.py").read())
 exec(open("04_turbulent_quantities.py").read())

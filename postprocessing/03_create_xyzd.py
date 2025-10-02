@@ -33,11 +33,6 @@ if basename(__file__) != "00_run_postproc.py":
     runs = paramspace * configs
 #---
 
-#+++ Options
-indices = [1, 2, 3]
-write_xyza = True
-#---
-
 for j, config in enumerate(runs):
     simname = f"{simname_base}_" + aggregate_parameters(config, sep="_", prefix="")
 
@@ -50,6 +45,9 @@ for j, config in enumerate(runs):
                            get_grid = False,
                            open_dataset_kwargs = dict(chunks="auto"),
                            )
+
+    xyza = xr.open_dataset(path+f"xyza.{simname}.nc", chunks="auto")
+    indices = xyza.indices.values
     #---
 
     #+++ Get datasets ready
@@ -113,10 +111,11 @@ for j, config in enumerate(runs):
     #---
 
     #+++ Calculate flux of turbulent kinetic energy out of the domain
-    xyzd["U∞∬⟨Ek′⟩ₜdxdz"] = xyzd.attrs["U∞"] * integrate(xyzd["⟨Ek′⟩ₜ"], dV=xyzd.ΔxΔz, dims=["x", "z"]).pnsel(y=np.inf, method="nearest")
+    xyzd["U∞∬⟨Ek′⟩ₜdydz"] = xyzd.attrs["U∞"] * integrate(xyzd["⟨Ek′⟩ₜ"], dV=xyzd.ΔyΔz, dims=["y", "z"]).pnsel(x=np.inf, method="nearest")
     #---
 
     #+++ Drop variables that are not needed and save xyzd
+    pause
     xyzd = xyzd.drop(["ūᵢ", "b̄", "⟨uᵢuᵢ⟩ₜ", "⟨wb⟩ₜ"])
 
     outname = f"data/xyzd.{simname}.nc"

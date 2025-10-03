@@ -7,7 +7,7 @@ using CUDA: has_cuda_gpu
 using PrettyPrinting: pprintln
 using TickTock: tick, tock
 using NCDatasets: NCDataset
-import Interpolations
+import Interpolations # To use Flat in a way that doesn't conflict with Oceananigans.Flat
 
 using Oceananigans
 using Oceananigans.Units
@@ -139,10 +139,9 @@ if params.L == 0
     smoothed_elevation = elevation
 else
     @warn "Smoothing bathymetry with length scale L/FWHM=$(params.L)"
-    smoothed_elevation = smooth_bathymetry_3d(elevation, x, y;
-                                              scale_x = params.L * ds_bathymetry.attrib["FWHM"], # Based on the data's FWHM
-                                              scale_y = params.L * ds_bathymetry.attrib["FWHM"], # Based on the data's FWHM
-                                              bathymetry_filepath)
+    smoothed_elevation = smooth_bathymetry_with_coarsening(elevation, x, y;
+                                                           scale_x=params.L * ds_bathymetry.attrib["FWHM"],
+                                                           scale_y=params.L * ds_bathymetry.attrib["FWHM"])
 end
 
 # Make sure that the total mass of the smoothed bathymetry is about the same as the original bathymetry

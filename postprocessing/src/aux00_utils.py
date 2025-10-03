@@ -73,7 +73,7 @@ def open_simulation(fname,
                     open_dataset_kwargs=dict(),
                     load=False,
                     squeeze=True,
-                    unique=True,
+                    unique_times=True,
                     verbose=False,
                     get_grid = True,
                     topology="PPN", **kwargs):
@@ -107,7 +107,7 @@ def open_simulation(fname,
     #---
 
     #+++ Returning only unique times:
-    if unique:
+    if unique_times:
         import numpy as np
         _, index = np.unique(ds['time'], return_index=True)
         if verbose and (len(index)!=len(ds.time)): print("Cleaning non-unique indices")

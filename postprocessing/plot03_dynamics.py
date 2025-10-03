@@ -24,14 +24,14 @@ avgd_opts = dict(unique_times=False,
                  load=False,
                  get_grid=False,
                  open_dataset_kwargs=dict(chunks="auto"))
-xyzi_L00 = open_simulation(simdata_path + f"xyzi.seamount_Ro_h0.1_Fr_h1_L0_FWHM500_{resolution}.nc", **snap_opts)["PV"]
+xyzi_L00 = open_simulation(simdata_path + f"xyzi.seamount_Ro_h0.1_Fr_h1_L0_FWHM500_{resolution}.nc", **snap_opts)[["PV", "Ro", "Δz_aac"]]
 xyzd_L00 = open_simulation(postproc_path + f"xyzd.seamount_Ro_h0.1_Fr_h1_L0_FWHM500_{resolution}.nc", **avgd_opts)
-aaad_L00 = open_simulation(postproc_path + f"aaad.seamount_Ro_h0.1_Fr_h1_L0_FWHM500_{resolution}.nc", **avgd_opts)
+aaad_L00 = open_simulation(postproc_path + f"aaad.seamount_Ro_h0.1_Fr_h1_L0_FWHM500_{resolution}.nc", **avgd_opts).sel(buffer=5)
 ds_L00 = xr.merge([xyzi_L00, xyzd_L00, aaad_L00])
 
-xyzi_L08 = open_simulation(simdata_path + f"xyzi.seamount_Ro_h0.1_Fr_h1_L0.8_FWHM500_{resolution}.nc", **snap_opts)["PV"]
+xyzi_L08 = open_simulation(simdata_path + f"xyzi.seamount_Ro_h0.1_Fr_h1_L0.8_FWHM500_{resolution}.nc", **snap_opts)[["PV", "Ro", "Δz_aac"]]
 xyzd_L08 = open_simulation(postproc_path + f"xyzd.seamount_Ro_h0.1_Fr_h1_L0.8_FWHM500_{resolution}.nc", **avgd_opts)
-aaad_L08 = open_simulation(postproc_path + f"aaad.seamount_Ro_h0.1_Fr_h1_L0.8_FWHM500_{resolution}.nc", **avgd_opts)
+aaad_L08 = open_simulation(postproc_path + f"aaad.seamount_Ro_h0.1_Fr_h1_L0.8_FWHM500_{resolution}.nc", **avgd_opts).sel(buffer=5)
 ds_L08 = xr.merge([xyzi_L08, xyzd_L08, aaad_L08])
 #---
 
@@ -42,18 +42,16 @@ def prepare_ds(ds,
                t_slice = 20):
     print("  Restricting domain and selecting time...")
     # Restrict domain first and select time immediately to minimize data
-    ds = ds.sel(z_aac=z_slice, z_aaf=z_slice, x_caa=x_slice).sel(time=t_slice, method="nearest")
+    ds = ds.sel(z_aac=z_slice, x_caa=x_slice).sel(time=t_slice, method="nearest")
 
     print("  Computing z-averages efficiently...")
     # Use the mask directly without converting to NaN (much faster)
     mask = ds.distance_condition_5meters
     masked_volume = (mask * ds.Δz_aac).pnsum("z").load()
 
-    ds["PV_zavg"] = (mask * ds["PV"] * ds.Δz_aac).pnsum("z") / masked_volume
     ds["Ro_zavg"] = (mask * ds["Ro"] * ds.Δz_aac).pnsum("z") / masked_volume
-    ds["εₖ_zavg"] = (mask * ds["εₖ"] * ds.Δz_aac).pnsum("z") / masked_volume
-    ds["εₚ_zavg"] = (mask * ds["εₚ"] * ds.Δz_aac).pnsum("z") / masked_volume
-    ds["wb_zavg"] = (mask * ds["⟨w′b′⟩ₜ"] * ds.Δz_aac).pnsum("z") / masked_volume
+    # ds["εₖ_zavg"] = (mask * ds["εₖ"] * ds.Δz_aac).pnsum("z") / masked_volume
+    # ds["εₚ_zavg"] = (mask * ds["εₚ"] * ds.Δz_aac).pnsum("z") / masked_volume
     
     return ds
 
@@ -68,17 +66,16 @@ print("Data preparation complete!")
 print("Creating subplot grid")
 fig, axes = plt.subplots(nrows=5, ncols=2, figsize=(15, 15), sharex=True, layout=None)
 plt.subplots_adjust(wspace=0.05, hspace=0)
+
+datasets = [(ds_L00, "0"), (ds_L08, "0.8")]
+yticks = [-500, 0, 500]
 #---
 
 #+++ Plot PV for both cases
 print("Plotting PV")
 xyi_sel_opts = dict(z=ds_L00.H / 3, method="nearest")
-datasets = [(ds_L00, "0"), (ds_L08, "0.8")]
 
-# Common y-axis ticks for all panels
-yticks = [-500, 0, 500]
-
-PV_inf = ds_L00.N2_inf * ds_L00.f_0
+PV_inf = ds_L00.N2_inf * abs(ds_L00.f_0)
 for i, (ds, L_str) in enumerate(datasets):
     ax = axes[0, i]
     # Data is already loaded and time-selected
@@ -101,7 +98,10 @@ for i, (ds, L_str) in enumerate(datasets):
 # Add colorbar for PV row (aligned with rightmost panel)
 divider = make_axes_locatable(axes[0, 1])
 cbar_ax = divider.append_axes("right", size="5%", pad=0.1)
-plt.colorbar(im, cax=cbar_ax, label="PV", shrink=0.5)
+cbar = plt.colorbar(im, cax=cbar_ax, label="PV")
+# Shrink colorbar height
+pos = cbar_ax.get_position()
+cbar_ax.set_position([pos.x0, pos.y0 + pos.height*0.25, pos.width, pos.height*0.5])
 #---
 
 #+++ Plot Ro for both cases
@@ -128,7 +128,10 @@ for i, (ds, L_str) in enumerate(datasets):
 # Add colorbar for Ro row (aligned with rightmost panel)
 divider = make_axes_locatable(axes[1, 1])
 cbar_ax = divider.append_axes("right", size="5%", pad=0.1)
-plt.colorbar(im, cax=cbar_ax, label="Ro", shrink=0.5)
+cbar = plt.colorbar(im, cax=cbar_ax, label="Ro")
+# Shrink colorbar height
+pos = cbar_ax.get_position()
+cbar_ax.set_position([pos.x0, pos.y0 + pos.height*0.25, pos.width, pos.height*0.5])
 #---
 
 #+++ Plot εₖ z-averaged
@@ -136,11 +139,11 @@ print("Plotting εₖ_zavg")
 for i, (ds, L_str) in enumerate(datasets):
     ax = axes[2, i]
     # Data is already loaded and processed
-    im = ds["εₖ_zavg"].plot.imshow(ax=ax, x="x_caa",
-                                   cmap="inferno",
-                                   add_colorbar=False,
-                                   rasterized=True,
-                                   norm=LogNorm(vmin=1e-10, vmax=1e-8))
+    im = ds["⟨ε̄ₖ⟩ᶻ"].plot.imshow(ax=ax, x="x_caa",
+                                 cmap="inferno",
+                                 add_colorbar=False,
+                                 rasterized=True,
+                                 norm=LogNorm(vmin=1e-11, vmax=1e-8))
     ax.set_title("")
     ax.set_xlabel("")
     ax.set_yticks(yticks)
@@ -153,7 +156,10 @@ for i, (ds, L_str) in enumerate(datasets):
 # Add colorbar for εₖ row (aligned with rightmost panel)
 divider = make_axes_locatable(axes[2, 1])
 cbar_ax = divider.append_axes("right", size="5%", pad=0.1)
-plt.colorbar(im, cax=cbar_ax, label="εₖ" , shrink=0.5)
+cbar = plt.colorbar(im, cax=cbar_ax, label="εₖ")
+# Shrink colorbar height
+pos = cbar_ax.get_position()
+cbar_ax.set_position([pos.x0, pos.y0 + pos.height*0.25, pos.width, pos.height*0.5])
 #---
 
 #+++ Plot εₚ z-averaged
@@ -161,11 +167,11 @@ print("Plotting εₚ_zavg")
 for i, (ds, L_str) in enumerate(datasets):
     ax = axes[3, i]
     # Data is already loaded and processed
-    im = ds["εₚ_zavg"].plot.imshow(ax=ax, x="x_caa",
-                                   cmap="inferno",
-                                   add_colorbar=False,
-                                   rasterized=True,
-                                   norm=LogNorm(vmin=1e-11, vmax=1e-9))
+    im = ds["⟨ε̄ₚ⟩ᶻ"].plot.imshow(ax=ax, x="x_caa",
+                                 cmap="inferno",
+                                 add_colorbar=False,
+                                 rasterized=True,
+                                 norm=LogNorm(vmin=1e-11, vmax=1e-8))
     ax.set_title("")
     ax.set_xlabel("x [m]")
     ax.set_yticks(yticks)
@@ -178,7 +184,10 @@ for i, (ds, L_str) in enumerate(datasets):
 # Add colorbar for εₚ row (aligned with rightmost panel)
 divider = make_axes_locatable(axes[3, 1])
 cbar_ax = divider.append_axes("right", size="5%", pad=0.1)
-plt.colorbar(im, cax=cbar_ax, label="εₚ", shrink=0.5)
+cbar = plt.colorbar(im, cax=cbar_ax, label="εₚ")
+# Shrink colorbar height
+pos = cbar_ax.get_position()
+cbar_ax.set_position([pos.x0, pos.y0 + pos.height*0.25, pos.width, pos.height*0.5])
 #---
 
 #+++ Plot wb_zavg
@@ -186,12 +195,12 @@ print("Plotting wb_zavg")
 for i, (ds, L_str) in enumerate(datasets):
     ax = axes[4, i]
     # Data is already loaded and processed
-    im = ds["wb_zavg"].plot.imshow(ax=ax, x="x_caa",
-                                   cmap="RdBu_r",
-                                   add_colorbar=False,
-                                   rasterized=True,
-                                   vmin=-4e-11,
-                                   vmax=+4e-11)
+    im = ds["⟨⟨w′b′⟩ₜ⟩ᶻ"].plot.imshow(ax=ax, x="x_caa",
+                                      cmap="RdBu_r",
+                                      add_colorbar=False,
+                                      rasterized=True,
+                                      vmin=-4e-11,
+                                      vmax=+4e-11)
     ax.set_title("")
     ax.set_xlabel("x [m]")
     ax.set_yticks(yticks)
@@ -204,7 +213,10 @@ for i, (ds, L_str) in enumerate(datasets):
 # Add colorbar for wb_zavg row (aligned with rightmost panel)
 divider = make_axes_locatable(axes[4, 1])
 cbar_ax = divider.append_axes("right", size="5%", pad=0.1)
-plt.colorbar(im, cax=cbar_ax, label="wb", shrink=0.5)
+cbar = plt.colorbar(im, cax=cbar_ax, label="wb")
+# Shrink colorbar height
+pos = cbar_ax.get_position()
+cbar_ax.set_position([pos.x0, pos.y0 + pos.height*0.25, pos.width, pos.height*0.5])
 #---
 
 #+++ Save

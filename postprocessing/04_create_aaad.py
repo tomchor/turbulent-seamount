@@ -6,7 +6,7 @@ import xarray as xr
 from cycler import cycler
 import pynanigans as pn
 from src.aux00_utils import (aggregate_parameters, normalize_unicode_names_in_dataset, integrate,
-                             drop_faces, mask_immersed, gather_attributes_as_variables)
+                             drop_faces, mask_immersed, gather_attributes_as_variables, condense)
 from dask.diagnostics.progress import ProgressBar
 xr.set_options(display_width=140, display_max_rows=30)
 π = np.pi
@@ -66,6 +66,9 @@ for j, config in enumerate(runs):
         int_buf_10m = f"∭¹⁰{var}dV"
         masked_dV_10m = xyza.ΔxΔyΔz.where(xyza.distance_condition_10meters)
         aaad[int_buf_10m] = integrate(xyza[var], dV=masked_dV_10m)
+
+        aaad = condense(aaad, [int_buf_5m, int_buf_10m], f"∭{var}dV", dimname="buffer", indices=[5, 10])
+
     #---
 
     #+++ Calculate turbulent quantities for the average turbulence region
@@ -90,6 +93,8 @@ for j, config in enumerate(runs):
         masked_dz_10m = xyza.Δz_aac.where(xyza.distance_condition_10meters)
         vert_avg_name_10m = f"⟨{var}⟩ᶻ¹⁰"  # vertical average with 10m buffer
         aaad[vert_avg_name_10m] = (xyza[var] * masked_dz_10m).sum("z_aac") / masked_dz_10m.sum("z_aac")
+
+        aaad = condense(aaad, [vert_avg_name_5m, vert_avg_name_10m], f"⟨{var}⟩ᶻ", dimname="buffer", indices=[5, 10])
     #---
 
     #+++ Create aaad dataset

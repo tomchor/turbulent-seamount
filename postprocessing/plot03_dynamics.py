@@ -20,19 +20,19 @@ snap_opts = dict(use_advective_periods=True,
                  load=False,
                  get_grid=False,
                  open_dataset_kwargs=dict(chunks="auto"))
-opensim_opts = dict(unique_times=False,
-                    load=False,
-                    get_grid=False,
-                    open_dataset_kwargs=dict(chunks="auto"))
-xyzi_L00 = open_simulation(simdata_path + f"xyzi.seamount_Ro_h0.1_Fr_h1_L0_FWHM500_{resolution}.nc", **snap_opts)
-xyzd_L00 = open_simulation(postproc_path + f"xyzd.seamount_Ro_h0.1_Fr_h1_L0_FWHM500_{resolution}.nc", **opensim_opts)
-turb_L00 = open_simulation(postproc_path + f"turbstats_seamount_Ro_h0.1_Fr_h1_L0_FWHM500_{resolution}.nc", **opensim_opts)
-ds_L00 = xr.merge([xyzi_L00, xyzd_L00, turb_L00])
+avgd_opts = dict(unique_times=False,
+                 load=False,
+                 get_grid=False,
+                 open_dataset_kwargs=dict(chunks="auto"))
+xyzi_L00 = open_simulation(simdata_path + f"xyzi.seamount_Ro_h0.1_Fr_h1_L0_FWHM500_{resolution}.nc", **snap_opts)["PV"]
+xyzd_L00 = open_simulation(postproc_path + f"xyzd.seamount_Ro_h0.1_Fr_h1_L0_FWHM500_{resolution}.nc", **avgd_opts)
+aaad_L00 = open_simulation(postproc_path + f"aaad.seamount_Ro_h0.1_Fr_h1_L0_FWHM500_{resolution}.nc", **avgd_opts)
+ds_L00 = xr.merge([xyzi_L00, xyzd_L00, aaad_L00])
 
-xyzi_L08 = open_simulation(simdata_path + f"xyzi.seamount_Ro_h0.1_Fr_h1_L0.8_FWHM500_{resolution}.nc", **snap_opts)
-xyzd_L08 = open_simulation(postproc_path + f"xyzd.seamount_Ro_h0.1_Fr_h1_L0.8_FWHM500_{resolution}.nc", **opensim_opts)
-turb_L08 = open_simulation(postproc_path + f"turbstats_seamount_Ro_h0.1_Fr_h1_L0.8_FWHM500_{resolution}.nc", **opensim_opts)
-ds_L08 = xr.merge([xyzi_L08, xyzd_L08, turb_L08])
+xyzi_L08 = open_simulation(simdata_path + f"xyzi.seamount_Ro_h0.1_Fr_h1_L0.8_FWHM500_{resolution}.nc", **snap_opts)["PV"]
+xyzd_L08 = open_simulation(postproc_path + f"xyzd.seamount_Ro_h0.1_Fr_h1_L0.8_FWHM500_{resolution}.nc", **avgd_opts)
+aaad_L08 = open_simulation(postproc_path + f"aaad.seamount_Ro_h0.1_Fr_h1_L0.8_FWHM500_{resolution}.nc", **avgd_opts)
+ds_L08 = xr.merge([xyzi_L08, xyzd_L08, aaad_L08])
 #---
 
 #+++ Create new variables and restrict volume

@@ -54,10 +54,18 @@ for j, config in enumerate(runs):
     xyza = drop_faces(xyza, drop_coords=True)
     aaad = xr.Dataset()
     aaad.attrs = xyza.attrs
+
+    # Volume integrations with both 5m and 10m buffers
     for var in ["ε̄ₚ", "ε̄ₖ", "SPR", "⟨Ek′⟩ₜ", "⟨w′b′⟩ₜ"]:
-        int_buf = f"∭⁵{var}dV"
-        masked_dV = xyza.ΔxΔyΔz.where(xyza.distance_condition_10meters)
-        aaad[int_buf] = integrate(xyza[var], dV=masked_dV)
+        # 5-meter buffer integration
+        int_buf_5m = f"∭⁵{var}dV"
+        masked_dV_5m = xyza.ΔxΔyΔz.where(xyza.distance_condition_5meters)
+        aaad[int_buf_5m] = integrate(xyza[var], dV=masked_dV_5m)
+
+        # 10-meter buffer integration
+        int_buf_10m = f"∭¹⁰{var}dV"
+        masked_dV_10m = xyza.ΔxΔyΔz.where(xyza.distance_condition_10meters)
+        aaad[int_buf_10m] = integrate(xyza[var], dV=masked_dV_10m)
     #---
 
     #+++ Calculate turbulent quantities for the average turbulence region
@@ -71,14 +79,17 @@ for j, config in enumerate(runs):
 
     #+++ Calculate masked vertical averages of turbulent quantities
     print("Computing masked vertical averages...")
-    # Create vertical average datasets with turbulence mask
+    # Create vertical average datasets with both 5m and 10m buffers
     for var in ["ε̄ₚ", "ε̄ₖ", "SPR", "⟨Ek′⟩ₜ", "⟨w′b′⟩ₜ"]:
-        # Masked vertical average (only where turbulence is significant)
-        masked_dz = xyza.Δz_aac.where(xyza.distance_condition_10meters)
+        # 5-meter buffer vertical average
+        masked_dz_5m = xyza.Δz_aac.where(xyza.distance_condition_5meters)
+        vert_avg_name_5m = f"⟨{var}⟩ᶻ⁵"  # vertical average with 5m buffer
+        aaad[vert_avg_name_5m] = (xyza[var] * masked_dz_5m).sum("z_aac") / masked_dz_5m.sum("z_aac")
 
-        # Vertical average: sum(var * dz) / sum(dz) along z dimension
-        vert_avg_name = f"⟨{var}⟩ᶻ"  # vertical average with turbulence mask
-        aaad[vert_avg_name] = (xyza[var] * masked_dz).sum("z_aac") / masked_dz.sum("z_aac")
+        # 10-meter buffer vertical average
+        masked_dz_10m = xyza.Δz_aac.where(xyza.distance_condition_10meters)
+        vert_avg_name_10m = f"⟨{var}⟩ᶻ¹⁰"  # vertical average with 10m buffer
+        aaad[vert_avg_name_10m] = (xyza[var] * masked_dz_10m).sum("z_aac") / masked_dz_10m.sum("z_aac")
     #---
 
     #+++ Create aaad dataset

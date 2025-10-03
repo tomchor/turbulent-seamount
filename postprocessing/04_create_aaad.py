@@ -51,12 +51,13 @@ for j, config in enumerate(runs):
     xyza["ΔxΔy"]   = xyza["Δx_caa"] * xyza["Δy_aca"]
     xyza["ΔyΔz"]   = xyza["Δy_aca"] * xyza["Δz_aac"]
 
-    xyza = drop_faces(xyza, drop_coords=True).where(xyza.distance_condition_10meters, other=np.nan)
+    xyza = drop_faces(xyza, drop_coords=True)
     aaad = xr.Dataset()
     aaad.attrs = xyza.attrs
     for var in ["ε̄ₚ", "ε̄ₖ", "SPR", "⟨Ek′⟩ₜ", "⟨w′b′⟩ₜ"]:
         int_buf = f"∭⁵{var}dV"
-        aaad[int_buf] = integrate(xyza[var], dV=xyza.ΔxΔyΔz)
+        masked_dV = xyza.ΔxΔyΔz.where(xyza.distance_condition_10meters)
+        aaad[int_buf] = integrate(xyza[var], dV=masked_dV)
     #---
 
     #+++ Calculate turbulent quantities for the average turbulence region
@@ -64,7 +65,8 @@ for j, config in enumerate(runs):
     xyza["1"] = mask_immersed(xr.ones_like(xyza["ε̄ₖ"]), xyza.peripheral_nodes_ccc)
     for var in ["ε̄ₖ", "1"]:
         int_turb = f"∭ᵋ{var}dxdy"
-        aaad[int_turb] = integrate(xyza[var], dV=xyza.ΔxΔyΔz.where(aaad.average_turbulence_mask))
+        masked_dV = xyza.ΔxΔyΔz.where(aaad.average_turbulence_mask)
+        aaad[int_turb] = integrate(xyza[var], dV=masked_dV)
     #---
 
     #+++ Calculate masked vertical averages of turbulent quantities
@@ -72,12 +74,11 @@ for j, config in enumerate(runs):
     # Create vertical average datasets with turbulence mask
     for var in ["ε̄ₚ", "ε̄ₖ", "SPR", "⟨Ek′⟩ₜ", "⟨w′b′⟩ₜ"]:
         # Masked vertical average (only where turbulence is significant)
-        masked_var = xyza[var].where(aaad.average_turbulence_mask)
-        masked_dz = xyza.ΔxΔyΔz.where(aaad.average_turbulence_mask)
+        masked_dz = xyza.Δz_aac.where(xyza.distance_condition_10meters)
 
         # Vertical average: sum(var * dz) / sum(dz) along z dimension
         vert_avg_name = f"⟨{var}⟩ᶻ"  # vertical average with turbulence mask
-        aaad[vert_avg_name] = (masked_var * masked_dz).sum("z_aac") / masked_dz.sum("z_aac")
+        aaad[vert_avg_name] = (xyza[var] * masked_dz).sum("z_aac") / masked_dz.sum("z_aac")
     #---
 
     #+++ Create aaad dataset

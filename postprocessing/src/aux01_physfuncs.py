@@ -367,7 +367,9 @@ def get_turbulent_kinetic_energy(ds, normalize_unicode=True):
     if "⟨u′ᵢu′ᵢ⟩ₜ" in ds.variables: # If we have the diagonal of the tensor
         ds["⟨Ek′⟩ₜ"] = ds["⟨u′ᵢu′ᵢ⟩ₜ"].sum("i") / 2
     elif "⟨u′ⱼu′ᵢ⟩ₜ" in ds.variables: # If we have the full tensor
-        ds["⟨Ek′⟩ₜ"] = ds["⟨u′ⱼu′ᵢ⟩ₜ"].sel(j=1) + ds["⟨u′ⱼu′ᵢ⟩ₜ"].sel(j=2) + ds["⟨u′ⱼu′ᵢ⟩ₜ"].sel(j=3)
+        ds["⟨Ek′⟩ₜ"] = (ds["⟨u′ⱼu′ᵢ⟩ₜ"].sel(i=1, j=1) +
+                        ds["⟨u′ⱼu′ᵢ⟩ₜ"].sel(i=2, j=2) +
+                        ds["⟨u′ⱼu′ᵢ⟩ₜ"].sel(i=3, j=3)) / 2
     else:
         raise(ValueError("No velocity variance variable found"))
 

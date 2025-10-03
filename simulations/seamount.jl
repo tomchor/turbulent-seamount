@@ -7,7 +7,7 @@ using CUDA: has_cuda_gpu
 using PrettyPrinting: pprintln
 using TickTock: tick, tock
 using NCDatasets: NCDataset
-import Interpolations
+import Interpolations # To use Flat in a way that doesn't conflict with Oceananigans.Flat
 
 using Oceananigans
 using Oceananigans.Units
@@ -139,10 +139,9 @@ if params.L == 0
     smoothed_elevation = elevation
 else
     @warn "Smoothing bathymetry with length scale L/FWHM=$(params.L)"
-    smoothed_elevation = smooth_bathymetry_3d(elevation, x, y;
-                                              scale_x = params.L * ds_bathymetry.attrib["FWHM"], # Based on the data's FWHM
-                                              scale_y = params.L * ds_bathymetry.attrib["FWHM"], # Based on the data's FWHM
-                                              bathymetry_filepath)
+    smoothed_elevation = smooth_bathymetry_with_coarsening(elevation, x, y;
+                                                           scale_x=params.L * ds_bathymetry.attrib["FWHM"],
+                                                           scale_y=params.L * ds_bathymetry.attrib["FWHM"])
 end
 
 # Make sure that the total mass of the smoothed bathymetry is about the same as the original bathymetry
@@ -189,9 +188,9 @@ let
     #---
 
     #+++ Dynamically-relevant secondary parameters
-    f₀ = f_0 = params.U∞ / (params.Ro_h * params.FWHM)
+    f₀ = f_0 = -params.U∞ / (params.Ro_h * params.FWHM)
     N²∞ = N2_inf = (params.U∞ / (params.Fr_h * params.H))^2
-    R1 = √N²∞ * params.H / f₀
+    R1 = √N²∞ * params.H / abs(f₀)
     z₀ = z_0 = params.Rz * params.H
     #---
 
@@ -199,11 +198,11 @@ let
     Γ = params.α * params.Fr_h # nonhydrostatic parameter (Schar 2002)
     Bu_h = (params.Ro_h / params.Fr_h)^2
     Slope_Bu = params.Ro_h / params.Fr_h # approximate slope Burger number
-    @assert Slope_Bu ≈ params.α * √N²∞ / f₀
+    @assert Slope_Bu ≈ params.α * √N²∞ / abs(f₀)
     #---
 
     #+++ Time scales
-    T_inertial = 2π / f₀
+    T_inertial = 2π / abs(f₀)
     T_cycle = params.Lx / params.U∞
     T_advective = params.FWHM / params.U∞
     #---

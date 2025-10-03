@@ -6,6 +6,10 @@ using CUDA: devices, device!, functional, totalmem, name, available_memory, memo
 using NCDatasets: NCDataset, defDim, defVar
 using Dates: now
 
+import Interpolations # To use Flat in a way that doesn't conflict with Oceananigans.Flat
+using Interpolations: interpolate, BSpline, extrapolate, OnGrid, Cubic, Line
+using Statistics: mean
+
 #+++ Get good grid size
 """ Rounds `a` to the nearest even number """
 nearest_even(a) = Int(2*round(round(a) / 2))
@@ -79,7 +83,7 @@ end
 #---
 
 #+++ Smooth bathymetry using regular 2D Gaussian filter
-function smooth_bathymetry(elevation; window_size_x, window_size_y, bc_x="circular", bc_y="replicate", target_height=nothing)
+function smooth_bathymetry_with_gaussian(elevation; window_size_x, window_size_y, bc_x="circular", bc_y="replicate", target_height=nothing)
     # Create separate Gaussian kernels for x and y directions
     kernel_x = Kernel.gaussian((window_size_x, 0))
     kernel_y = Kernel.gaussian((0, window_size_y))
@@ -102,7 +106,7 @@ function smooth_bathymetry(elevation; window_size_x, window_size_y, bc_x="circul
     return smoothed
 end
 
-function smooth_bathymetry(elevation, x, y; scale_x, scale_y, kwargs...)
+function smooth_bathymetry_with_gaussian(elevation, x, y; scale_x, scale_y, kwargs...)
     Δx_min = minimum(diff(x))
     Δy_min = minimum(diff(y))
 
@@ -112,167 +116,99 @@ function smooth_bathymetry(elevation, x, y; scale_x, scale_y, kwargs...)
     window_size_y = scale_y / (2 * Δy_min)
 
     # Call the original method with calculated window sizes
-    return smooth_bathymetry(elevation; window_size_x, window_size_y, kwargs...)
+    return smooth_bathymetry_with_gaussian(elevation; window_size_x, window_size_y, kwargs...)
 end
 #---
 
-#+++ Smooth bathymetry using 3D Gaussian filter
-function extrude_bathymetry_3d(bathymetry_2d, x, y; dz=nothing, z_max=nothing)
-    dx = minimum(diff(x))
-    dy = minimum(diff(y))
-    dz = dz isa Nothing ? (dx + dy) / 2 : dz
-    zᶠ = collect(0:dz:z_max)
+#+++ Smooth bathymetry by coarsening and then interpolating
+"""
+    coarsen_bathymetry(elevation, x, y; window_x=2, window_y=2)
 
-    # Create 2D grids for x, y, z coordinates
-    X = repeat(reshape(x,  :, 1, 1),         1, length(y), length(zᶠ))
-    Y = repeat(reshape(y,  1, :, 1), length(x),         1, length(zᶠ))
-    Z = repeat(reshape(zᶠ, 1, 1, :), length(x), length(y),          1)
+Coarsens the grid using window averaging.
 
-    return X, Y, Z, zᶠ
-end
-
-function masked_area(smoothed, target_area; threshold=0.5)
-    masked_smoothed = smoothed .> threshold
-    return (sum(masked_smoothed) - target_area)^2
-end
-
-function same_area_smoothed(smoothed, unsmoothed_area; initial_guess=0.5, verbose=false)
-    """
-    Find the optimal threshold that minimizes the area difference between
-    smoothed and unsmoothed area using optimization.
-
-    Parameters:
-    - smoothed: smoothed bathymetry data
-    - unsmoothed_area: original unsmoothed bathymetry data
-
-    Returns:
-    - Binary mask of smoothed bathymetry with optimal threshold
-    """
-
-    # Define objective function to minimize
-    objective(threshold) = abs(masked_area(smoothed, unsmoothed_area; threshold=threshold[1]))
-
-    # Set bounds for threshold search (0 to 1 for probability-like values)
-    lower_bound = [0.0]
-    upper_bound = [1.0]
-
-    # Initial guess (start with middle value)
-    initial_guess = [initial_guess]
-
-    # Use bounded optimization
-    f_abstol = 0.05*unsmoothed_area
-    options = Optim.Options(f_abstol=f_abstol, iterations=10)
-    result = Optim.optimize(objective, lower_bound, upper_bound, initial_guess, Fminbox(LBFGS()), options)
-
-    # Get optimal threshold
-    optimal_threshold = Optim.minimizer(result)[1]
-
-    if (Optim.minimum(result) > f_abstol) && (initial_guess[] > 1e-3)
-        return same_area_smoothed(smoothed, unsmoothed_area; initial_guess=0.5*initial_guess[])
-    end
-
-    verbose && @info "Optimal threshold found: $optimal_threshold, objective value: $(Optim.minimum(result))"
-
-    # Return binary mask using optimal threshold
-    return smoothed .> optimal_threshold, optimal_threshold
-end
-
-
-function sliced_smooth_bathymetry(bathymetry_3d; window_size_x, window_size_y, bc_x="circular", bc_y="replicate", verbose=false)
-    nx, ny, nz = size(bathymetry_3d)
-    kernel_x = Kernel.gaussian((window_size_x, 0))
-    kernel_y = Kernel.gaussian((0, window_size_y))
-
-    smoothed_3d = zeros(nx, ny, nz)
-    initial_guess = 0.5
-    for k in 1:nz
-        verbose && @info "Smoothing layer $k of $nz"
-        smoothed_x = imfilter(bathymetry_3d[:,:,k], kernel_x, bc_x)
-        smoothed = imfilter(smoothed_x, kernel_y, bc_y)
-
-        unsmoothed_area = sum(bathymetry_3d[:, :, k])
-        smoothed_3d[:, :, k], optimal_threshold = same_area_smoothed(smoothed, unsmoothed_area; initial_guess, verbose)
-        initial_guess = optimal_threshold
-    end
-
-    return smoothed_3d
-end
-
-find_interface_height(array3d::AbstractArray{Float64, 3}; kwargs...) = find_interface_height(Bool.(array3d); kwargs...)
-
-function find_interface_height(array3d::AbstractArray{Bool, 3}; smooth=false, x=nothing, y=nothing, z=nothing)
-    nx, ny, nz = size(array3d)
-    heights = zeros(nx, ny)
-
-    # For each x,y point, find first false value from bottom up
-    for i in 1:nx, j in 1:ny
-        column = view(array3d, i, j, :)
-        k = findlast(column)
-
-        # If found, set height to corresponding z value
-        if !isnothing(k) && k > 0
-            heights[i, j] = z[k]
-        end
-    end
-
-    if smooth
-        heights = smooth_bathymetry(heights; window_size_x=5, window_size_y=5)
-    end
-
-    return heights
-end
-
-
-function smooth_bathymetry_3d(elevation, x, y; window_size_x=10, window_size_y=10,
-                              scale_x=nothing, scale_y=nothing, dz=nothing, verbose=false,
-                              bathymetry_filepath="../bathymetry/balanus-GMRT-bathymetry-preprocessed.nc")
+Returns coarse x and y, and elevation array.
+"""
+function coarsen_bathymetry(elevation, x, y; window_x=2, window_y=2)
+    nx, ny = size(elevation)
     dx = minimum(diff(x))
     dy = minimum(diff(y))
 
-    # If scale_x or scale_y are provided, overwride window size
-    window_size_x = scale_x isa Nothing ? window_size_x : scale_x / (2 * dx)
-    window_size_y = scale_y isa Nothing ? window_size_y : scale_y / (2 * dy)
+    # Create coordinate vectors (assuming unit spacing)
+    x_coarse = x[1]:window_x*dx:x[end] |> collect
+    y_coarse = y[1]:window_y*dy:y[end] |> collect
 
-    # If dz is not provided, use the average of the grid spacing
-    dz = dz isa Nothing ? (dx + dy) / 2 : dz
+    # Calculate coarse grid dimensions
+    nx_coarse = cld(nx, window_x) # ceiling division
+    ny_coarse = cld(ny, window_y) # ceiling division
 
-    # Create cache filename based on parameters
-    cache_filepath = "$(bathymetry_filepath)_wx$(round(window_size_x, digits=2))_wy$(round(window_size_y, digits=2))_dz$(round(dz, digits=2)).nc"
+    # Initialize coarse elevation array
+    elevation_coarse = zeros(Float64, nx_coarse, ny_coarse)
 
-    # Check if cached result exists
-    if isfile(cache_filepath)
-        verbose && @info "Loading smoothed bathymetry from cache: $cache_filepath"
-        ds = NCDataset(cache_filepath)
-        return ds["smoothed_elevation"][:, :]
+    # Compute coarse values as mean of high-res values in each window
+    for i in 1:nx_coarse, j in 1:ny_coarse
+            # Define window bounds
+            x_coarse_start = 1 + (i-1) * window_x
+            x_coarse_end = min(i * window_x, nx)
+            y_coarse_start = 1 + (j-1) * window_y
+            y_coarse_end = min(j * window_y, ny)
+
+            # Extract window data
+            window_data = elevation[x_coarse_start:x_coarse_end, y_coarse_start:y_coarse_end]
+
+            # Compute mean, handling missing values
+            if any(ismissing.(window_data))
+                # Filter out missing values and compute mean of non-missing
+                valid_data = filter(!ismissing, window_data)
+                elevation_coarse[i, j] = isempty(valid_data) ? 0.0 : mean(valid_data)
+            else
+                elevation_coarse[i, j] = mean(window_data)
+            end
     end
 
-    # Compute the smoothed bathymetry
-    verbose && @info "Computing 3D smoothed bathymetry with parameters: wx=$window_size_x, wy=$window_size_y, dz=$dz"
-    X, Y, Z, zᶠ = extrude_bathymetry_3d(elevation, x, y; dz, z_max=1.1*maximum(elevation))
-    bathymetry_3d = Float64.(Z .< elevation)
-    smoothed_bathymetry_3d = sliced_smooth_bathymetry(bathymetry_3d; window_size_x, window_size_y, verbose)
-    smoothed_elevation = find_interface_height(smoothed_bathymetry_3d, smooth=true, x=x, y=y, z=zᶠ)
+    return x_coarse, y_coarse, elevation_coarse
+end
 
-    # Save the result to NetCDF
-    NCDataset(cache_filepath, "c") do ds
-        defVar(ds, "x", x, ("x",), attrib = Dict("units" => "m", "long_name" => "x coordinate"))
-        defVar(ds, "y", y, ("y",), attrib = Dict("units" => "m", "long_name" => "y coordinate"))
-        defVar(ds, "smoothed_elevation", smoothed_elevation, ("x", "y"),
-               attrib = Dict("units" => "m",
-                             "long_name" => "3D smoothed elevation",
-                             "description" => "Bathymetry smoothed using 3D Gaussian filter"))
+"""
+    smooth_bathymetry_with_coarsening(elevation, x, y; scale_x, scale_y, clip_negative=true)
 
-        # Add global attributes with smoothing parameters
-        ds.attrib["window_size_x"] = window_size_x
-        ds.attrib["window_size_y"] = window_size_y
-        ds.attrib["dz"] = dz
-        ds.attrib["smoothing_method"] = "3D Gaussian filter"
-        ds.attrib["created_by"] = "smooth_bathymetry_3d function"
-        ds.attrib["creation_date"] = string(now())
-    end
-    verbose && @info "Saved result to cache: $cache_path"
+Smooths bathymetry by coarsening the grid using window averaging, and then upscaling again by interpolating.
 
-    return smoothed_elevation
+# Arguments
+- `elevation`: 2D array of elevation values
+- `x`: 1D array of x coordinates
+- `y`: 1D array of y coordinates
+- `scale_x`: Scale factor for x direction
+- `scale_y`: Scale factor for y direction
+- `clip_negative`: If true, clips negative values to zero before returning (default: true)
+
+# Returns
+- Smoothed elevation array with same dimensions (and coordinates) as input
+"""
+function smooth_bathymetry_with_coarsening(elevation, x, y; scale_x, scale_y, clip_negative=true)
+    dx = minimum(diff(x))
+    dy = minimum(diff(y))
+
+    window_x = scale_x / (2 * dx) |> round |> Int
+    window_y = scale_y / (2 * dy) |> round |> Int
+
+    x_coarse, y_coarse, elevation_coarse = coarsen_bathymetry(elevation, x, y; window_x, window_y)
+    nx_coarse, ny_coarse = map(length, (x_coarse, y_coarse))
+
+    # In order to make bicubic interpolation, we need to assume that the grid is uniform
+    # and then normalize the coordinates to the range of the coarse grid
+    # and then interpolate. This is a hack to get around the fact that the grid is not uniform and
+    # Interpolations.jl does not support bicubic interpolation on non-uniform grids.
+    itp = interpolate(elevation_coarse, BSpline(Cubic(Line(OnGrid()))), OnGrid())
+    itp = extrapolate(itp, Interpolations.Flat())
+    x_norm = (x .- x[1]) / (x[end] - x[1]) * nx_coarse # From 0 to nx_coarse
+    y_norm = (y .- y[1]) / (y[end] - y[1]) * ny_coarse # From 0 to ny_coarse
+
+    elevation_smooth = itp.(reshape(x_norm, (length(x_norm), 1)), reshape(y_norm, (1, length(y_norm))))
+
+    # Clip negative values to zero if requested
+    clip_negative && (elevation_smooth = max.(elevation_smooth, 0.0))
+
+    return elevation_smooth
 end
 #---
 

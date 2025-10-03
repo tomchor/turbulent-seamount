@@ -115,7 +115,8 @@ outputs_grads = Dict{Symbol, Any}(:∂u∂x => (@at CellCenter ∂x(u)),
 dc5  = DistanceCondition(from_bottom=5meters , from_top=params.h_sponge, from_east=2minimum_xspacing(grid))
 dc10 = DistanceCondition(from_bottom=10meters, from_top=params.h_sponge, from_east=2minimum_xspacing(grid))
 
-outputs_vol_integrals = Dict{Symbol, Any}(:∭⁵εₖdV  => Integral(εₖ; condition = dc5),
+outputs_vol_integrals = Dict{Symbol, Any}(:∭εₛdV   => Integral(εₛ),
+                                          :∭⁵εₖdV  => Integral(εₖ; condition = dc5),
                                           :∭⁵εₚdV  => Integral(εₚ; condition = dc5),
                                           :∭¹⁰εₖdV => Integral(εₖ; condition = dc10),
                                           :∭¹⁰εₚdV => Integral(εₚ; condition = dc10),

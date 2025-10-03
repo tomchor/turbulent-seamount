@@ -5,8 +5,8 @@ using Printf
 using Oceananigans: prettytime
 
 #+++ Preamble
-fpath_xyzi_1 = "../simulations/data/xyzi.seamount_Ro_h0.1_Fr_h1_L0_FWHM500_dz2.nc"
-fpath_xyzi_2 = "../simulations/data/xyzi.seamount_Ro_h0.1_Fr_h1_L0.8_FWHM500_dz2.nc"
+fpath_xyzi_1 = "../simulations/data/xyzi.seamount_Ro_h0.1_Fr_h1_L0_FWHM500_dz1.nc"
+fpath_xyzi_2 = "../simulations/data/xyzi.seamount_Ro_h0.1_Fr_h1_L0.8_FWHM500_dz1.nc"
 
 variable = :∫⁵εₖdy
 

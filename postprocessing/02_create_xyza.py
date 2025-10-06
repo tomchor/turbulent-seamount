@@ -6,11 +6,15 @@ import xarray as xr
 from cycler import cycler
 import pynanigans as pn
 from src.aux00_utils import (open_simulation, adjust_times, aggregate_parameters, gather_attributes_as_variables,
-                             condense_velocities, condense_velocity_gradient_tensor, condense_reynolds_stress_tensor)
+                             condense_velocities, condense_velocity_gradient_tensor, condense_reynolds_stress_tensor,
+                             configure_dask_for_performance)
 from src.aux01_physfuncs import temporal_average
 from colorama import Fore, Back, Style
 from dask.diagnostics import ProgressBar
 xr.set_options(display_width=140, display_max_rows=30)
+
+# Configure dask for optimal performance
+configure_dask_for_performance(memory_fraction=0.05)
 
 print("Starting xyza dataset creation script")
 
@@ -23,7 +27,7 @@ if basename(__file__) != "00_run_postproc.py":
     Froude_numbers = cycler(Fr_h = [1])
     L              = cycler(L = [0])
 
-    resolutions    = cycler(dz = [8])
+    resolutions    = cycler(dz = [4])
     FWHM           = cycler(FWHM = [500])
 
     paramspace = Rossby_numbers * Froude_numbers * (L + FWHM)
@@ -89,16 +93,30 @@ for j, config in enumerate(runs):
     xyzi = condense_velocity_gradient_tensor(xyzi, indices=indices)
     xyzi = condense_reynolds_stress_tensor(xyzi, indices=indices)
     print("Computing temporal average...")
+
+    # Drop some variables that are not needed
+    xyzi = xyzi.drop_vars(["ω_x", "κ", "Ri", "peripheral_nodes_ccf", "peripheral_nodes_cfc", "peripheral_nodes_fcc"])
+
     xyza = temporal_average(xyzi)
     print("✓ Completed xyzi processing")
     #---
 
+    #+++ Compute dataset with dask for optimal performance
+    print("Computing dataset with dask...")
+    xyza = gather_attributes_as_variables(xyza)
+    
+    # Compute all dask arrays in parallel with progress tracking
+    with ProgressBar(minimum=2, dt=2):
+        xyza = xyza.compute()
+    print("Dask computation completed!")
+    #---
+
     #+++ Save xyza
     outname = f"data/xyza.{simname}.nc"
-    xyza = gather_attributes_as_variables(xyza)
-    with ProgressBar(minimum=5, dt=5):
-        print(f"Saving results to {outname}...")
-        xyza.to_netcdf(outname)
-        print("Done!\n")
+    print(f"Saving results to {outname}...")
+    # Use compression for faster I/O
+    encoding = {var: {'zlib': True, 'complevel': 4} for var in xyza.data_vars}
+    xyza.to_netcdf(outname, encoding=encoding)
+    print("Done!\n")
     xyza.close()
     #---

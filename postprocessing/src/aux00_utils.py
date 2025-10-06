@@ -109,7 +109,7 @@ def open_simulation(fname,
     #+++ Returning only unique times:
     if unique_times:
         import numpy as np
-        _, index = np.unique(ds['time'], return_index=True)
+        _, index = np.unique(ds["time"], return_index=True)
         if verbose and (len(index)!=len(ds.time)): print("Cleaning non-unique indices")
         ds = ds.isel(time=index)
     #---
@@ -577,4 +577,48 @@ def gather_attributes_as_variables(ds, ds_ref=None, include_derived=True):
     #---
 
     return ds
+#---
+
+#+++ Dask optimization functions
+def configure_dask_for_performance(num_workers=None, memory_fraction=0.05):
+    """
+    Configure dask for optimal performance based on available system memory.
+
+    Parameters
+    ----------
+    num_workers : int, optional
+        Number of workers to use. If None, will use number of CPU cores.
+    memory_fraction : float, optional
+        Fraction of available memory per worker to use for chunks. Default 0.05 (5%).
+
+    Returns
+    -------
+    dict
+        Dictionary of dask configuration settings applied
+    """
+    import psutil
+    import dask
+    import os
+
+    # Get system information
+    available_memory = psutil.virtual_memory().available
+    if num_workers is None:
+        num_workers = os.cpu_count()
+
+    # Calculate optimal chunk size: 1-10% of available memory per worker
+    chunk_size = int(available_memory / num_workers * memory_fraction)
+
+    # Configure dask for optimal performance
+    config = {
+        "array.slicing.split_large_chunks": False, # Don"t split large chunks during slicing
+        "array.chunk-size": f"{chunk_size}B",      # Dynamic chunk size based on available memory
+        "distributed.worker.memory.target": 0.8,   # Start spilling at 80% memory usage
+        "distributed.worker.memory.spill": 0.9,    # Spill aggressively at 90% usage
+        "distributed.worker.memory.pause": 0.95,   # Pause worker at 95% to prevent crashes
+    }
+
+    dask.config.set(config)
+
+    print(f"Configured dask with {num_workers} workers, {chunk_size / 1024**2:.1f}MB chunks")
+    return config
 #---

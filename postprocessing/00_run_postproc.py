@@ -1,13 +1,8 @@
 import sys
 sys.path.append("/glade/u/home/tomasc/repos/pynanigans")
-import subprocess
-import numpy as np
-import xarray as xr
-import pynanigans as pn
 from cycler import cycler
 from src.aux00_utils import check_simulation_completion, aggregate_parameters
 from colorama import Fore, Back, Style
-from dask.diagnostics import ProgressBar
 
 print("Starting h00 script")
 

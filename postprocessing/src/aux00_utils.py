@@ -109,7 +109,7 @@ def open_simulation(fname,
     #+++ Returning only unique times:
     if unique_times:
         import numpy as np
-        _, index = np.unique(ds['time'], return_index=True)
+        _, index = np.unique(ds["time"], return_index=True)
         if verbose and (len(index)!=len(ds.time)): print("Cleaning non-unique indices")
         ds = ds.isel(time=index)
     #---
@@ -174,6 +174,7 @@ def merge_datasets(
         add_simulation_info=True,
         verbose=False,
         drop_vars=None,
+        keep_vars=None,
         open_dataset_kwargs=dict(chunks="auto"),
         combine_by_coords_kwargs={"combine_attrs": "drop_conflicts"},
         adjust_times_before_merge=False):
@@ -196,6 +197,10 @@ def merge_datasets(
         Whether to print verbose output. Default False
     drop_vars : list of str, optional
         List of variable names to drop from each dataset before merging. Default None
+    keep_vars : list of str, optional
+        List of variable names to keep from each dataset. If provided, only these variables
+        (plus coordinates and attributes) will be kept, and all others will be dropped.
+        This is applied after drop_vars. Default None (keep all variables).
     open_dataset_kwargs : dict, optional
         Additional keyword arguments to pass to xr.open_dataset. Default `dict(chunks="auto")`
     combine_by_coords_kwargs : dict, optional
@@ -227,6 +232,12 @@ def merge_datasets(
             if vars_to_drop:
                 if verbose: print(f"Dropping variables: {vars_to_drop}")
                 ds = ds.drop_vars(vars_to_drop)
+        #---
+
+        #+++ Keep only specified variables if requested
+        if keep_vars is not None:
+            if verbose: print(f"Keeping only variables: {sorted(keep_vars)}")
+            ds = ds[keep_vars]
         #---
 
         #+++ Create auxiliary variables and organize them into a Dataset
@@ -577,4 +588,51 @@ def gather_attributes_as_variables(ds, ds_ref=None, include_derived=True):
     #---
 
     return ds
+#---
+
+#+++ Dask optimization functions
+def configure_dask_for_performance(num_workers=None, memory_fraction=0.10):
+    """
+    Configure dask for optimal performance based on available system memory.
+
+    Parameters
+    ----------
+    num_workers : int, optional
+        Number of workers to use. If None, will use number of CPU cores.
+    memory_fraction : float, optional
+        Fraction of available memory per worker to use for chunks. Default 0.10 (10%).
+        Larger values allow bigger chunks which can improve performance by reducing
+        overhead between chunks, but risk memory errors if too large. Smaller values
+        are safer but may be slower due to increased chunk overhead.
+
+    Returns
+    -------
+    dict
+        Dictionary of dask configuration settings applied
+    """
+    import psutil
+    import dask
+    import os
+
+    # Get system information
+    available_memory = psutil.virtual_memory().available
+    if num_workers is None:
+        num_workers = os.cpu_count()
+
+    # Calculate optimal chunk size: 1-10% of available memory per worker
+    chunk_size = int(available_memory / num_workers * memory_fraction)
+
+    # Configure dask for optimal performance
+    config = {
+        "array.slicing.split_large_chunks": False, # Don"t split large chunks during slicing
+        "array.chunk-size": f"{chunk_size}B",      # Dynamic chunk size based on available memory
+        "distributed.worker.memory.target": 0.8,   # Start spilling at 80% memory usage
+        "distributed.worker.memory.spill": 0.9,    # Spill aggressively at 90% usage
+        "distributed.worker.memory.pause": 0.95,   # Pause worker at 95% to prevent crashes
+    }
+
+    dask.config.set(config)
+
+    print(f"Configured dask with {num_workers} workers, {chunk_size / 1024**2:.1f}MB chunks")
+    return config
 #---

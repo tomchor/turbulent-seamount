@@ -580,7 +580,7 @@ def gather_attributes_as_variables(ds, ds_ref=None, include_derived=True):
 #---
 
 #+++ Dask optimization functions
-def configure_dask_for_performance(num_workers=None, memory_fraction=0.05):
+def configure_dask_for_performance(num_workers=None, memory_fraction=0.10):
     """
     Configure dask for optimal performance based on available system memory.
 
@@ -589,7 +589,10 @@ def configure_dask_for_performance(num_workers=None, memory_fraction=0.05):
     num_workers : int, optional
         Number of workers to use. If None, will use number of CPU cores.
     memory_fraction : float, optional
-        Fraction of available memory per worker to use for chunks. Default 0.05 (5%).
+        Fraction of available memory per worker to use for chunks. Default 0.10 (10%).
+        Larger values allow bigger chunks which can improve performance by reducing
+        overhead between chunks, but risk memory errors if too large. Smaller values
+        are safer but may be slower due to increased chunk overhead.
 
     Returns
     -------

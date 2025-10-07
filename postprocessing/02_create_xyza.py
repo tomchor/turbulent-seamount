@@ -14,7 +14,7 @@ from dask.diagnostics import ProgressBar
 xr.set_options(display_width=140, display_max_rows=30)
 
 # Configure dask for optimal performance
-configure_dask_for_performance(memory_fraction=0.05)
+configure_dask_for_performance(memory_fraction=0.3)
 
 print("Starting xyza dataset creation script")
 
@@ -27,7 +27,7 @@ if basename(__file__) != "00_run_postproc.py":
     Froude_numbers = cycler(Fr_h = [1])
     L              = cycler(L = [0])
 
-    resolutions    = cycler(dz = [4])
+    resolutions    = cycler(dz = [8])
     FWHM           = cycler(FWHM = [500])
 
     paramspace = Rossby_numbers * Froude_numbers * (L + FWHM)
@@ -114,7 +114,6 @@ for j, config in enumerate(runs):
     #+++ Save xyza
     outname = f"data/xyza.{simname}.nc"
     print(f"Saving results to {outname}...")
-    # Use compression for faster I/O
     encoding = {var: {'zlib': True, 'complevel': 4} for var in xyza.data_vars}
     xyza.to_netcdf(outname, encoding=encoding)
     print("Done!\n")

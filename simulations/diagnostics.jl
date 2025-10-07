@@ -163,7 +163,7 @@ function construct_outputs(simulation;
     #+++ Preamble and common keyword arguments
     k_xy_slice = ceil(Int, params.H / 3params.Δz_min) # Approximately 1/3 the seamount height
     kwargs = (overwrite_existing = overwrite_existing,
-              deflatelevel = 5,
+              deflatelevel = 0, # Speeds up reading and writing. Should make a big difference in offline averaging
               global_attributes = params)
     #---
 

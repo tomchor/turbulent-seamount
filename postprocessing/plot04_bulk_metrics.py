@@ -29,11 +29,11 @@ runs = paramspace * configs
 aaaa = merge_datasets(runs, base_name=f"aaaa.{simname_base}", verbose=True, add_min_spacings=False)
 aaaa = aaaa.reindex(Ro_h = list(reversed(aaaa.Ro_h)))
 
-# Load turbstats datasets to get additional variables
-turbstats = merge_datasets(runs, base_name=f"turbstats_{simname_base}", verbose=True, add_min_spacings=False)
-turbstats = turbstats.reindex(Ro_h = list(reversed(turbstats.Ro_h)))
+# Load aaad datasets to get additional variables
+aaad = merge_datasets(runs, base_name=f"aaad.{simname_base}", verbose=True, add_min_spacings=False, keep_vars=["∭⟨w′b′⟩ₜdV", "∭SPRdV"])
+aaad = aaad.reindex(Ro_h = list(reversed(aaad.Ro_h)))
 
-aaaa = xr.merge([aaaa, turbstats], compat="override")
+aaaa = xr.merge([aaaa, aaad], compat="override")
 #---
 
 #+++ Process data and create derived variables
@@ -55,9 +55,9 @@ aaaa["𝒦⁵"] = (aaaa["∭ᵇε̄ₚdV"] / aaaa["N²∞"]) / (aaaa["U∞"] * a
 # Add metadata
 aaaa["𝒦⁵"].attrs = dict(long_name=r"Norm buoyancy diffusivity $\mathcal{K}$")
 
-# Add turbstats variables to aaaa dataset
-aaaa["∭⁵⟨w′b′⟩ₜdV"] = turbstats["∭⁵⟨w′b′⟩ₜdV"]
-aaaa["∭⁵SPRdxdy"] = turbstats["∭⁵SPRdxdy"]
+# Add aaad variables to aaaa dataset
+aaaa["∭⁵⟨w′b′⟩ₜdV"] = aaad["∭⁵⟨w′b′⟩ₜdV"]
+aaaa["∭⁵SPRdxdy"] = aaad["∭⁵SPRdxdy"]
 #---
 
 #+++ Helper function to create scatter plot

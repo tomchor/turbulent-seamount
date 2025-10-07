@@ -174,6 +174,7 @@ def merge_datasets(
         add_simulation_info=True,
         verbose=False,
         drop_vars=None,
+        keep_vars=None,
         open_dataset_kwargs=dict(chunks="auto"),
         combine_by_coords_kwargs={"combine_attrs": "drop_conflicts"},
         adjust_times_before_merge=False):
@@ -196,6 +197,10 @@ def merge_datasets(
         Whether to print verbose output. Default False
     drop_vars : list of str, optional
         List of variable names to drop from each dataset before merging. Default None
+    keep_vars : list of str, optional
+        List of variable names to keep from each dataset. If provided, only these variables
+        (plus coordinates and attributes) will be kept, and all others will be dropped.
+        This is applied after drop_vars. Default None (keep all variables).
     open_dataset_kwargs : dict, optional
         Additional keyword arguments to pass to xr.open_dataset. Default `dict(chunks="auto")`
     combine_by_coords_kwargs : dict, optional
@@ -227,6 +232,12 @@ def merge_datasets(
             if vars_to_drop:
                 if verbose: print(f"Dropping variables: {vars_to_drop}")
                 ds = ds.drop_vars(vars_to_drop)
+        #---
+
+        #+++ Keep only specified variables if requested
+        if keep_vars is not None:
+            if verbose: print(f"Keeping only variables: {sorted(keep_vars)}")
+            ds = ds[keep_vars]
         #---
 
         #+++ Create auxiliary variables and organize them into a Dataset

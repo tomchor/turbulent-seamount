@@ -12,12 +12,10 @@ simname_base = "seamount"
 
 Rossby_numbers = cycler(Ro_h = [0.1])
 Froude_numbers = cycler(Fr_h = [1])
-L              = cycler(L = [0, 0.05, 0.1, 0.2, 0.4, 0.8,
-                             0.8, 0.8])
-FWHM           = cycler(FWHM = [500, 500, 500, 500, 500, 500,
-                                200, 100])
+L              = cycler(L = [0, 0.05, 0.1, 0.2, 0.4, 0.8])
+FWHM           = cycler(FWHM = [500, 500, 500, 500, 500, 500])
 
-resolutions    = cycler(dz = [4, 2])
+resolutions    = cycler(dz = [2, 1])
 
 paramspace = Rossby_numbers * Froude_numbers * (L + FWHM)
 configs    = resolutions
@@ -54,10 +52,6 @@ aaaa["𝒦⁵"] = (aaaa["∭ᵇε̄ₚdV"] / aaaa["N²∞"]) / (aaaa["U∞"] * a
 
 # Add metadata
 aaaa["𝒦⁵"].attrs = dict(long_name=r"Norm buoyancy diffusivity $\mathcal{K}$")
-
-# Add aaad variables to aaaa dataset
-aaaa["∭⁵⟨w′b′⟩ₜdV"] = aaad["∭⁵⟨w′b′⟩ₜdV"]
-aaaa["∭⁵SPRdxdy"] = aaad["∭⁵SPRdxdy"]
 #---
 
 #+++ Helper function to create scatter plot
@@ -68,7 +62,7 @@ def plot_variable(ax, data, var_name):
         ax.scatter(subset.L, subset.values, label=f"FWHM={fwhm_val}", alpha=0.7)
 
     # Use symlog scale for w"b" variable (can be positive or negative)
-    if var_name == "∭⁵⟨w′b′⟩ₜdV":
+    if var_name == "∭⟨w′b′⟩ₜdV":
         ax.set_yscale("symlog", linthresh=1e-6)
     else:
         ax.set_yscale("log")
@@ -85,9 +79,9 @@ fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(12, 10))
 plt.subplots_adjust(hspace=0.4, wspace=0.3)
 
 # Variables to plot (first 3 use buffer=5m, last 2 don"t have buffer dimension)
-variables = ["ℰₖ", "ℰₚ", "∭⁵⟨w′b′⟩ₜdV", "∭⁵SPRdxdy"]
+variables = ["ℰₖ", "ℰₚ", "∭⟨w′b′⟩ₜdV", "∭SPRdV"]
 
-aaaa = aaaa.sel(dz=0, buffer=5, method="nearest").sum("j")
+aaaa = aaaa.sel(dz=0, buffer=10, method="nearest").sum("j")
 # Create plots for each variable
 for i, var_name in enumerate(variables):
     data = aaaa[var_name]

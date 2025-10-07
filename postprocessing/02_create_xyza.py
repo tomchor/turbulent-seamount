@@ -101,21 +101,18 @@ for j, config in enumerate(runs):
     print("✓ Completed xyzi processing")
     #---
 
-    #+++ Compute dataset with dask for optimal performance
+    #+++ Compute and save dataset with dask for optimal performance
     print("Computing dataset with dask...")
     xyza = gather_attributes_as_variables(xyza)
     
     # Compute all dask arrays in parallel with progress tracking
-    with ProgressBar(minimum=2, dt=2):
-        xyza = xyza.compute()
-    print("Dask computation completed!")
-    #---
-
-    #+++ Save xyza
     outname = f"data/xyza.{simname}.nc"
-    print(f"Saving results to {outname}...")
-    encoding = {var: {'zlib': True, 'complevel': 4} for var in xyza.data_vars}
-    xyza.to_netcdf(outname, encoding=encoding)
-    print("Done!\n")
+
+    with ProgressBar(minimum=5, dt=5):
+        xyza = xyza.compute()
+        print("Dask computation completed!")
+        print(f"Saving results to {outname}...")
+        xyza.to_netcdf(outname)
+        print("Done!\n")
     xyza.close()
     #---

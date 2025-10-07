@@ -14,7 +14,8 @@ print("Reading datasets...")
 simdata_path = "../simulations/data/"
 postproc_path = "../postprocessing/data/"
 
-resolution = "dz2"
+resolution = "dz1"
+buffer = 10
 snap_opts = dict(use_advective_periods=True,
                  unique_times=True,
                  squeeze=True,
@@ -27,12 +28,12 @@ avgd_opts = dict(unique_times=False,
                  open_dataset_kwargs=dict(chunks="auto"))
 xyzi_L00 = open_simulation(simdata_path + f"xyzi.seamount_Ro_h0.1_Fr_h1_L0_FWHM500_{resolution}.nc", **snap_opts)[["PV", "Ro", "Δz_aac"]]
 xyzd_L00 = open_simulation(postproc_path + f"xyzd.seamount_Ro_h0.1_Fr_h1_L0_FWHM500_{resolution}.nc", **avgd_opts)
-aaad_L00 = open_simulation(postproc_path + f"aaad.seamount_Ro_h0.1_Fr_h1_L0_FWHM500_{resolution}.nc", **avgd_opts).sel(buffer=5)
+aaad_L00 = open_simulation(postproc_path + f"aaad.seamount_Ro_h0.1_Fr_h1_L0_FWHM500_{resolution}.nc", **avgd_opts).sel(buffer=10)
 ds_L00 = xr.merge([xyzi_L00, xyzd_L00, aaad_L00])
 
 xyzi_L08 = open_simulation(simdata_path + f"xyzi.seamount_Ro_h0.1_Fr_h1_L0.8_FWHM500_{resolution}.nc", **snap_opts)[["PV", "Ro", "Δz_aac"]]
 xyzd_L08 = open_simulation(postproc_path + f"xyzd.seamount_Ro_h0.1_Fr_h1_L0.8_FWHM500_{resolution}.nc", **avgd_opts)
-aaad_L08 = open_simulation(postproc_path + f"aaad.seamount_Ro_h0.1_Fr_h1_L0.8_FWHM500_{resolution}.nc", **avgd_opts).sel(buffer=5)
+aaad_L08 = open_simulation(postproc_path + f"aaad.seamount_Ro_h0.1_Fr_h1_L0.8_FWHM500_{resolution}.nc", **avgd_opts).sel(buffer=10)
 ds_L08 = xr.merge([xyzi_L08, xyzd_L08, aaad_L08])
 #---
 
@@ -45,14 +46,7 @@ def prepare_ds(ds,
     # Restrict domain first and select time immediately to minimize data
     ds = ds.sel(z_aac=z_slice, x_caa=x_slice).sel(time=t_slice, method="nearest")
 
-    print("  Computing z-averages efficiently...")
-    # Use the mask directly without converting to NaN (much faster)
-    mask = ds.distance_condition_5meters
-    masked_volume = (mask * ds.Δz_aac).pnsum("z").load()
-
-    ds["Ro_zavg"] = (mask * ds["Ro"] * ds.Δz_aac).pnsum("z") / masked_volume
-    # ds["εₖ_zavg"] = (mask * ds["εₖ"] * ds.Δz_aac).pnsum("z") / masked_volume
-    # ds["εₚ_zavg"] = (mask * ds["εₚ"] * ds.Δz_aac).pnsum("z") / masked_volume
+    print("  Calculating shear production components...")
     ds["⟨VSPR⟩ᶻ"] = ds["⟨SPR⟩ᶻ"].sel(j=3)
     ds["⟨HSPR⟩ᶻ"] = ds["⟨SPR⟩ᶻ"].sel(j=[1, 2]).sum("j")
     ds["⟨TSPR⟩ᶻ"] = ds["⟨SPR⟩ᶻ"].sum("j")
@@ -106,17 +100,17 @@ cbar = plt.colorbar(im, cax=cbar_ax, label="PV")
 #---
 
 #+++ Plot Ro for both cases
-print("Plotting Ro_zavg")
-
+var_name = "⟨R̄o⟩ᶻ"
+print(f"Plotting {var_name}")
 for i, (ds, L_str) in enumerate(datasets):
     ax = axes[1, i]
     # Data is already loaded and processed
-    im = ds.Ro_zavg.plot.imshow(ax=ax, x="x_caa",
-                                cmap="RdBu_r",
-                                add_colorbar=False,
-                                rasterized=True,
-                                vmin = -0.4,
-                                vmax = +0.4)
+    im = ds[var_name].plot.imshow(ax=ax, x="x_caa",
+                                  cmap="RdBu_r",
+                                  add_colorbar=False,
+                                  rasterized=True,
+                                  vmin = -0.4,
+                                  vmax = +0.4)
     ax.set_title("")
     ax.set_xlabel("")
     ax.set_yticks(yticks)

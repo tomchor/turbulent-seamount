@@ -83,7 +83,7 @@ for j, config in enumerate(runs):
     #+++ Calculate masked vertical averages of turbulent quantities
     print("Computing masked vertical averages...")
     # Create vertical average datasets with both 5m and 10m buffers
-    for var in ["ε̄ₚ", "ε̄ₖ", "SPR", "⟨Ek′⟩ₜ", "⟨w′b′⟩ₜ"]:
+    for var in ["ε̄ₚ", "ε̄ₖ", "R̄o", "SPR", "⟨Ek′⟩ₜ", "⟨w′b′⟩ₜ"]:
         # 5-meter buffer vertical average
         masked_dz_5m = xyza.Δz_aac.where(xyza.distance_condition_5meters)
         vert_avg_name_5m = f"⟨{var}⟩ᶻ⁵"  # vertical average with 5m buffer

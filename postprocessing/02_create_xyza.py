@@ -6,11 +6,15 @@ import xarray as xr
 from cycler import cycler
 import pynanigans as pn
 from src.aux00_utils import (open_simulation, adjust_times, aggregate_parameters, gather_attributes_as_variables,
-                             condense_velocities, condense_velocity_gradient_tensor, condense_reynolds_stress_tensor)
+                             condense_velocities, condense_velocity_gradient_tensor, condense_reynolds_stress_tensor,
+                             configure_dask_for_performance)
 from src.aux01_physfuncs import temporal_average
 from colorama import Fore, Back, Style
 from dask.diagnostics import ProgressBar
 xr.set_options(display_width=140, display_max_rows=30)
+
+# Configure dask for optimal performance
+configure_dask_for_performance(memory_fraction=0.3)
 
 print("Starting xyza dataset creation script")
 
@@ -89,14 +93,24 @@ for j, config in enumerate(runs):
     xyzi = condense_velocity_gradient_tensor(xyzi, indices=indices)
     xyzi = condense_reynolds_stress_tensor(xyzi, indices=indices)
     print("Computing temporal average...")
+
+    # Drop some variables that are not needed
+    xyzi = xyzi.drop_vars(["ω_x", "κ", "Ri", "peripheral_nodes_ccf", "peripheral_nodes_cfc", "peripheral_nodes_fcc"])
+
     xyza = temporal_average(xyzi)
     print("✓ Completed xyzi processing")
     #---
 
-    #+++ Save xyza
-    outname = f"data/xyza.{simname}.nc"
+    #+++ Compute and save dataset with dask for optimal performance
+    print("Computing dataset with dask...")
     xyza = gather_attributes_as_variables(xyza)
+    
+    # Compute all dask arrays in parallel with progress tracking
+    outname = f"data/xyza.{simname}.nc"
+
     with ProgressBar(minimum=5, dt=5):
+        xyza = xyza.compute()
+        print("Dask computation completed!")
         print(f"Saving results to {outname}...")
         xyza.to_netcdf(outname)
         print("Done!\n")

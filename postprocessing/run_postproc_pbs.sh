@@ -4,8 +4,8 @@
 #PBS -o logs/postproc.log
 #PBS -e logs/postproc.log
 #PBS -l walltime=24:00:00
-#PBS -q casper
-#PBS -l select=1:ncpus=18:mem=350GB:ngpus=0
+#PBS -q largemem
+#PBS -l select=1:ncpus=18:mem=1000GB:ngpus=0
 #PBS -M tchor@umd.edu
 #PBS -m abe
 #PBS -r n

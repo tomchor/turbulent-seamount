@@ -42,7 +42,7 @@ template = open(f"template.{scheduler}", "r").read()
 def very_small_submission_options(scheduler):
     if scheduler == "pbs":
         options = ["select=1:ncpus=1:ngpus=1",
-                   "gpu_type=a100"]
+                   "gpu_type=v100"]
         options_string = "\n".join([ "#PBS -l " + option for option in options ])
 
     elif scheduler == "slurm":
@@ -73,8 +73,9 @@ def small_submission_options(scheduler):
 
 def big_submission_options(scheduler):
     if scheduler == "pbs":
-        options = ["select=1:ncpus=1:ngpus=1:cpu_type=milan",
-                   "gpu_type=a100"]
+        options = ["select=1:ncpus=1:ngpus=1",
+                   "gpu_type=h100",
+                   "job_priority=premium"]
         options_string = "\n".join([ "#PBS -l " + option for option in options ])
 
     elif scheduler == "slurm":

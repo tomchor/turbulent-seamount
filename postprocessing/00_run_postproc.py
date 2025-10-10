@@ -31,7 +31,6 @@ for config in configs:
     check_simulation_completion(simnames, slice_name="xyzi", path=simdata_path, verbose=False)
     print()
 
-pause
 print(Back.LIGHTWHITE_EX + Fore.BLUE + "\nStarting 01 post-processing of results using `configs`", Style.RESET_ALL, configs)
 exec(open("01_create_aaaa.py").read())
 exec(open("02_create_xyza.py").read())

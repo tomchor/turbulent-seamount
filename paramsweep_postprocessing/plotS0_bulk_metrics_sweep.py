@@ -76,6 +76,16 @@ for i, var_name in enumerate(variables):
     ax.set_ylabel(var_name)
 #---
 
+#+++ Add reference lines
+import numpy as np
+x_ref = np.logspace(np.log10(2e-1), np.log10(1e1), 100)
+y_ref = 1e-2 * x_ref
+
+for ax in axes:
+    ax.plot(x_ref, y_ref, '--k', alpha=0.5)
+#---
+
+
 #+++ Save figure
 figure_name = f"../figures/paramsweep_bulk_metrics_{simname_base}.png"
 plt.savefig(figure_name, dpi=300, bbox_inches="tight")

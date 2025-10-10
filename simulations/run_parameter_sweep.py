@@ -12,7 +12,7 @@ Rossby_numbers     = cycler(Ro_h = [0.05, 0.1, 0.2, 0.5])
 Froude_numbers     = cycler(Fr_h = [0.02, 0.08, 0.3, 1])
 L                  = cycler(L = [0, 0.8])
 
-resolutions    = cycler(dz = [1])
+resolutions    = cycler(dz = [4, 2, 1])
 T_advective_spinups = cycler(T_advective_spinup = [12])
 
 paramspace = Rossby_numbers * Froude_numbers * L
@@ -40,7 +40,7 @@ template = open(f"template.{scheduler}", "r").read()
 def very_small_submission_options(scheduler):
     if scheduler == "pbs":
         options = ["select=1:ncpus=1:ngpus=1",
-                   "gpu_type=a100"]
+                   "gpu_type=v100"]
         options_string = "\n".join([ "#PBS -l " + option for option in options ])
 
     elif scheduler == "slurm":
@@ -71,8 +71,9 @@ def small_submission_options(scheduler):
 
 def big_submission_options(scheduler):
     if scheduler == "pbs":
-        options = ["select=1:ncpus=1:ngpus=1:cpu_type=milan",
-                   "gpu_type=a100"]
+        options = ["select=1:ncpus=1:ngpus=1",
+                   "gpu_type=h100",
+                   "job_priority=regular"]
         options_string = "\n".join([ "#PBS -l " + option for option in options ])
 
     elif scheduler == "slurm":

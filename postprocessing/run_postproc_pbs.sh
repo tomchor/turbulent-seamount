@@ -5,7 +5,7 @@
 #PBS -e logs/postproc.log
 #PBS -l walltime=24:00:00
 #PBS -q casper
-#PBS -l select=1:ncpus=18:mem=1500GB:ngpus=0
+#PBS -l select=1:ncpus=18:mem=1400GB:ngpus=0
 ## preempt=0.2, economy=0.7, regular=1, premium=1.5
 ##PBS -l job_priority=premium
 #PBS -M tchor@umd.edu

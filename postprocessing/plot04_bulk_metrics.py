@@ -81,14 +81,14 @@ plt.subplots_adjust(hspace=0.4, wspace=0.3)
 # Variables to plot (first 3 use buffer=5m, last 2 don"t have buffer dimension)
 variables = ["ℰₖ", "ℰₚ", "∭⟨w′b′⟩ₜdV", "∭SPRdV"]
 
-aaaa = aaaa.sel(dz=0, buffer=10, method="nearest").sum("j")
+aaaa = aaaa.sel(dz=0, buffer=5, method="nearest").sum("j")
 # Create plots for each variable
 for i, var_name in enumerate(variables):
     data = aaaa[var_name]
     plot_variable(axes.flat[i], data, var_name)
 
 #+++ Save figure
-figure_name = f"../figures/bulk_metrics_{simname_base}.png"
+figure_name = f"../figures/bulk_metrics_{simname_base}_dz{aaaa.dz.item()}m_buffer{aaaa.buffer.item()}m.png"
 plt.savefig(figure_name, dpi=300, bbox_inches="tight")
 print(f"Figure saved to: {figure_name}")
 #---

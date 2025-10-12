@@ -103,4 +103,5 @@ fig[0, 1:3] = Label(fig, title, fontsize=18, tellwidth=false, height=8)
 
 # Save the plot
 save("$(@__DIR__)/../figures/seamount_3d_eps_comparison.png", fig, px_per_unit=2)
+@info "Saved plot to $(@__DIR__)/../figures/seamount_3d_eps_comparison.png"
 #---

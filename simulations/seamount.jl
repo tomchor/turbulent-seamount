@@ -51,16 +51,16 @@ function parse_command_line_arguments()
             arg_type = Float64
 
         "--Ro_h"
-            default = 0.2
+            default = 0.1
             arg_type = Float64
 
         "--Fr_h"
-            default = 1.25
+            default = 1.0
             arg_type = Float64
 
         "--Lx"
             help = "Domain length in x-direction"
-            default = 3500meters
+            default = 4500meters
             arg_type = Float64
 
         "--Ly"
@@ -82,7 +82,7 @@ function parse_command_line_arguments()
 
         "--aspect"
             help = "Desired cell aspect ratio; Δx/Δz = Δy/Δz"
-            default = 2
+            default = 2.5
             arg_type = Float64
 
         "--Rz"

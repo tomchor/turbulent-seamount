@@ -188,8 +188,8 @@ for i, (ds, L_str) in enumerate(datasets):
                                   cmap="RdBu_r",
                                   add_colorbar=False,
                                   rasterized=True,
-                                  vmin=-4e-11,
-                                  vmax=+4e-11)
+                                  vmin=-4e-9,
+                                  vmax=+4e-9)
     ax.set_title("")
     ax.set_xlabel("x [m]")
     ax.set_yticks(yticks)

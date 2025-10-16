@@ -212,11 +212,11 @@ for i, (ds, L_str) in enumerate(datasets):
     ax = axes[5, i]
     # Data is already loaded and processed
     im = ds[var_name].plot.imshow(ax=ax, x="x_caa",
-                                  cmap=cm.balance,
+                                  cmap="RdBu_r",
                                   add_colorbar=False,
                                   rasterized=True,
-                                  vmin=-5e-9,
-                                  vmax=+5e-9)
+                                  vmin=-3e-9,
+                                  vmax=+3e-9)
     ax.set_title("")
     ax.set_xlabel("")
     ax.set_yticks(yticks)
@@ -239,11 +239,11 @@ for i, (ds, L_str) in enumerate(datasets):
     ax = axes[6, i]
     # Data is already loaded and processed
     im = ds[var_name].plot.imshow(ax=ax, x="x_caa",
-                                  cmap=cm.balance,
+                                  cmap="RdBu_r",
                                   add_colorbar=False,
                                   rasterized=True,
-                                  vmin=-5e-9,
-                                  vmax=+5e-9)
+                                  vmin=-3e-9,
+                                  vmax=+3e-9)
     ax.set_title("")
     ax.set_xlabel("x [m]")
     ax.set_yticks(yticks)

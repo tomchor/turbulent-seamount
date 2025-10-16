@@ -12,10 +12,10 @@ plt.rcParams["figure.constrained_layout.use"] = True
 simname_base = "seamount"
 
 Rossby_numbers = cycler(Ro_h = [0.05, 0.1, 0.2, 0.5])
-Froude_numbers = cycler(Fr_h = [0.02, 0.08, 0.3, 1])
+Froude_numbers = cycler(Fr_h = [0.08, 0.3, 1])
 L              = cycler(L = [0, 0.8])
 
-resolutions    = cycler(dz = [1])
+resolutions    = cycler(dz = [2])
 T_advective_spinups = cycler(T_advective_spinup = [12])
 
 paramspace = Rossby_numbers * Froude_numbers * L
@@ -25,7 +25,8 @@ runs = paramspace * configs
 #---
 
 #+++ Load datasets
-aaaa = merge_datasets(runs, base_name=f"aaaa.{simname_base}", verbose=True, add_min_spacings=False)
+aaaa = merge_datasets(runs, base_name=f"aaaa.{simname_base}", verbose=True, add_min_spacings=False,
+                      combine_by_coords_kwargs=dict(compat="override", combine_attrs="drop_conflicts", coords="minimal"))
 aaaa = aaaa.reindex(Ro_h = list(reversed(aaaa.Ro_h)))
 #---
 
@@ -87,7 +88,7 @@ for ax in axes:
 
 
 #+++ Save figure
-figure_name = f"../figures/paramsweep_bulk_metrics_{simname_base}.png"
+figure_name = f"../figures/paramsweep_bulk_metrics_{simname_base}_dz{aaaa.dz.item()}m.png"
 plt.savefig(figure_name, dpi=300, bbox_inches="tight")
 print(f"Figure saved to: {figure_name}")
 #---

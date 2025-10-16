@@ -9,10 +9,25 @@ plt.rcParams["figure.constrained_layout.use"] = True
 
 seamounts = xr.open_dataset("../bathymetry/seamount_data.nc")
 seamounts["Slope_Bu"] = seamounts.rossby_number / seamounts.froude_height
-seamounts["dissip_height"] = seamounts.velocity**3 * seamounts.Slope_Bu / seamounts.height
+
+#+++ Dissipation calculations
+# Dissipation according to linear formula (smooth seamounts)
+seamounts["dissip_linear"] = seamounts.velocity**3 * seamounts.Slope_Bu / seamounts.height
+
+# Dissipation minimum value, which fixes a Slope_Bu but still depends on the velocity and height of seamount
+Slope_Bu_threshold = 0.5
+seamounts["dissip_minimum"] = seamounts.velocity**3 * Slope_Bu_threshold / seamounts.height
+
+# Put both together for piecewise dissipation
+seamounts["dissip_piecewise"] = xr.where(seamounts.Slope_Bu > Slope_Bu_threshold,
+                                         seamounts.dissip_linear,
+                                         seamounts.dissip_minimum)
 
 seamounts["total_volume"] = seamounts.basal_radius_L**2 * seamounts.height
-seamounts["total_dissip_height"] = seamounts.dissip_height * seamounts.total_volume
+seamounts["total_dissip_linear"] = seamounts.dissip_linear * seamounts.total_volume
+seamounts["total_dissip_minimum"] = seamounts.dissip_minimum * seamounts.total_volume
+seamounts["total_dissip_piecewise"] = seamounts.dissip_piecewise * seamounts.total_volume
+#---
 
 fig = plt.figure(figsize=(10, 5))
 gs = fig.add_gridspec(1, 2, width_ratios=[3, 1])
@@ -37,7 +52,7 @@ gl = ax_map.gridlines(draw_labels=True, dms=False, x_inline=False, y_inline=Fals
 gl.top_labels = False
 gl.right_labels = False
 
-im = seamounts.plot.scatter(ax=ax_map, hue="total_dissip_height", **fixed_options, norm=LogNorm(), vmin=1e3, vmax=5e5, add_colorbar=False)
+im = seamounts.plot.scatter(ax=ax_map, hue="total_dissip_linear", cmap="GnBu", **fixed_options, norm=LogNorm(), vmin=1e3, vmax=1e5, add_colorbar=False)
 cbar = plt.colorbar(im, ax=ax_map, orientation="horizontal", pad=-0.05, shrink=0.8, location="top")
 cbar.set_label(r"Total KE dissipation [m$^2$/s$^3$ $\times$ m$^3$]")
 #---
@@ -49,7 +64,8 @@ lat_bins = np.arange(-80, 81, 1)
 # Create binned statistics for various quantities
 print("Binning data")
 binned_seamounts = seamounts.groupby_bins("latitude", lat_bins).sum()
-binned_seamounts.total_dissip_height.plot(ax=ax_plot, y="latitude_bins", color="black")
+binned_seamounts.total_dissip_linear.plot(ax=ax_plot, y="latitude_bins", color="black")
+binned_seamounts.total_dissip_piecewise.plot(ax=ax_plot, y="latitude_bins", color="blue")
 ax_plot.set_ylabel("Latitude (degrees)")
 ax_plot.set_xlabel("Integrated dissipation")
 ax_plot.set_title("Zonally-integrated\nseamount dissipation")

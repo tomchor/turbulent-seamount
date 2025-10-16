@@ -15,7 +15,7 @@ Froude_numbers = cycler(Fr_h = [1])
 L              = cycler(L = [0, 0.05, 0.1, 0.2, 0.4, 0.8])
 FWHM           = cycler(FWHM = [500, 500, 500, 500, 500, 500])
 
-resolutions    = cycler(dz = [2, 1])
+resolutions    = cycler(dz = [2])
 
 paramspace = Rossby_numbers * Froude_numbers * (L + FWHM)
 configs    = resolutions
@@ -24,11 +24,13 @@ runs = paramspace * configs
 #---
 
 #+++ Load datasets
-aaaa = merge_datasets(runs, base_name=f"aaaa.{simname_base}", verbose=True, add_min_spacings=False)
+aaaa = merge_datasets(runs, base_name=f"aaaa.{simname_base}", verbose=True, add_min_spacings=False,
+                      combine_by_coords_kwargs=dict(compat="override", combine_attrs="drop_conflicts", coords="minimal"))
 aaaa = aaaa.reindex(Ro_h = list(reversed(aaaa.Ro_h)))
 
 # Load aaad datasets to get additional variables
-aaad = merge_datasets(runs, base_name=f"aaad.{simname_base}", verbose=True, add_min_spacings=False, keep_vars=["∭⟨w′b′⟩ₜdV", "∭SPRdV"])
+aaad = merge_datasets(runs, base_name=f"aaad.{simname_base}", verbose=True, add_min_spacings=False, keep_vars=["∭⟨w′b′⟩ₜdV", "∭SPRdV"],
+                      combine_by_coords_kwargs=dict(compat="override", combine_attrs="drop_conflicts", coords="minimal"))
 aaad = aaad.reindex(Ro_h = list(reversed(aaad.Ro_h)))
 
 aaaa = xr.merge([aaaa, aaad], compat="override")
@@ -71,7 +73,6 @@ def plot_variable(ax, data, var_name):
     ax.set_ylabel(var_name)
     ax.set_title(f"{var_name}")
     ax.grid(True)
-    ax.axvline(x=1, color="black", linestyle="--", alpha=0.5)
     ax.legend()
 
 #+++ Create plots

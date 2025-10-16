@@ -176,7 +176,7 @@ def merge_datasets(
         drop_vars=None,
         keep_vars=None,
         open_dataset_kwargs=dict(chunks="auto"),
-        combine_by_coords_kwargs={"combine_attrs": "drop_conflicts"},
+        combine_by_coords_kwargs=dict(),
         adjust_times_before_merge=False):
     """
     Merge multiple datasets into one.

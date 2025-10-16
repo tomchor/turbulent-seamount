@@ -29,38 +29,37 @@ variables = ["froude_height", "rossby_number", "slope_burger_height"]
 var_names = ["Froude Number", "Rossby Number", "Slope Burger Number"]
 colors = ["red", "blue", "green"]
 
-# Determine common x-axis range for all variables (in log space)
+# Determine common x-axis range for all variables (raw values)
 all_data = []
 for var in variables:
     clean_data = ds[var].values[np.isfinite(ds[var].values)]
     positive_data = clean_data[clean_data > 0]
     if len(positive_data) > 0:
-        all_data.extend(np.log10(positive_data))
+        all_data.extend(positive_data)
 
-x_min, x_max = -3, 2  # Default range
+x_min, x_max = 1e-3, 1e2
+bins = np.logspace(np.log10(x_min), np.log10(x_max), 50)
 
 # Create figure with two rows of subplots
 fig, axes = plt.subplots(nrows=2, ncols=3, figsize=(15, 10), sharex=True, sharey="row")
 
 def plot_histogram_row(axes_row, dataset, variables, var_names, colors, title_suffix):
     """Plot a row of histograms for the given dataset and variables"""
-    bins = np.linspace(x_min, x_max, 50)
+
 
     for i, (var, name, color) in enumerate(zip(variables, var_names, colors)):
         ax = axes_row[i]
 
-        # Get clean data and convert to log10
+        # Get clean data (no log transformation)
         clean_data = dataset[var].values[np.isfinite(dataset[var].values)]
         positive_data = clean_data[clean_data > 0]
 
         if len(positive_data) > 0:
-            log_data = np.log10(positive_data)
-
-            # Create xarray DataArray for plotting
-            log_da = xr.DataArray(log_data, dims=["seamount"])
+            # Create xarray DataArray for plotting (raw data)
+            data_da = xr.DataArray(positive_data, dims=["seamount"])
 
             # Plot histogram
-            log_da.plot.hist(ax=ax, bins=bins, density=False, alpha=0.7,
+            data_da.plot.hist(ax=ax, bins=bins, density=False, alpha=0.7,
                             color=color, edgecolor="black", linewidth=0.5)
 
             # Add statistics
@@ -68,7 +67,7 @@ def plot_histogram_row(axes_row, dataset, variables, var_names, colors, title_su
             mean_val = np.mean(positive_data)
             n_val = len(positive_data)
 
-            stats_text = f"N = {n_val:,}\nMedian = {median_val:.2e}\nMean = {mean_val:.2e}"
+            stats_text = f"N = {n_val:,}\nMedian = {median_val:.3f}\nMean = {mean_val:.3f}"
             ax.text(0.02, 0.98, stats_text, transform=ax.transAxes,
                     verticalalignment="top", fontsize=8,
                     bbox=dict(boxstyle="round", facecolor="white", alpha=0.8))
@@ -80,10 +79,11 @@ def plot_histogram_row(axes_row, dataset, variables, var_names, colors, title_su
 
         # Set common formatting
         ax.set_xlim(x_min, x_max)
-        ax.set_xlabel(f"log₁₀({name})")
+        ax.set_xlabel(f"{name}")
         ax.set_ylabel("Count")
         ax.set_title(f"Histogram of {name} ({title_suffix})")
         ax.grid(True, alpha=0.3)
+        ax.set_xscale("log")
 
 # Filter data for high southern latitudes (< -40°)
 ds_low_lat = ds.where(ds.latitude < -40, drop=True)

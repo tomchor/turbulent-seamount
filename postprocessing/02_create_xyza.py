@@ -23,8 +23,8 @@ if basename(__file__) != "00_run_postproc.py":
     simdata_path = "../simulations/data/"
     simname_base = "seamount"
 
-    Rossby_numbers = cycler(Ro_h = [0.1])
-    Froude_numbers = cycler(Fr_h = [1])
+    Rossby_numbers = cycler(Ro_b = [0.1])
+    Froude_numbers = cycler(Fr_b = [1])
     L              = cycler(L = [0])
 
     resolutions    = cycler(dz = [8])
@@ -77,8 +77,8 @@ for j, config in enumerate(runs):
     #---
 
     #+++ Trimming domain
-    t_slice_inclusive = slice(xyzi.T_advective_spinup, np.inf) # For snapshots, we want to include t=T_advective_spinup
-    t_slice_exclusive = slice(xyzi.T_advective_spinup + 0.01, np.inf) # For time-averaged outputs, we want to exclude t=T_advective_spinup
+    t_slice_inclusive = slice(xyzi.T_adv_spinup, np.inf) # For snapshots, we want to include t=T_adv_spinup
+    t_slice_exclusive = slice(xyzi.T_adv_spinup + 0.01, np.inf) # For time-averaged outputs, we want to exclude t=T_adv_spinup
     x_slice = slice(None, xyzi.x_faa[-2] - 2*xyzi.Δx_faa.values.max()) # Cut off last two points
     y_slice = slice(None)
     z_slice = slice(None, xyzi.z_aaf[-1] - xyzi.h_sponge) # Cut off top sponge

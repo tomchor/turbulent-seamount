@@ -5,7 +5,7 @@ using Printf
 using Oceananigans: prettytime
 
 #+++ Preamble
-fpath_xyzi = (@isdefined simulation) ? simulation.output_writers[:nc_xyzi].filepath : "data/xyzi.seamount_Ro_h0.2_Fr_h1.25_L0.8_dz2.nc"
+fpath_xyzi = (@isdefined simulation) ? simulation.output_writers[:nc_xyzi].filepath : "data/xyzi.seamount_Ro_b0.2_Fr_b1.25_L0.8_dz2.nc"
 
 @info "Reading NetCDF file: $fpath_xyzi"
 xyzi = RasterStack(fpath_xyzi, name=(:PV, :εₖ, :εₚ, :bottom_height), lazy=true)
@@ -98,7 +98,7 @@ Colorbar(fig, vol3, bbox=ax3.scene.viewport,
 
 
 # Create title with time and parameters
-title = @lift "Roₕ = $(params.Ro_h), Frₕ = $(params.Fr_h), L = $(params.L) m, dz = $(params.dz) m;    " *
+title = @lift "Roₕ = $(params.Ro_b), Frₕ = $(params.Fr_b), L = $(params.L) m, dz = $(params.dz) m;    " *
               "Time = $(@sprintf "%s" prettytime(times[$n]))"
 fig[0, 1:3] = Label(fig, title, fontsize=18, tellwidth=false, height=8)
 

@@ -8,15 +8,15 @@ from postprocessing.src.aux00_utils import aggregate_parameters
 #+++ Define run options
 simname_base = "seamount"
 
-Rossby_numbers     = cycler(Ro_h = [0.05, 0.1, 0.2, 0.5])
-Froude_numbers     = cycler(Fr_h = [0.02, 0.08, 0.3, 1])
-L                  = cycler(L = [0, 0.8])
+Rossby_numbers = cycler(Ro_b = [0.05, 0.1, 0.2, 0.5])
+Froude_numbers = cycler(Fr_b = [0.02, 0.08, 0.3, 1])
+L              = cycler(L = [0, 0.8])
 
 resolutions    = cycler(dz = [4, 2, 1])
-T_advective_spinups = cycler(T_advective_spinup = [12])
+T_adv_spinups  = cycler(T_adv_spinup = [12])
 
 paramspace = Rossby_numbers * Froude_numbers * L
-configs    = resolutions  * T_advective_spinups
+configs    = resolutions  * T_adv_spinups
 
 runs = paramspace * configs
 #---

@@ -14,8 +14,8 @@ from src.aux02_plotting import letterize, create_mc, mscatter
 path = "../simulations/data/"
 simname_base = "seamount"
 
-Rossby_numbers = cycler(Ro_h = [0.2, 1.25])
-Froude_numbers = cycler(Fr_h = [0.2, 1.25])
+Rossby_numbers = cycler(Ro_b = [0.2, 1.25])
+Froude_numbers = cycler(Fr_b = [0.2, 1.25])
 L              = cycler(L = [0, 300])
 
 resolutions    = cycler(dz = [2,])
@@ -32,6 +32,6 @@ tafields = merge_datasets(runs, base_name=f"tafields_{simname_base}", verbose=Tr
 
 tafields = tafields.rename(Δz_min = "Δz")
 tafields["Δz"].attrs = dict(units="m")
-tafields = tafields.reindex(Ro_h = list(reversed(tafields.Ro_h)))
+tafields = tafields.reindex(Ro_b = list(reversed(tafields.Ro_b)))
 
-tafields["ε̄ₖ"].sel(closure="AMD").plot(x="x_caa", y="y_aca", col="Fr_h", row="Ro_h", norm=LogNorm(clip=True), vmin=1e-10, vmax=1e-6)
+tafields["ε̄ₖ"].sel(closure="AMD").plot(x="x_caa", y="y_aca", col="Fr_b", row="Ro_b", norm=LogNorm(clip=True), vmin=1e-10, vmax=1e-6)

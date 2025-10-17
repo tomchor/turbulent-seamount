@@ -113,9 +113,9 @@ for j, config in enumerate(runs):
 
     #+++ Create aaad dataset
     aaad["U∞∬⟨Ek′⟩ₜdxdz"] = xyza["U∞∬⟨Ek′⟩ₜdydz"]
-    aaad["⟨ε̄ₖ⟩ᵋ"]     = aaad["∭ᵋε̄ₖdxdy"] / aaad["∭ᵋ1dxdy"]
-    aaad["Loᵋ"]       = 2*π * np.sqrt(aaad["⟨ε̄ₖ⟩ᵋ"] / aaad.N2_inf**(3/2))
-    aaad["Δz̃"]        = aaad.Δz_min / aaad["Loᵋ"]
+    aaad["⟨ε̄ₖ⟩ᵋ"]         = aaad["∭ᵋε̄ₖdV"] / aaad["∭ᵋ1dV"]
+    aaad["Loᵋ"]           = 2*π * np.sqrt(aaad["⟨ε̄ₖ⟩ᵋ"] / aaad.N2_inf**(3/2))
+    aaad["Δz̃"]            = aaad.Δz_min / aaad["Loᵋ"]
 
     aaad = gather_attributes_as_variables(aaad, ds_ref=xyza)
     #---

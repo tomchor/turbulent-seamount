@@ -99,7 +99,7 @@ def open_simulation(fname,
     if use_inertial_periods:
         ds = pn.normalize_time_by(ds, seconds=ds.T_inertial, new_units="Inertial period")
     elif use_advective_periods:
-        ds = pn.normalize_time_by(ds, seconds=ds.T_advective, new_units="Cycle period")
+        ds = pn.normalize_time_by(ds, seconds=ds.T_adv, new_units="Cycle period")
     elif use_cycle_periods:
         ds = pn.normalize_time_by(ds, seconds=ds.T_cycle, new_units="Cycle period")
     elif use_strouhal_periods:
@@ -377,7 +377,7 @@ def collect_datasets(simnames_filtered, slice_name="xyii", path="./simulations/d
             #---
 
             #+++ Get specific times and create new variables
-            t_slice = slice(ds.T_advective_spinup+10, np.inf, 1)
+            t_slice = slice(ds.T_adv_spinup+10, np.inf, 1)
             ds = ds.sel(time=t_slice)
             ds = ds.assign_coords(time=ds.time-ds.time[0])
 

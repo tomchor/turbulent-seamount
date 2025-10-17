@@ -97,11 +97,11 @@ function parse_command_line_arguments()
             default = 2 # x_offset / FWHM (how far from the inflow the headland is)
             arg_type = Float64
 
-        "--T_advective_spinup"
+        "--T_adv_spinup"
             default = 8 # Should be a multiple of interval_time_avg
             arg_type = Float64
 
-        "--T_advective_statistics"
+        "--T_adv_statistics"
             default = 8 # Should be a multiple of interval_time_avg
             arg_type = Float64
 
@@ -204,7 +204,7 @@ let
     #+++ Time scales
     T_inertial = 2π / abs(f₀)
     T_cycle = params.Lx / params.U∞
-    T_advective = params.FWHM / params.U∞
+    T_adv = params.FWHM / params.U∞
     #---
 
     global params = merge(params, Base.@locals)
@@ -339,9 +339,9 @@ set!(model, b=(x, y, z) -> b∞(z), u=params.U∞)
 #---
 
 #+++ Create simulation
-params = (; params..., T_advective_max = params.T_advective_spinup + params.T_advective_statistics)
+params = (; params..., T_adv_max = params.T_adv_spinup + params.T_adv_statistics)
 simulation = Simulation(model, Δt = 0.2 * minimum_zspacing(grid.underlying_grid) / params.U∞,
-                        stop_time = params.T_advective_max * params.T_advective,
+                        stop_time = params.T_adv_max * params.T_adv,
                         wall_time_limit = 23hours,
                         minimum_relative_step = 1e-10,
                         )
@@ -351,7 +351,7 @@ walltime_per_timestep = StepDuration(with_prefix=false) # This needs to instanti
 walltime = Walltime()
 cg_iterations(simulation) = simulation.model.pressure_solver isa ConjugateGradientPoissonSolver ? "iterations = $(iteration(model.pressure_solver))" : ""
 progress(simulation) = @info (PercentageProgress(with_prefix=false, with_units=false)
-                              + "$(round(time(simulation)/params.T_advective; digits=2)) adv periods" + walltime
+                              + "$(round(time(simulation)/params.T_adv; digits=2)) adv periods" + walltime
                               + TimeStep() + "CFL = " * AdvectiveCFLNumber(with_prefix=false)
                               + MaxUVelocity()
                               + "step dur = " * walltime_per_timestep
@@ -361,7 +361,7 @@ simulation.callbacks[:progress] = Callback(progress, IterationInterval(40))
 
 conjure_time_step_wizard!(simulation, IterationInterval(1), max_change=1.05, cfl=0.9, min_Δt=1e-4, max_Δt=1/√params.N²∞)
 
-t_switch = 12 * params.T_advective
+t_switch = 12 * params.T_adv
 function cfl_changer(sim)
     if sim.model.clock.time > 0
         @warn "Changing target cfl"
@@ -378,7 +378,7 @@ include("$rundir/diagnostics.jl")
 
 #+++ Define checkpointer/pickup
 write_ckpt = params.dz < 2
-interval_time_avg = params.T_advective
+interval_time_avg = params.T_adv
 
 if write_ckpt
     checkpointer_prefix = "ckpt.$(params.simname)"
@@ -413,8 +413,8 @@ construct_outputs(simulation;
                   rundir = rundir,
                   params = params,
                   overwrite_existing = overwrite_existing,
-                  interval_2d = 0.1*params.T_advective,
-                  interval_3d = 0.5*params.T_advective,
+                  interval_2d = 0.1*params.T_adv,
+                  interval_3d = 0.5*params.T_adv,
                   interval_time_avg,
                   write_xyzi = true,
                   write_xizi = true,

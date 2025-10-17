@@ -48,7 +48,7 @@ for j, config in enumerate(runs):
     #---
 
     #+++ Trimming dataset
-    t_slice_inclusive = slice(aaai.T_advective_spinup, np.inf) # For snapshots, we want to include t=T_advective_spinup
+    t_slice_inclusive = slice(aaai.T_adv_spinup, np.inf) # For snapshots, we want to include t=T_adv_spinup
     aaai = aaai.sel(time=t_slice_inclusive)
 
     aaai["Ĥ"] = aaai.bottom_height.max()

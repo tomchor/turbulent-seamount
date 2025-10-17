@@ -9,7 +9,7 @@ import sys
 sys.path.append("..")
 from postprocessing.src.aux00_utils import aggregate_parameters
 
-
+#+++ Get submission options
 def get_submission_options(scheduler, job_size):
     """
     Get PBS/SLURM submission options based on job size.
@@ -30,13 +30,13 @@ def get_submission_options(scheduler, job_size):
     if job_size == "very_small":
         if scheduler == "pbs":
             options = ["select=1:ncpus=1:ngpus=1",
-                       "gpu_type=a100"]
+                       "gpu_type=v100"]
         elif scheduler == "slurm":
             options = ["--ntasks=1",
                        "--constraint=gpu",
                        "--cpus-per-task=32",
                        "--gpus-per-task=1",
-                       "--time=1:00:00"]
+                       "--time=2:00:00"]
 
     elif job_size == "small":
         if scheduler == "pbs":
@@ -47,7 +47,7 @@ def get_submission_options(scheduler, job_size):
                        "--constraint=gpu",
                        "--cpus-per-task=32",
                        "--gpus-per-task=1",
-                       "--time=2:00:00"]
+                       "--time=4:00:00"]
 
     elif job_size == "big":
         if scheduler == "pbs":
@@ -59,7 +59,7 @@ def get_submission_options(scheduler, job_size):
                        "--constraint=gpu&hbm80g",
                        "--cpus-per-task=32",
                        "--gpus-per-task=1",
-                       "--time=4:00:00"]
+                       "--time=12:00:00"]
     else:
         raise ValueError(f"Unknown job_size: {job_size}")
 
@@ -69,8 +69,9 @@ def get_submission_options(scheduler, job_size):
         return "\n".join([f"#SBATCH {option}" for option in options])
     else:
         raise ValueError(f"Unknown scheduler: {scheduler}")
+#---
 
-
+#+++ Get submission command
 def get_submission_command(scheduler, job_size, aux_filename, only_one_job=False):
     """
     Get the command to submit jobs based on scheduler and job size.
@@ -113,8 +114,9 @@ def get_submission_command(scheduler, job_size, aux_filename, only_one_job=False
                 return f"sbatch {aux_filename}"
 
     raise ValueError(f"Unknown job_size: {job_size}")
+#---
 
-
+#+++ Determine job size
 def determine_job_size(modifiers):
     """
     Determine job size based on resolution (dz parameter).
@@ -137,8 +139,9 @@ def determine_job_size(modifiers):
         return "small"
     else:
         return "big"
+#---
 
-
+#+++ Run simulation batch
 def run_simulation_batch(runs, simname_base, julia_script, scheduler="pbs",
                          remove_checkpoints=False, only_one_job=False,
                          dry_run=False, verbose=1, aux_filename="aux_submission_script.sh"):
@@ -209,3 +212,4 @@ def run_simulation_batch(runs, simname_base, julia_script, scheduler="pbs",
             system(cmd1)
 
         print()
+#---

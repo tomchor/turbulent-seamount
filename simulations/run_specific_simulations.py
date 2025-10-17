@@ -3,12 +3,12 @@ from simulation_runner import run_simulation_batch
 
 #+++ Define run options
 # Define physical parameters
-Rossby_numbers     = cycler(Ro_h = [0.05, 0.1, 0.2, 0.5])
-Froude_numbers     = cycler(Fr_h = [0.02, 0.08, 0.3, 1])
-L                  = cycler(L = [0, 0.8])
+Rossby_numbers      = cycler(Ro_h = [0.05])
+Froude_numbers      = cycler(Fr_h = [0.05])
+L                   = cycler(L = [0, 0.8])
 
 # Define numerical parameters
-resolutions         = cycler(dz = [4, 2, 1])
+resolutions         = cycler(dz = [2])
 T_advective_spinups = cycler(T_advective_spinup = [12])
 
 paramspace = Rossby_numbers * Froude_numbers * L
@@ -19,7 +19,7 @@ runs = paramspace * configs
 
 #+++ Run simulations
 run_simulation_batch(
-    runs=runs,
+    runs = runs,
     simname_base = "seamount",
     julia_script = "seamount.jl",
     scheduler = "pbs",

@@ -18,8 +18,8 @@ if basename(__file__) != "00_run_postproc.py":
     simdata_path = "../simulations/data/"
     simname_base = "seamount"
 
-    Rossby_numbers = cycler(Ro_h = [0.1])
-    Froude_numbers = cycler(Fr_h = [1])
+    Rossby_numbers = cycler(Ro_b = [0.1])
+    Froude_numbers = cycler(Fr_b = [1])
     L              = cycler(L = [0, 0.05, 0.1, 0.2, 0.4, 0.8,
                                 0.8, 0.8, 0.8])
     FWHM           = cycler(FWHM = [500, 500, 500, 500, 500, 500,
@@ -48,7 +48,7 @@ for j, config in enumerate(runs):
     #---
 
     #+++ Trimming dataset
-    t_slice_inclusive = slice(aaai.T_advective_spinup, np.inf) # For snapshots, we want to include t=T_advective_spinup
+    t_slice_inclusive = slice(aaai.T_adv_spinup, np.inf) # For snapshots, we want to include t=T_adv_spinup
     aaai = aaai.sel(time=t_slice_inclusive)
 
     aaai["Ĥ"] = aaai.bottom_height.max()

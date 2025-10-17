@@ -19,8 +19,8 @@ path = "../simulations/data/"
 simname_base = "seamount"
 
 slopes         = cycler(α = [0.05, 0.2])
-Rossby_numbers = cycler(Ro_h = [0.2, 1.25])
-Froude_numbers = cycler(Fr_h = [0.2, 1.25])
+Rossby_numbers = cycler(Ro_b = [0.2, 1.25])
+Froude_numbers = cycler(Fr_b = [0.2, 1.25])
 
 resolutions    = cycler(dz = [8, 4, 2,])
 closures       = cycler(closure = ["AMD", "CSM", "DSM", "NON"])
@@ -37,7 +37,7 @@ bulk = bulk.rename(Δz_min = "Δz")
 bulk["Δz"].attrs = dict(units="m")
 
 for closure in bulk.closure:
-    bulk.sel(closure=closure).plot.scatter(col="Fr_h", row="Ro_h", x="Δz", y="Δz̃", hue="α", cmap=mpl.colors.ListedColormap(["red", "blue"]))
+    bulk.sel(closure=closure).plot.scatter(col="Fr_b", row="Ro_b", x="Δz", y="Δz̃", hue="α", cmap=mpl.colors.ListedColormap(["red", "blue"]))
     fig = plt.gcf()
     fig.suptitle(closure.item())
     for ax in fig.axes:

@@ -17,8 +17,8 @@ print("Starting h00 script")
 path = "../simulations/data/"
 simname_base = "seamount"
 
-Rossby_numbers = cycler(Ro_h = [0.05, 0.1, 0.2, 0.5])
-Froude_numbers = cycler(Fr_h = [0.02, 0.08, 0.3, 1])
+Rossby_numbers = cycler(Ro_b = [0.05, 0.1, 0.2, 0.5])
+Froude_numbers = cycler(Fr_b = [0.02, 0.08, 0.3, 1])
 L              = cycler(L = [0, 0.8])
 
 resolutions    = cycler(dz = [1])

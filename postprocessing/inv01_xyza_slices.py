@@ -14,8 +14,8 @@ plt.rcParams["figure.constrained_layout.use"] = True
 path = "../simulations/data/"
 simname_base = "seamount"
 
-Rossby_numbers = cycler(Ro_h = [0.2])
-Froude_numbers = cycler(Fr_h = [1.25])
+Rossby_numbers = cycler(Ro_b = [0.2])
+Froude_numbers = cycler(Fr_b = [1.25])
 L              = cycler(L = [0, 0.05, 0.1, 0.2, 0.4, 0.8])
 
 resolutions    = cycler(dz = [2])
@@ -29,7 +29,7 @@ runs = paramspace * configs
 #+++ Read and pre-process datasets
 xyza = merge_datasets(runs, base_name=f"xyza.{simname_base}", verbose=True, add_min_spacings=False,
                       open_dataset_kwargs=dict(chunks="auto"))
-xyza = xyza.reindex(Ro_h = list(reversed(xyza.Ro_h)))
+xyza = xyza.reindex(Ro_b = list(reversed(xyza.Ro_b)))
 xyza = xyza.squeeze()
 
 Ĥ = xyza.bottom_height.pnmax(("x", "y")) # Actual height of seamount

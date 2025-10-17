@@ -20,8 +20,8 @@ if basename(__file__) != "00_run_postproc.py":
     simdata_path = "../simulations/data/"
     simname_base = "seamount"
 
-    Rossby_numbers = cycler(Ro_h = [0.1])
-    Froude_numbers = cycler(Fr_h = [1])
+    Rossby_numbers = cycler(Ro_b = [0.1])
+    Froude_numbers = cycler(Fr_b = [1])
     L              = cycler(L = [0])
 
     resolutions    = cycler(dz = [8])

@@ -9,8 +9,8 @@ plt.rcParams["figure.constrained_layout.use"] = True
 #+++ Define directory and simulation name
 simname_base = "seamount"
 
-Rossby_numbers = cycler(Ro_h = [0.1])
-Froude_numbers = cycler(Fr_h = [1])
+Rossby_numbers = cycler(Ro_b = [0.1])
+Froude_numbers = cycler(Fr_b = [1])
 L              = cycler(L = [0, 0.05, 0.1, 0.2, 0.4, 0.8,
                              0.8, 0.8])
 FWHM           = cycler(FWHM = [500, 500, 500, 500, 500, 500,
@@ -25,7 +25,7 @@ runs = paramspace * configs
 #---
 
 aaaa = merge_datasets(runs, base_name=f"aaaa.{simname_base}", verbose=True, add_min_spacings=False)
-aaaa = aaaa.reindex(Ro_h = list(reversed(aaaa.Ro_h)))
+aaaa = aaaa.reindex(Ro_b = list(reversed(aaaa.Ro_b)))
 
 # fit_filename = f'data/bathymetry_powerlaw_fits_{simname_base}.nc'
 # ds_fit = xr.open_dataset(fit_filename).sel(L=slice(0, 400))
@@ -40,7 +40,7 @@ aaaa = condense(aaaa, ["∭⁵ε̄ₖdV", "∭¹⁰ε̄ₖdV"], "∭ᵇε̄ₖdV
 
 aaaa["γ"] = aaaa["∭ᵇε̄ₚdV"] / (aaaa["∭ᵇε̄ₚdV"] + aaaa["∭ᵇε̄ₖdV"])
 
-aaaa["RoFr"] = aaaa.Ro_h * aaaa.Fr_h
+aaaa["RoFr"] = aaaa.Ro_b * aaaa.Fr_b
 
 # hor_scale = 1/aaaa.transition_wavenumber
 hor_scale = aaaa.FWHM

@@ -20,8 +20,8 @@ save_results = True  # Set to False to skip saving results
 path = "../simulations/data/"
 simname_base = "seamount"
 
-Rossby_numbers = cycler(Ro_h = [0.2])
-Froude_numbers = cycler(Fr_h = [1.25])
+Rossby_numbers = cycler(Ro_b = [0.2])
+Froude_numbers = cycler(Fr_b = [1.25])
 L              = cycler(L = [0, 0.05, 0.1, 0.2, 0.4, 0.8])
 
 resolutions    = cycler(dz = [2])
@@ -117,22 +117,22 @@ if save_results:
 
         # Create dataset with fit results, adding back singleton dimensions
     # Extract parameter values from the original dataset
-    Ro_h_val = float(aaai.Ro_h.values)
-    Fr_h_val = float(aaai.Fr_h.values)
+    Ro_b_val = float(aaai.Ro_b.values)
+    Fr_b_val = float(aaai.Fr_b.values)
     dz_val = float(aaai.dz.values)
 
     fit_ds = xr.Dataset({
-        "amplitude": (["Ro_h", "Fr_h", "dz", "L"],
+        "amplitude": (["Ro_b", "Fr_b", "dz", "L"],
                        np.array(amps).reshape(1, 1, 1, len(amps))),
-        "power_law_exponent": (["Ro_h", "Fr_h", "dz", "L"],
+        "power_law_exponent": (["Ro_b", "Fr_b", "dz", "L"],
                                 np.array(alphas).reshape(1, 1, 1, len(alphas))),
-        "transition_wavenumber": (["Ro_h", "Fr_h", "dz", "L"],
+        "transition_wavenumber": (["Ro_b", "Fr_b", "dz", "L"],
                                    np.array(k_transitions).reshape(1, 1, 1, len(k_transitions))),
-        "fit_success": (["Ro_h", "Fr_h", "dz", "L"],
+        "fit_success": (["Ro_b", "Fr_b", "dz", "L"],
                          np.array(fit_successes).reshape(1, 1, 1, len(fit_successes))),
     }, coords={
-        "Ro_h": [Ro_h_val],
-        "Fr_h": [Fr_h_val],
+        "Ro_b": [Ro_b_val],
+        "Fr_b": [Fr_b_val],
         "dz": [dz_val],
         "L": L_values
     })
@@ -164,11 +164,11 @@ if save_results:
     }
 
     # Add coordinate attributes
-    fit_ds["Ro_h"].attrs = {
+    fit_ds["Ro_b"].attrs = {
         "long_name": "Horizontal Rossby number",
         "units": "dimensionless"
     }
-    fit_ds["Fr_h"].attrs = {
+    fit_ds["Fr_b"].attrs = {
         "long_name": "Horizontal Froude number",
         "units": "dimensionless"
     }

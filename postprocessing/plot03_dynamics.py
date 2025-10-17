@@ -26,14 +26,14 @@ avgd_opts = dict(unique_times=False,
                  load=False,
                  get_grid=False,
                  open_dataset_kwargs=dict(chunks="auto"))
-xyzi_L00 = open_simulation(simdata_path + f"xyzi.seamount_Ro_h0.1_Fr_h1_L0_FWHM500_{resolution}.nc", **snap_opts)[["PV", "Ro", "Δz_aac"]]
-xyzd_L00 = open_simulation(postproc_path + f"xyzd.seamount_Ro_h0.1_Fr_h1_L0_FWHM500_{resolution}.nc", **avgd_opts)
-aaad_L00 = open_simulation(postproc_path + f"aaad.seamount_Ro_h0.1_Fr_h1_L0_FWHM500_{resolution}.nc", **avgd_opts).sel(buffer=10)
+xyzi_L00 = open_simulation(simdata_path + f"xyzi.seamount_Ro_b0.1_Fr_b1_L0_FWHM500_{resolution}.nc", **snap_opts)[["PV", "Ro", "Δz_aac"]]
+xyzd_L00 = open_simulation(postproc_path + f"xyzd.seamount_Ro_b0.1_Fr_b1_L0_FWHM500_{resolution}.nc", **avgd_opts)
+aaad_L00 = open_simulation(postproc_path + f"aaad.seamount_Ro_b0.1_Fr_b1_L0_FWHM500_{resolution}.nc", **avgd_opts).sel(buffer=10)
 ds_L00 = xr.merge([xyzi_L00, xyzd_L00, aaad_L00])
 
-xyzi_L08 = open_simulation(simdata_path + f"xyzi.seamount_Ro_h0.1_Fr_h1_L0.8_FWHM500_{resolution}.nc", **snap_opts)[["PV", "Ro", "Δz_aac"]]
-xyzd_L08 = open_simulation(postproc_path + f"xyzd.seamount_Ro_h0.1_Fr_h1_L0.8_FWHM500_{resolution}.nc", **avgd_opts)
-aaad_L08 = open_simulation(postproc_path + f"aaad.seamount_Ro_h0.1_Fr_h1_L0.8_FWHM500_{resolution}.nc", **avgd_opts).sel(buffer=10)
+xyzi_L08 = open_simulation(simdata_path + f"xyzi.seamount_Ro_b0.1_Fr_b1_L0.8_FWHM500_{resolution}.nc", **snap_opts)[["PV", "Ro", "Δz_aac"]]
+xyzd_L08 = open_simulation(postproc_path + f"xyzd.seamount_Ro_b0.1_Fr_b1_L0.8_FWHM500_{resolution}.nc", **avgd_opts)
+aaad_L08 = open_simulation(postproc_path + f"aaad.seamount_Ro_b0.1_Fr_b1_L0.8_FWHM500_{resolution}.nc", **avgd_opts).sel(buffer=10)
 ds_L08 = xr.merge([xyzi_L08, xyzd_L08, aaad_L08])
 #---
 

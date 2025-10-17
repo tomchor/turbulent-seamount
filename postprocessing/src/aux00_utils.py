@@ -405,8 +405,8 @@ def collect_datasets(simnames_filtered, slice_name="xyii", path="./simulations/d
         ds["sim_number"] = sim_number
         ds["f₀"] = ds.f_0
         ds["N²∞"] = ds.N2_inf
-        ds = ds.expand_dims(("Ro_h", "Fr_h")).assign_coords(Ro_h=[np.round(ds.Ro_h, decimals=4)],
-                                                            Fr_h=[np.round(ds.Fr_h, decimals=4)])
+        ds = ds.expand_dims(("Ro_b", "Fr_b")).assign_coords(Ro_b=[np.round(ds.Ro_b, decimals=4)],
+                                                            Fr_b=[np.round(ds.Fr_b, decimals=4)])
         dslist.append(ds)
         #---
 
@@ -435,11 +435,11 @@ def collect_datasets(simnames_filtered, slice_name="xyii", path="./simulations/d
     dsout = xr.combine_by_coords(dslist, combine_attrs="drop_conflicts")
 
     if "Δx_caa" in ds.keys():
-        dsout["Δx_caa"] = dsout["Δx_caa"].isel(Ro_h=0, Fr_h=0)
+        dsout["Δx_caa"] = dsout["Δx_caa"].isel(Ro_b=0, Fr_b=0)
         dsout["land_mask"]  = (dsout["Δx_caa"] == 0)
         dsout["water_mask"] = np.logical_not(dsout.land_mask)
-    if "Δy_aca" in ds.keys(): dsout["Δy_aca"] = dsout["Δy_aca"].isel(Ro_h=0, Fr_h=0)
-    if "Δz_aac" in ds.keys(): dsout["Δz_aac"] = dsout["Δz_aac"].isel(Ro_h=0, Fr_h=0)
+    if "Δy_aca" in ds.keys(): dsout["Δy_aca"] = dsout["Δy_aca"].isel(Ro_b=0, Fr_b=0)
+    if "Δz_aac" in ds.keys(): dsout["Δz_aac"] = dsout["Δz_aac"].isel(Ro_b=0, Fr_b=0)
     #---
 
     return dsout
@@ -530,7 +530,7 @@ def gather_attributes_as_variables(ds, ds_ref=None, include_derived=True):
     """
     Transform dataset attributes to variables and optionally create derived quantities.
 
-    This function converts common attributes like Ro_h, Fr_h, etc. to variables
+    This function converts common attributes like Ro_b, Fr_b, etc. to variables
     in the dataset, and optionally creates derived quantities like RoFr, U∞³÷L, etc.
 
     Parameters
@@ -553,7 +553,7 @@ def gather_attributes_as_variables(ds, ds_ref=None, include_derived=True):
         ds_ref = ds
 
     #+++ Convert existing variables to new names and attributes to variables
-    for var in ["Ro_h", "Fr_h", "Slope_Bu", "α", "Bu_h", "Γ", "c_dz",
+    for var in ["Ro_b", "Fr_b", "Slope_Bu", "α", "Bu_h", "Γ", "c_dz",
                 "f₀", "N²∞", "U∞", "L"]:
         if var in ds.variables:
             ds[var] = ds[var]
@@ -573,8 +573,8 @@ def gather_attributes_as_variables(ds, ds_ref=None, include_derived=True):
     #+++ Create derived quantities if requested
     if include_derived:
         # Basic derived quantities
-        if "Ro_h" in ds.variables and "Fr_h" in ds.variables:
-            ds["RoFr"] = ds.Ro_h * ds.Fr_h
+        if "Ro_b" in ds.variables and "Fr_b" in ds.variables:
+            ds["RoFr"] = ds.Ro_b * ds.Fr_b
 
         # Velocity and stratification derived quantities
         if "U∞" in ds.variables and "L" in ds.variables:

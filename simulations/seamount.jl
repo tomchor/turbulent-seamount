@@ -50,11 +50,11 @@ function parse_command_line_arguments()
             default = 0.2
             arg_type = Float64
 
-        "--Ro_h"
+        "--Ro_b"
             default = 0.1
             arg_type = Float64
 
-        "--Fr_h"
+        "--Fr_b"
             default = 1.0
             arg_type = Float64
 
@@ -188,16 +188,16 @@ let
     #---
 
     #+++ Dynamically-relevant secondary parameters
-    f₀ = f_0 = -params.U∞ / (params.Ro_h * params.FWHM)
-    N²∞ = N2_inf = (params.U∞ / (params.Fr_h * params.H))^2
+    f₀ = f_0 = -params.U∞ / (params.Ro_b * params.FWHM)
+    N²∞ = N2_inf = (params.U∞ / (params.Fr_b * params.H))^2
     R1 = √N²∞ * params.H / abs(f₀)
     z₀ = z_0 = params.Rz * params.H
     #---
 
     #+++ Diagnostic parameters
-    Γ = params.α * params.Fr_h # nonhydrostatic parameter (Schar 2002)
-    Bu_h = (params.Ro_h / params.Fr_h)^2
-    Slope_Bu = params.Ro_h / params.Fr_h # approximate slope Burger number
+    Γ = params.α * params.Fr_b # nonhydrostatic parameter (Schar 2002)
+    Bu_h = (params.Ro_b / params.Fr_b)^2
+    Slope_Bu = params.Ro_b / params.Fr_b # approximate slope Burger number
     @assert Slope_Bu ≈ params.α * √N²∞ / abs(f₀)
     #---
 

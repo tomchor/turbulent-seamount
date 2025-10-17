@@ -22,7 +22,7 @@ Froude_numbers = cycler(Fr_b = [0.02, 0.08, 0.3, 1])
 L              = cycler(L = [0, 0.8])
 
 resolutions    = cycler(dz = [1])
-T_adv_spinups = cycler(T_adv_spinup = [12])
+T_adv_spinups  = cycler(T_adv_spinup = [12])
 
 paramspace = Rossby_numbers * Froude_numbers * L
 configs    = resolutions  * T_adv_spinups

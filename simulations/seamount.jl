@@ -101,7 +101,7 @@ function parse_command_line_arguments()
             default = 8 # Should be a multiple of interval_time_avg
             arg_type = Float64
 
-        "--T_adv_statistics"
+        "--T_adv_stats"
             default = 8 # Should be a multiple of interval_time_avg
             arg_type = Float64
 
@@ -339,7 +339,7 @@ set!(model, b=(x, y, z) -> b∞(z), u=params.U∞)
 #---
 
 #+++ Create simulation
-params = (; params..., T_adv_max = params.T_adv_spinup + params.T_adv_statistics)
+params = (; params..., T_adv_max = params.T_adv_spinup + params.T_adv_stats)
 simulation = Simulation(model, Δt = 0.2 * minimum_zspacing(grid.underlying_grid) / params.U∞,
                         stop_time = params.T_adv_max * params.T_adv,
                         wall_time_limit = 23hours,

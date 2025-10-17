@@ -5,8 +5,8 @@ using Printf
 using Oceananigans: prettytime
 
 #+++ Preamble
-fpath_xyzi_1 = "../simulations/data/xyzi.seamount_Ro_h0.1_Fr_h1_L0_FWHM500_dz1.nc"
-fpath_xyzi_2 = "../simulations/data/xyzi.seamount_Ro_h0.1_Fr_h1_L0.8_FWHM500_dz1.nc"
+fpath_xyzi_1 = "../simulations/data/xyzi.seamount_Ro_b0.1_Fr_b1_L0_FWHM500_dz1.nc"
+fpath_xyzi_2 = "../simulations/data/xyzi.seamount_Ro_b0.1_Fr_b1_L0.8_FWHM500_dz1.nc"
 
 variable = :∫⁵εₖdy
 
@@ -97,7 +97,7 @@ text!(ax2_heat, 0.05, 0.95, text="L/FWHM = $(params2.L)"; label_options...)
 #---
 
 #+++ Create title, labels, and save the plot
-title = "Roₕ = $(params1.Ro_h), Frₕ = $(params1.Fr_h); " *
+title = "Roₕ = $(params1.Ro_b), Frₕ = $(params1.Fr_b); " *
         "Time = $(@sprintf "%s" prettytime(times[n_final]))"
 fig[0, 1:3] = Label(fig, title, fontsize=18, tellwidth=false, height=8)
 

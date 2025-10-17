@@ -13,8 +13,8 @@ from src.aux02_plotting import letterize, create_mc, mscatter
 path = "../simulations/data/"
 simname_base = "seamount"
 
-Rossby_numbers = cycler(Ro_h = [0.2])
-Froude_numbers = cycler(Fr_h = [1.25])
+Rossby_numbers = cycler(Ro_b = [0.2])
+Froude_numbers = cycler(Fr_b = [1.25])
 L              = cycler(L = [0, 0.05, 0.1, 0.2, 0.4, 0.8])
 
 resolutions    = cycler(dz = [8, 4, 2])
@@ -28,10 +28,10 @@ runs = paramspace * configs
 
 turb = merge_datasets(runs, base_name=f"turbstats_{simname_base}", verbose=True, add_min_spacings=False,
                       drop_vars=["Δx_min", "Δy_min", "Δz_min", "y_aca",])
-turb = turb.reindex(Ro_h = list(reversed(turb.Ro_h)))
+turb = turb.reindex(Ro_b = list(reversed(turb.Ro_b)))
 
 #+++ Define new variables
-turb["RoFr"] = turb.Ro_h * turb.Fr_h
+turb["RoFr"] = turb.Ro_b * turb.Fr_b
 
 turb["𝒦ℰ"] = turb["∭⁵⟨Ek′⟩ₜdV"]
 turb["𝒫"] = turb["∭⁵SPRdxdy"].sum("j")

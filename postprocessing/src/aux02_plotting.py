@@ -28,8 +28,8 @@ def manual_facetgrid(da, fig, tt=None,
     plt.rcParams["font.size"] = 9
 
     #+++ Create axes
-    len_Fr = len(da.Fr_h)
-    len_Ro = len(da.Ro_h)
+    len_Fr = len(da.Fr_b)
+    len_Ro = len(da.Ro_b)
     axes = fig.subplots(ncols=len_Fr, nrows=len_Ro,
                         sharex=True, sharey=True,)
     #---
@@ -51,12 +51,12 @@ def manual_facetgrid(da, fig, tt=None,
     from string import ascii_lowercase
     alphabet = list(ascii_lowercase)
     for i_Ro, axs_Ro in enumerate(axes):
-        Ro_h = da.Ro_h[i_Ro].item()
+        Ro_b = da.Ro_b[i_Ro].item()
         for j_Fr, ax in enumerate(axs_Ro):
-            Fr_h = da.Fr_h[j_Fr].item()
-            im = da.sel(Fr_h=Fr_h, Ro_h=Ro_h).pnplot(ax=ax, add_colorbar=False, rasterized=True, **plot_kwargs)
+            Fr_b = da.Fr_b[j_Fr].item()
+            im = da.sel(Fr_b=Fr_b, Ro_b=Ro_b).pnplot(ax=ax, add_colorbar=False, rasterized=True, **plot_kwargs)
             if contour_variable is not None:
-                ct = contour_variable.sel(Fr_h=Fr_h, Ro_h=Ro_h).pncontour(ax=ax, add_colorbar=False, zorder=5, **contour_kwargs)
+                ct = contour_variable.sel(Fr_b=Fr_b, Ro_b=Ro_b).pncontour(ax=ax, add_colorbar=False, zorder=5, **contour_kwargs)
 
             if land_mask is not None:
                 ax.pcolormesh(land_mask[land_mask.dims[-1]], land_mask[land_mask.dims[0]], land_mask.where(land_mask==1), rasterized=True, **opts_land)
@@ -64,13 +64,13 @@ def manual_facetgrid(da, fig, tt=None,
             ax.set_title("")
 
             if i_Ro == 0:
-                ax.set_title(f"$Fr_h =$ {Fr_h:.3g}", fontsize=9)
+                ax.set_title(f"$Fr_b =$ {Fr_b:.3g}", fontsize=9)
             if i_Ro != (len_Ro-1):
                 ax.set_xlabel("")
 
             if j_Fr == (len_Fr-1):
                 ax2 = ax.twinx()
-                ax2.set_ylabel(f"$Ro_h =$ {Ro_h:.3g}", fontsize=9)
+                ax2.set_ylabel(f"$Ro_b =$ {Ro_b:.3g}", fontsize=9)
                 ax2.tick_params(left=False, right=False, bottom=False, labelleft=False, labelright=False, labelbottom=False)
                 ax2.spines["top"].set_visible(False)
             if j_Fr != 0:
@@ -78,10 +78,10 @@ def manual_facetgrid(da, fig, tt=None,
 
             if add_abc:
                 if label_Slope_Bu:
-                    S_h = Ro_h/Fr_h
+                    S_h = Ro_b/Fr_b
                     ax.text(0.05, 0.9, f"({alphabet.pop(0)})\n$S_h=${S_h:.3g}", transform=ax.transAxes, bbox=bbox, zorder=1e3, fontsize=7)
                 else:
-                    Bu_h = (Ro_h/Fr_h)**2
+                    Bu_h = (Ro_b/Fr_b)**2
                     ax.text(0.05, 0.9, f"({alphabet.pop(0)})\n$Bu_h=${Bu_h:.3g}", transform=ax.transAxes, bbox=bbox, zorder=1e3, fontsize=7)
     #---
 
@@ -146,36 +146,36 @@ def create_mc(bulk):
     """ Creates marker and color variables in `bulk` """
     import xarray as xr
 
-    bulk["marker"] = xr.DataArray(len(bulk.Ro_h)*[len(bulk.Fr_h)*["o"]], dims=["Ro_h", "Fr_h"], coords=dict(Ro_h=bulk.Ro_h, Fr_h=bulk.Fr_h))
-    bulk["color"] = xr.DataArray(len(bulk.Ro_h)*[len(bulk.Fr_h)*["black"]], dims=["Ro_h", "Fr_h"], coords=dict(Ro_h=bulk.Ro_h, Fr_h=bulk.Fr_h))
+    bulk["marker"] = xr.DataArray(len(bulk.Ro_b)*[len(bulk.Fr_b)*["o"]], dims=["Ro_b", "Fr_b"], coords=dict(Ro_b=bulk.Ro_b, Fr_b=bulk.Fr_b))
+    bulk["color"] = xr.DataArray(len(bulk.Ro_b)*[len(bulk.Fr_b)*["black"]], dims=["Ro_b", "Fr_b"], coords=dict(Ro_b=bulk.Ro_b, Fr_b=bulk.Fr_b))
 
     # threed_sims
-    bulk["marker"] = bulk.marker.where(np.logical_not((bulk.Ro_h==1.25) & (bulk.Fr_h==1.25)), other="^")
-    bulk["color"] = bulk.color.where(np.logical_not((bulk.Ro_h==1.25) & (bulk.Fr_h==1.25)), other="green")
-    bulk["marker"] = bulk.marker.where(np.logical_not((bulk.Ro_h==0.5) & (bulk.Fr_h==0.5)), other="^")
-    bulk["color"] = bulk.color.where(np.logical_not((bulk.Ro_h==0.5) & (bulk.Fr_h==0.5)), other="green")
+    bulk["marker"] = bulk.marker.where(np.logical_not((bulk.Ro_b==1.25) & (bulk.Fr_b==1.25)), other="^")
+    bulk["color"] = bulk.color.where(np.logical_not((bulk.Ro_b==1.25) & (bulk.Fr_b==1.25)), other="green")
+    bulk["marker"] = bulk.marker.where(np.logical_not((bulk.Ro_b==0.5) & (bulk.Fr_b==0.5)), other="^")
+    bulk["color"] = bulk.color.where(np.logical_not((bulk.Ro_b==0.5) & (bulk.Fr_b==0.5)), other="green")
 
     # bathfo_sims
-    bulk["marker"] = bulk.marker.where(np.logical_not((bulk.Ro_h==0.08) & (bulk.Fr_h==1.25)), other="X")
-    bulk["color"] = bulk.color.where(np.logical_not((bulk.Ro_h==0.08) & (bulk.Fr_h==1.25)), other="blue")
-    bulk["marker"] = bulk.marker.where(np.logical_not((bulk.Ro_h==0.08) & (bulk.Fr_h==0.5)), other="X")
-    bulk["color"] = bulk.color.where(np.logical_not((bulk.Ro_h==0.08) & (bulk.Fr_h==0.5)), other="blue")
-    bulk["marker"] = bulk.marker.where(np.logical_not((bulk.Ro_h==0.2) & (bulk.Fr_h==1.25)), other="X")
-    bulk["color"] = bulk.color.where(np.logical_not((bulk.Ro_h==0.2) & (bulk.Fr_h==1.25)), other="blue")
+    bulk["marker"] = bulk.marker.where(np.logical_not((bulk.Ro_b==0.08) & (bulk.Fr_b==1.25)), other="X")
+    bulk["color"] = bulk.color.where(np.logical_not((bulk.Ro_b==0.08) & (bulk.Fr_b==1.25)), other="blue")
+    bulk["marker"] = bulk.marker.where(np.logical_not((bulk.Ro_b==0.08) & (bulk.Fr_b==0.5)), other="X")
+    bulk["color"] = bulk.color.where(np.logical_not((bulk.Ro_b==0.08) & (bulk.Fr_b==0.5)), other="blue")
+    bulk["marker"] = bulk.marker.where(np.logical_not((bulk.Ro_b==0.2) & (bulk.Fr_b==1.25)), other="X")
+    bulk["color"] = bulk.color.where(np.logical_not((bulk.Ro_b==0.2) & (bulk.Fr_b==1.25)), other="blue")
 
     # vertco_sims
-    bulk["marker"] = bulk.marker.where(np.logical_not((bulk.Ro_h==0.08) & (bulk.Fr_h==0.08)), other="D")
-    bulk["color"] = bulk.color.where(np.logical_not((bulk.Ro_h==0.08) & (bulk.Fr_h==0.08)), other="orange")
-    bulk["marker"] = bulk.marker.where(np.logical_not((bulk.Ro_h==0.2) & (bulk.Fr_h==0.2)), other="D")
-    bulk["color"] = bulk.color.where(np.logical_not((bulk.Ro_h==0.2) & (bulk.Fr_h==0.2)), other="orange")
+    bulk["marker"] = bulk.marker.where(np.logical_not((bulk.Ro_b==0.08) & (bulk.Fr_b==0.08)), other="D")
+    bulk["color"] = bulk.color.where(np.logical_not((bulk.Ro_b==0.08) & (bulk.Fr_b==0.08)), other="orange")
+    bulk["marker"] = bulk.marker.where(np.logical_not((bulk.Ro_b==0.2) & (bulk.Fr_b==0.2)), other="D")
+    bulk["color"] = bulk.color.where(np.logical_not((bulk.Ro_b==0.2) & (bulk.Fr_b==0.2)), other="orange")
 
     # vertsh_sims
-    bulk["marker"] = bulk.marker.where(np.logical_not((bulk.Ro_h==0.5) & (bulk.Fr_h==0.08)), other="d")
-    bulk["color"] = bulk.color.where(np.logical_not((bulk.Ro_h==0.5) & (bulk.Fr_h==0.08)), other="orchid")
-    bulk["marker"] = bulk.marker.where(np.logical_not((bulk.Ro_h==1.25) & (bulk.Fr_h==0.08)), other="d")
-    bulk["color"] = bulk.color.where(np.logical_not((bulk.Ro_h==1.25) & (bulk.Fr_h==0.08)), other="orchid")
-    bulk["marker"] = bulk.marker.where(np.logical_not((bulk.Ro_h==1.25) & (bulk.Fr_h==0.2)), other="d")
-    bulk["color"] = bulk.color.where(np.logical_not((bulk.Ro_h==1.25) & (bulk.Fr_h==0.2)), other="orchid")
+    bulk["marker"] = bulk.marker.where(np.logical_not((bulk.Ro_b==0.5) & (bulk.Fr_b==0.08)), other="d")
+    bulk["color"] = bulk.color.where(np.logical_not((bulk.Ro_b==0.5) & (bulk.Fr_b==0.08)), other="orchid")
+    bulk["marker"] = bulk.marker.where(np.logical_not((bulk.Ro_b==1.25) & (bulk.Fr_b==0.08)), other="d")
+    bulk["color"] = bulk.color.where(np.logical_not((bulk.Ro_b==1.25) & (bulk.Fr_b==0.08)), other="orchid")
+    bulk["marker"] = bulk.marker.where(np.logical_not((bulk.Ro_b==1.25) & (bulk.Fr_b==0.2)), other="d")
+    bulk["color"] = bulk.color.where(np.logical_not((bulk.Ro_b==1.25) & (bulk.Fr_b==0.2)), other="orchid")
 
     return bulk
 #---
@@ -305,7 +305,7 @@ plot_kwargs_by_var = {"u"         : dict(vmin=-0.01, vmax=+0.01, cmap=plt.cm.RdB
 
 label_dict = {"ε̄ₖ"      : r"Time-averaged KE dissipation rate $\bar\varepsilon_k$ [m²/s³]",
               "Ro"      : r"$Ro$ [vertical vorticity / $f$]",
-              "R̂o"      : r"$Ro / Ro_h$ [vertical vorticity / $f\, Ro_h$]",
+              "R̂o"      : r"$Ro / Ro_b$ [vertical vorticity / $f\, Ro_b$]",
               "q̃_norm"  : r"Normalized filtered Ertel PV",
               "PV_norm" : r"Normalized Ertel PV (PV$/f N^2_\infty$)",
               "v"       : r"$v$-velocity [m/s]",

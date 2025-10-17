@@ -34,8 +34,8 @@ end
 variables = (:v, :PV, :εₖ, :Ro)
 
 # Get main dataset paths
-fpath_xyii = (@isdefined simulation) ? simulation.output_writers[:nc_xyii].filepath : "data/xyii.seamount_Ro_h0.1_Fr_h1.0_L0.8_FWHM400_dz8.nc"
-fpath_xizi = (@isdefined simulation) ? simulation.output_writers[:nc_xizi].filepath : "data/xizi.seamount_Ro_h0.1_Fr_h1.0_L0.8_FWHM400_dz8.nc"
+fpath_xyii = (@isdefined simulation) ? simulation.output_writers[:nc_xyii].filepath : "data/xyii.seamount_Ro_b0.1_Fr_b1.0_L0.8_FWHM400_dz8.nc"
+fpath_xizi = (@isdefined simulation) ? simulation.output_writers[:nc_xizi].filepath : "data/xizi.seamount_Ro_b0.1_Fr_b1.0_L0.8_FWHM400_dz8.nc"
 
 @info "Reading xyii dataset: $fpath_xyii"
 ds_xyii = RasterStack(fpath_xyii, lazy=true, name=variables) |> squeeze
@@ -86,7 +86,7 @@ fig = Figure(figure_padding = (10, 30, 10, 10))
 n = Observable(1)
 
 # Create title in two lines within one row
-title = @lift "α = $(@sprintf "%.2g" params.α), Frₕ = $(@sprintf "%.2g" params.Fr_h), Roₕ = $(@sprintf "%.2g" params.Ro_h), Sᴮᵘ = $(@sprintf "%.2g" params.Slope_Bu), Δz = $(@sprintf "%.2g" params.Δz_min) m;   Time = $(@sprintf "%s" prettytime(times[$n])) = $(@sprintf "%.3g" times[$n]/params.T_advective) adv periods = $(@sprintf "%.3g" times[$n]/params.T_inertial) Inertial periods"
+title = @lift "α = $(@sprintf "%.2g" params.α), Frₕ = $(@sprintf "%.2g" params.Fr_b), Roₕ = $(@sprintf "%.2g" params.Ro_b), Sᴮᵘ = $(@sprintf "%.2g" params.Slope_Bu), Δz = $(@sprintf "%.2g" params.Δz_min) m;   Time = $(@sprintf "%s" prettytime(times[$n])) = $(@sprintf "%.3g" times[$n]/params.T_adv) adv periods = $(@sprintf "%.3g" times[$n]/params.T_inertial) Inertial periods"
 
 # Create single title row with two lines
 fig[1, 1:3] = Label(fig, title, fontsize=18, tellwidth=false, height=layout_params.title_height)

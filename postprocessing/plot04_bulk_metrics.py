@@ -10,8 +10,8 @@ plt.rcParams["figure.constrained_layout.use"] = True
 #+++ Define simulation parameters
 simname_base = "seamount"
 
-Rossby_numbers = cycler(Ro_h = [0.1])
-Froude_numbers = cycler(Fr_h = [1])
+Rossby_numbers = cycler(Ro_b = [0.1])
+Froude_numbers = cycler(Fr_b = [1])
 L              = cycler(L = [0, 0.05, 0.1, 0.2, 0.4, 0.8])
 FWHM           = cycler(FWHM = [500, 500, 500, 500, 500, 500])
 
@@ -24,14 +24,13 @@ runs = paramspace * configs
 #---
 
 #+++ Load datasets
-aaaa = merge_datasets(runs, base_name=f"aaaa.{simname_base}", verbose=True, add_min_spacings=False,
-                      combine_by_coords_kwargs=dict(compat="override", combine_attrs="drop_conflicts", coords="minimal"))
-aaaa = aaaa.reindex(Ro_h = list(reversed(aaaa.Ro_h)))
+aaaa = merge_datasets(runs, base_name=f"aaaa.{simname_base}", verbose=True, add_min_spacings=False)
+aaaa = aaaa.reindex(Ro_b = list(reversed(aaaa.Ro_b)))
 
 # Load aaad datasets to get additional variables
 aaad = merge_datasets(runs, base_name=f"aaad.{simname_base}", verbose=True, add_min_spacings=False, keep_vars=["∭⟨w′b′⟩ₜdV", "∭SPRdV"],
-                      combine_by_coords_kwargs=dict(compat="override", combine_attrs="drop_conflicts", coords="minimal"))
-aaad = aaad.reindex(Ro_h = list(reversed(aaad.Ro_h)))
+                      combine_by_coords_kwargs=dict(compat="override", combine_attrs="drop_conflicts", coords="minimal")))
+aaad = aaad.reindex(Ro_b = list(reversed(aaad.Ro_b)))
 
 aaaa = xr.merge([aaaa, aaad], compat="override")
 #---
@@ -44,7 +43,7 @@ for var in ["ε̄ₚ", "ε̄ₖ"]:
 
 # Create normalized variables
 aaaa["γ"] = aaaa["∭ᵇε̄ₚdV"] / (aaaa["∭ᵇε̄ₚdV"] + aaaa["∭ᵇε̄ₖdV"])
-aaaa["RoFr"] = aaaa.Ro_h * aaaa.Fr_h
+aaaa["RoFr"] = aaaa.Ro_b * aaaa.Fr_b
 
 # Normalized dissipation rates
 norm_factor = aaaa.attrs["U∞"]**3 * aaaa.FWHM * aaaa.H

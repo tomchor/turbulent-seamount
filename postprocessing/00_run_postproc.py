@@ -8,7 +8,7 @@ print("Starting h00 script")
 
 #+++ Define run options
 simdata_path = "../simulations/data/"
-simname_base = "seamount"
+simname_base = "balanus"
 
 Rossby_numbers = cycler(Ro_b = [0.1])
 Froude_numbers = cycler(Fr_b = [1])

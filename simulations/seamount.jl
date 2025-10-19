@@ -25,7 +25,7 @@ function parse_command_line_arguments()
 
         "--simname"
             help = "Simulation name for output"
-            default = "seamount"
+            default = "balanus"
             arg_type = String
 
         "--dz"
@@ -228,7 +228,12 @@ params = (; params..., Δz_min = minimum_zspacing(grid_base))
 #+++ Interpolate bathymetry and create immersed boundary grid
 x_grid = xnodes(grid_base, Center(), Center(), Center())
 y_grid = ynodes(grid_base, Center(), Center(), Center())
-interpolated_bathymetry_cpu = bathymetry_itp.(reshape(y_grid, (1, grid_base.Ny)), reshape(x_grid, (grid_base.Nx, 1)))
+
+if params.simname == "labanus" # Use 90° rotation of the bathymetry
+    interpolated_bathymetry_cpu = bathymetry_itp.(reshape(y_grid, (1, grid_base.Ny)), reshape(x_grid, (grid_base.Nx, 1)))
+else # Use regular bathymetry
+    interpolated_bathymetry_cpu = bathymetry_itp.(reshape(x_grid, (grid_base.Nx, 1)), reshape(y_grid, (1, grid_base.Ny)))
+end
 interpolated_bathymetry = on_architecture(grid_base.architecture, interpolated_bathymetry_cpu)
 
 grid = ImmersedBoundaryGrid(grid_base, GridFittedBottom(interpolated_bathymetry))

@@ -18,7 +18,7 @@ print("Starting xyzd dataset creation script")
 #+++ Define directory and simulation name
 if basename(__file__) != "00_run_postproc.py":
     simdata_path = "../simulations/data/"
-    simname_base = "seamount"
+    simname_base = "balanus"
 
     Rossby_numbers = cycler(Ro_b = [0.1])
     Froude_numbers = cycler(Fr_b = [1])

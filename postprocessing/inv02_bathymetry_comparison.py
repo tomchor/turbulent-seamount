@@ -18,7 +18,7 @@ save_results = True  # Set to False to skip saving results
 
 #+++ Define directory and simulation name
 path = "../simulations/data/"
-simname_base = "seamount"
+simname_base = "balanus"
 
 Rossby_numbers = cycler(Ro_b = [0.2])
 Froude_numbers = cycler(Fr_b = [1.25])

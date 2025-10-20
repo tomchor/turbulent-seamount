@@ -8,7 +8,7 @@ from src.aux00_utils import merge_datasets, condense
 plt.rcParams["figure.constrained_layout.use"] = True
 
 #+++ Define simulation parameters
-simname_base = "seamount"
+simname_base = "balanus"
 
 Rossby_numbers = cycler(Ro_b = [0.1])
 Froude_numbers = cycler(Fr_b = [1])

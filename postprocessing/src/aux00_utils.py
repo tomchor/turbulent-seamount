@@ -281,18 +281,37 @@ def adjust_times(ds, round_times=True, decimals=4):
 
 #+++ Check if all simulations are complete
 def check_simulation_completion(simnames, slice_name="xyza", path="./simulations/data/", verbose=True):
+    import os
     from colorama import Fore, Back, Style
     times = []
+    missing_files = []
     for simname in simnames:
-        with open_simulation(path+f"{slice_name}.{simname}.nc", use_advective_periods = True, get_grid = False, verbose=verbose, squeeze=False) as ds:
-            ds = adjust_times(ds, round_times=True)
-            times.append(ds.time.values)
-            print(simname, ds.time.values)
+        fname = path + f"{slice_name}.{simname}.nc"
+        if not os.path.exists(fname):
+            print(f"{Fore.YELLOW}Warning: File {fname} does not exist{Style.RESET_ALL}")
+            missing_files.append(fname)
+            continue
+
+        try:
+            with open_simulation(fname, use_advective_periods = True, get_grid = False, verbose=verbose, squeeze=False) as ds:
+                ds = adjust_times(ds, round_times=True)
+                times.append(ds.time.values)
+                print(simname, ds.time.values)
+        except (OSError, IOError) as e:
+            print(f"{Fore.RED}Warning: Error opening file {fname}: {e}{Style.RESET_ALL}")
+            missing_files.append(fname)
+            continue
     message = Fore.GREEN + "All times equal" + Style.RESET_ALL
     for time in times[1:]:
         if (len(time)!=len(times[0])) or  (time != times[0]).any():
             message = Fore.RED + "Not all times are equal!" + Style.RESET_ALL
     print(message)
+
+    # Print missing files at the end
+    if missing_files:
+        print(f"\n{Fore.YELLOW}Missing files:{Style.RESET_ALL}")
+        for fname in missing_files:
+            print(f"  {fname}")
     return
 #---
 

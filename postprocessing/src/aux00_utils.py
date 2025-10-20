@@ -168,7 +168,7 @@ def condense_reynolds_stress_tensor_diagonal(ds, indices=[1, 2, 3]):
 #+++ Merge datasets into one
 def merge_datasets(
         runs,
-        base_name="seamount",
+        base_name="balanus",
         dirpath="data",
         add_min_spacings=False,
         add_simulation_info=True,
@@ -186,7 +186,7 @@ def merge_datasets(
     runs : cycler.Cycler
         Parameter space to iterate over
     base_name : str, optional
-        Base name for simulation files. Default "seamount"
+        Base name for simulation files. Default "balanus"
     dirpath : str, optional
         Directory path containing the datasets. Default "data"
     add_min_spacings : bool, optional

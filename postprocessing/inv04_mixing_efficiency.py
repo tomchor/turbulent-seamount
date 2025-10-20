@@ -11,7 +11,7 @@ from src.aux02_plotting import letterize, create_mc, mscatter
 
 #+++ Define directory and simulation name
 path = "../simulations/data/"
-simname_base = "seamount"
+simname_base = "balanus"
 
 Rossby_numbers = cycler(Ro_b = [0.2])
 Froude_numbers = cycler(Fr_b = [1.25])

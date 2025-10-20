@@ -19,7 +19,7 @@ runs = paramspace * configs
 #+++ Run simulations
 run_simulation_batch(
     runs = runs,
-    simname_base = "seamount",
+    simname_base = "balanus",
     julia_script = "seamount.jl",
     scheduler = "pbs",
     remove_checkpoints = False,

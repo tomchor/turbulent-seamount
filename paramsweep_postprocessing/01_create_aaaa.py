@@ -14,18 +14,18 @@ xr.set_options(display_width=140, display_max_rows=30)
 print("Starting aaaa dataset creation script")
 
 #+++ Define directory and simulation name
-if not basename(__file__).startswith("00_run_post"):
-    simdata_path = "../simulations/data/"
+if basename(__file__) != "00_run_postproc.py":
+    path = "../simulations/data/"
     simname_base = "balanus"
 
-    Rossby_numbers = cycler(Ro_b = [0.1])
-    Froude_numbers = cycler(Fr_b = [1])
+    Rossby_numbers = cycler(Ro_b = [0.2])
+    Froude_numbers = cycler(Fr_b = [1.25])
     L              = cycler(L = [0, 0.05, 0.1, 0.2, 0.4, 0.8,
-                                 0.8, 0.8])
+                                0.8, 0.8, 0.8])
     FWHM           = cycler(FWHM = [500, 500, 500, 500, 500, 500,
                                     200, 100])
 
-    resolutions    = cycler(dz = [4])
+    resolutions    = cycler(dz = [2])
 
     paramspace = Rossby_numbers * Froude_numbers * (L + FWHM)
     configs    = resolutions
@@ -38,7 +38,7 @@ for j, config in enumerate(runs):
 
     #+++ Open aaai dataset
     print(f"\nOpening {simname} aaai")
-    aaai = open_simulation(simdata_path+f"aaai.{simname}.nc",
+    aaai = open_simulation(path+f"aaai.{simname}.nc",
                            use_advective_periods = True,
                            squeeze = True,
                            load = False,

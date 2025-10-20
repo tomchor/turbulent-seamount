@@ -9,14 +9,14 @@ from colorama import Fore, Back, Style
 print("Starting h00 script")
 
 #+++ Define run options
-path = "../simulations/data/"
+simdata_path = "../simulations/data/"
 simname_base = "seamount"
 
 Rossby_numbers = cycler(Ro_b = [0.05, 0.1, 0.2, 0.5])
 Froude_numbers = cycler(Fr_b = [0.05, 0.08, 0.3, 1, 2])
 L              = cycler(L = [0, 0.8])
 
-resolutions    = cycler(dz = [2])
+resolutions    = cycler(dz = [4, 2])
 T_adv_spinups  = cycler(T_adv_spinup = [12])
 
 paramspace = Rossby_numbers * Froude_numbers * L
@@ -34,4 +34,4 @@ for config in configs:
     print()
 
 print(Back.LIGHTWHITE_EX + Fore.BLUE + "\nStarting 01 post-processing of results using `configs`", Style.RESET_ALL, configs)
-exec(open("01_create_aaaa.py").read())
+exec(open("../postprocessing/01_create_aaaa.py").read())

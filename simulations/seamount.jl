@@ -102,7 +102,7 @@ function parse_command_line_arguments()
             arg_type = Float64
 
         "--T_adv_stats"
-            default = 8 # Should be a multiple of interval_time_avg
+            default = 10 # Should be a multiple of interval_time_avg
             arg_type = Float64
 
     end

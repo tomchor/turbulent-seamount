@@ -6,6 +6,7 @@ using Oceananigans: prettytime
 
 #+++ Preamble
 fpath_xyzi = (@isdefined simulation) ? simulation.output_writers[:nc_xyzi].filepath : "data/xyzi.seamount_Ro_b0.5_Fr_b0.3_L0_dz2_T_adv_spinup12.nc"
+# fpath_xyzi = (@isdefined simulation) ? simulation.output_writers[:nc_xyzi].filepath : "data/xyzi.balanus_Ro_b0.2_Fr_b0.3_L0_dz1_T_adv_spinup12.nc"
 
 @info "Reading NetCDF file: $fpath_xyzi"
 xyzi = RasterStack(fpath_xyzi, name=(:PV, :εₖ, :εₚ, :bottom_height), lazy=true)
@@ -24,7 +25,7 @@ times = dims(xyzi.PV, :Ti)
 
 #+++ Set limits based on data range or physical considerations
 interior_q = params.N²∞ * abs(params.f₀)
-isovalue_q = 1.4 * interior_q  # Adjust this based on data
+isovalue_q = 2.4 * interior_q  # Adjust this based on data
 isorange_q = isovalue_q/10
 PV_range = 1.2 .* (-isovalue_q, +isovalue_q)
 
@@ -45,7 +46,7 @@ isorange_εₚ₂ = isovalue_εₚ₂/2
 Lx = diff(x_range |> collect)[]
 Ly = diff(y_range |> collect)[]
 Lz = diff(z_range |> collect)[]
-settings_axis3 = (aspect = (Lx, Ly, 5*Lz), azimuth = -0.7π, elevation = 0.18π,
+settings_axis3 = (aspect = (Lx, Ly, 5*Lz), azimuth = +0.7π, elevation = 0.18π,
                   perspectiveness=0.8, viewmode=:fitzoom,
                   xlabel="x [m]", ylabel="y [m]", zlabel="z [m]")
 
@@ -112,7 +113,7 @@ resize_to_layout!(fig)
 
 animation_path = "$(@__DIR__)/../anims/3d_$(params.simname).mp4"
 GLMakie.record(fig, animation_path, 1:length(times),
-               framerate=12, compression=30, px_per_unit=1) do frame
+               framerate=10, compression=10, px_per_unit=1) do frame
     @info "Frame $frame / $(length(times))"
     n[] = frame
 end

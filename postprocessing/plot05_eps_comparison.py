@@ -2,6 +2,8 @@ import numpy as np
 import xarray as xr
 from matplotlib import pyplot as plt
 from matplotlib.colors import LogNorm
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib.colors import LightSource
 from src.aux00_utils import open_simulation
 
 # Set figure layout
@@ -67,16 +69,60 @@ eps_p_L0 = xyzi_L0["∫⁵εₚdy"].isel(time=n_final)
 
 eps_k_L08 = xyzi_L08["∫⁵εₖdy"].isel(time=n_final)
 eps_p_L08 = xyzi_L08["∫⁵εₚdy"].isel(time=n_final)
+
+# Extract bottom_height for 3D plots (doesn"t have time dimension)
+bottom_height_L0 = xyzi_L0["bottom_height"].pnsel(x=slice(-FWHM, +FWHM))
+bottom_height_L08 = xyzi_L08["bottom_height"].pnsel(x=slice(-FWHM, +FWHM))
 #---
 
-#+++ Create 2x2 figure
-fig, axes = plt.subplots(2, 2, figsize=(14, 6), sharex="row", sharey="row")
+#+++ Create 3x2 figure
+fig = plt.figure(figsize=(14, 10))
+
+# Create 3D axes for bathymetry (top row)
+ax_3d_1 = fig.add_subplot(3, 2, 1, projection="3d")
+ax_3d_2 = fig.add_subplot(3, 2, 2, projection="3d")
+
+# Create 2D axes for dissipation plots (rows 2 and 3)
+axes = np.array([[fig.add_subplot(3, 2, 3), fig.add_subplot(3, 2, 4)],
+                 [fig.add_subplot(3, 2, 5), fig.add_subplot(3, 2, 6)]])
 
 # Define common color range for each variable
 eps_k_range = (1e-7, 1e-4)
 eps_p_range = (1e-8, 1e-6)
+#---
 
-# Plot ∫⁵εₖdy for L=0 (top left)
+#+++ Plot 3D surface of bottom_height
+ls = LightSource(azdeg=270, altdeg=45)
+x = bottom_height_L0.x.values
+y = bottom_height_L0.y_aca.values
+x, y = np.meshgrid(x, y)
+
+# Plot bottom_height for L=0
+z = bottom_height_L0.values
+
+rgb = ls.shade(bottom_height_L0.values, cmap=plt.cm.gist_earth, vert_exag=0.1, blend_mode="soft")
+ax_3d_1.plot_surface(x, y, z, rstride=2, cstride=2, facecolors=rgb, linewidth=0, antialiased=False, shade=False)
+ax_3d_1.set_xlabel("x [m]")
+ax_3d_1.set_ylabel("y [m]")
+ax_3d_1.set_zlabel("z [m]")
+ax_3d_1.set_title(f"L/FWHM = {params_L0["L"]}")
+ax_3d_1.view_init(elev=25, azim=135)
+ax_3d_1.set_box_aspect((1, 1, 0.3))
+
+# Plot bottom_height for L=0.8
+z = bottom_height_L08.values
+
+rgb = ls.shade(bottom_height_L08.values, cmap=plt.cm.gist_earth, vert_exag=0.1, blend_mode="soft")
+ax_3d_2.plot_surface(x, y, z, rstride=2, cstride=2, facecolors=rgb, linewidth=0, antialiased=False, shade=False)
+ax_3d_2.set_xlabel("x [m]")
+ax_3d_2.set_ylabel("y [m]")
+ax_3d_2.set_zlabel("z [m]")
+ax_3d_2.set_title(f"L/FWHM = {params_L08["L"]}")
+ax_3d_2.view_init(elev=25, azim=135)
+ax_3d_2.set_box_aspect((1, 1, 0.3))
+#---
+
+#+++ Plot ∫⁵εₖdy for L=0 (second row, left)
 ax = axes[0, 0]
 im1 = eps_k_L0.plot(ax=ax, x="x_caa", y="z_aac",
                     norm=LogNorm(vmin=eps_k_range[0], vmax=eps_k_range[1]),
@@ -88,7 +134,7 @@ ax.text(0.05, 0.95, "∫⁵εₖdy", transform=ax.transAxes,
         bbox=dict(boxstyle="round", facecolor="white", alpha=0.8),
         verticalalignment="top", fontsize=12, fontweight="bold")
 
-# Plot ∫⁵εₖdy for L=0.8 (top right)
+# Plot ∫⁵εₖdy for L=0.8 (second row, right)
 ax = axes[0, 1]
 im2 = eps_k_L08.plot(ax=ax, x="x_caa", y="z_aac",
                      norm=LogNorm(vmin=eps_k_range[0], vmax=eps_k_range[1]),
@@ -104,7 +150,7 @@ ax.text(0.05, 0.95, "∫⁵εₖdy", transform=ax.transAxes,
 cbar1 = plt.colorbar(im1, ax=axes[0, :], orientation="vertical", pad=0.01)
 cbar1.set_label("∫⁵εₖdy [m³/s³]", fontsize=10)
 
-# Plot ∫⁵εₚdy for L=0 (bottom left)
+# Plot ∫⁵εₚdy for L=0 (third row, left)
 ax = axes[1, 0]
 im3 = eps_p_L0.plot(ax=ax, x="x_caa", y="z_aac",
                     norm=LogNorm(vmin=eps_p_range[0], vmax=eps_p_range[1]),
@@ -115,7 +161,7 @@ ax.text(0.05, 0.95, "∫⁵εₚdy", transform=ax.transAxes,
         bbox=dict(boxstyle="round", facecolor="white", alpha=0.8),
         verticalalignment="top", fontsize=12, fontweight="bold")
 
-# Plot ∫⁵εₚdy for L=0.8 (bottom right)
+# Plot ∫⁵εₚdy for L=0.8 (third row, right)
 ax = axes[1, 1]
 im4 = eps_p_L08.plot(ax=ax, x="x_caa", y="z_aac",
                      norm=LogNorm(vmin=eps_p_range[0], vmax=eps_p_range[1]),

@@ -15,7 +15,7 @@ seamounts["Slope_Bu"] = seamounts.rossby_number / seamounts.froude_height
 seamounts["dissip_linear"] = seamounts.velocity**3 * seamounts.Slope_Bu / seamounts.height
 
 # Dissipation minimum value, which fixes a Slope_Bu but still depends on the velocity and height of seamount
-Slope_Bu_threshold = 0.5
+Slope_Bu_threshold = 0.6
 seamounts["dissip_minimum"] = seamounts.velocity**3 * Slope_Bu_threshold / seamounts.height
 
 # Put both together for piecewise dissipation
@@ -65,10 +65,20 @@ lat_bins = np.arange(-80, 81, 1)
 print("Binning data")
 binned_seamounts = seamounts.groupby_bins("latitude", lat_bins).sum()
 binned_seamounts.total_dissip_linear.plot(ax=ax_plot, y="latitude_bins", color="black")
-binned_seamounts.total_dissip_piecewise.plot(ax=ax_plot, y="latitude_bins", color="blue")
+binned_seamounts.total_dissip_piecewise.plot(ax=ax_plot, y="latitude_bins", color="blue", linestyle="--")
 ax_plot.set_ylabel("Latitude (degrees)")
 ax_plot.set_xlabel("Integrated dissipation")
 ax_plot.set_title("Zonally-integrated\nseamount dissipation")
+#---
+
+#+++ Calculate difference
+global_ratio = seamounts.total_dissip_linear.sum("index") / seamounts.total_dissip_piecewise.sum("index")
+
+south = seamounts.where(seamounts.latitude<-40)
+south_ratio = south.total_dissip_linear.sum("index") / south.total_dissip_piecewise.sum("index")
+
+print(f"Global ratio: {global_ratio:.2f}")
+print(f"South ratio: {south_ratio:.2f}")
 #---
 
 #+++ Save figure

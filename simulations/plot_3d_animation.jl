@@ -5,7 +5,7 @@ using Printf
 using Oceananigans: prettytime
 
 #+++ Preamble
-fpath_xyzi = (@isdefined simulation) ? simulation.output_writers[:nc_xyzi].filepath : "data/xyzi.seamount_Ro_b0.5_Fr_b0.3_L0_dz2_T_adv_spinup12.nc"
+fpath_xyzi = (@isdefined simulation) ? simulation.output_writers[:nc_xyzi].filepath : "data/xyzi.balanus_Ro_b0.1_Fr_b1_L0.4_FWHM500_dz2.nc"
 # fpath_xyzi = (@isdefined simulation) ? simulation.output_writers[:nc_xyzi].filepath : "data/xyzi.balanus_Ro_b0.2_Fr_b0.3_L0_dz1_T_adv_spinup12.nc"
 
 @info "Reading NetCDF file: $fpath_xyzi"
@@ -25,7 +25,7 @@ times = dims(xyzi.PV, :Ti)
 
 #+++ Set limits based on data range or physical considerations
 interior_q = params.N²∞ * abs(params.f₀)
-isovalue_q = 2.4 * interior_q  # Adjust this based on data
+isovalue_q = 1.4 * interior_q  # Adjust this based on data
 isorange_q = isovalue_q/10
 PV_range = 1.2 .* (-isovalue_q, +isovalue_q)
 
@@ -89,16 +89,15 @@ Colorbar(fig, vol2, bbox=ax2.scene.viewport,
 #---
 
 #+++ εₚ plot
-# vol3_kwargs = (algorithm = :iso, colormap=Reverse(:roma), transparency = true, colorrange=εₚ_range)
-# vol3 = volume!(ax3, x_range, y_range, z_range, εₚₙ, isovalue=isovalue_εₚ₁, isorange=isorange_εₚ₁, alpha=0.7; vol3_kwargs...)
-# vol3 = volume!(ax3, x_range, y_range, z_range, εₚₙ, isovalue=isovalue_εₚ₂, isorange=isorange_εₚ₂; alpha=0.9, vol3_kwargs...)
-# Colorbar(fig, vol3, bbox=ax3.scene.viewport,
-#          label="εₚ", height=15, width=Relative(0.5), vertical=false,
-#          alignmode = Outside(10), halign = 0.85, valign = 1.02)
+vol3_kwargs = (algorithm = :iso, colormap=Reverse(:roma), transparency = true, colorrange=εₚ_range)
+vol3 = volume!(ax3, x_range, y_range, z_range, εₚₙ, isovalue=isovalue_εₚ₁, isorange=isorange_εₚ₁, alpha=0.7; vol3_kwargs...)
+vol3 = volume!(ax3, x_range, y_range, z_range, εₚₙ, isovalue=isovalue_εₚ₂, isorange=isorange_εₚ₂; alpha=0.9, vol3_kwargs...)
+Colorbar(fig, vol3, bbox=ax3.scene.viewport,
+         label="εₚ", height=15, width=Relative(0.5), vertical=false,
+         alignmode = Outside(10), halign = 0.85, valign = 1.02)
 #---
 
-
-# Create title with time and parameters
+#+++ Create title with time and parameters
 title = @lift "Roₕ = $(params.Ro_b), Frₕ = $(params.Fr_b), L = $(params.L) m, dz = $(params.dz) m;    " *
               "Time = $(@sprintf "%s" prettytime(times[$n]))"
 fig[0, 1:3] = Label(fig, title, fontsize=18, tellwidth=false, height=8)
@@ -110,7 +109,9 @@ save(snapshot_path, fig, px_per_unit=2)
 # Record animation
 @info "Recording animation with $(length(times)) frames"
 resize_to_layout!(fig)
+#---
 
+#+++ Record animation
 animation_path = "$(@__DIR__)/../anims/3d_$(params.simname).mp4"
 GLMakie.record(fig, animation_path, 1:length(times),
                framerate=10, compression=10, px_per_unit=1) do frame
@@ -119,3 +120,4 @@ GLMakie.record(fig, animation_path, 1:length(times),
 end
 
 @info "Animation saved successfully to $animation_path"
+#---

@@ -2,12 +2,12 @@ from cycler import cycler
 from simulation_runner import run_simulation_batch
 
 #+++ Define run options
-Rossby_numbers = cycler(Ro_b = [0.5, 0.5])
-Froude_numbers = cycler(Fr_b = [0.08, 0.3])
-L              = cycler(L = [0, 0])
+Rossby_numbers = cycler(Ro_b = [0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05])
+Froude_numbers = cycler(Fr_b = [0.05, 0.05, 0.08, 0.08, 0.3, 0.3, 1, 2])
+L              = cycler(L = [0, 0.8, 0, 0.8, 0, 0.8, 0, 0])
 
 # Define numerical parameters
-resolutions    = cycler(dz = [2])
+resolutions    = cycler(dz = [1])
 T_adv_spinups  = cycler(T_adv_spinup = [12])
 
 paramspace = Rossby_numbers + Froude_numbers + L
@@ -23,7 +23,7 @@ run_simulation_batch(
     julia_script = "seamount.jl",
     scheduler = "pbs",
     remove_checkpoints = False,
-    only_one_job = False,
+    only_one_job = True,
     dry_run = False,
     verbose = 1,
     aux_filename = "aux_submission_script.sh"

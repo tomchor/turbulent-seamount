@@ -52,7 +52,7 @@ gl = ax_map.gridlines(draw_labels=True, dms=False, x_inline=False, y_inline=Fals
 gl.top_labels = False
 gl.right_labels = False
 
-im = seamounts.plot.scatter(ax=ax_map, hue="total_dissip_linear", cmap="GnBu", **fixed_options, norm=LogNorm(), vmin=1e3, vmax=1e5, add_colorbar=False)
+im = seamounts.plot.scatter(ax=ax_map, hue="total_dissip_piecewise", cmap="GnBu", **fixed_options, norm=LogNorm(), vmin=1e3, vmax=1e5, add_colorbar=False)
 cbar = plt.colorbar(im, ax=ax_map, orientation="horizontal", pad=-0.05, shrink=0.8, location="top")
 cbar.set_label(r"Total KE dissipation [m$^2$/s$^3$ $\times$ m$^3$]")
 #---

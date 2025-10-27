@@ -24,12 +24,13 @@ runs = paramspace * configs
 #---
 
 #+++ Load datasets
-aaaa = merge_datasets(runs, base_name=f"aaaa.{simname_base}", verbose=True, add_min_spacings=False)
+aaaa = merge_datasets(runs, base_name=f"aaaa.{simname_base}", verbose=True, add_min_spacings=False,
+                      combine_by_coords_kwargs=dict(compat="override", combine_attrs="drop_conflicts", coords="minimal"))
 aaaa = aaaa.reindex(Ro_b = list(reversed(aaaa.Ro_b)))
 
 # Load aaad datasets to get additional variables
 aaad = merge_datasets(runs, base_name=f"aaad.{simname_base}", verbose=True, add_min_spacings=False, keep_vars=["∭⟨w′b′⟩ₜdV", "∭SPRdV"],
-                      combine_by_coords_kwargs=dict(compat="override", combine_attrs="drop_conflicts", coords="minimal")))
+                      combine_by_coords_kwargs=dict(compat="override", combine_attrs="drop_conflicts", coords="minimal"))
 aaad = aaad.reindex(Ro_b = list(reversed(aaad.Ro_b)))
 
 aaaa = xr.merge([aaaa, aaad], compat="override")

@@ -13,7 +13,7 @@ simdata_path = "../simulations/data/"
 # Parameters for the comparison
 Ro_b = 0.1
 Fr_b = 1  # Can be changed to compare different Fr_b values
-resolution = "dz2"
+resolution = "dz1"
 
 # File paths for L=0 and L=0.8 simulations
 simname_L0 = f"balanus_Ro_b{Ro_b}_Fr_b{Fr_b}_L0_FWHM500_{resolution}"
@@ -70,17 +70,17 @@ eps_p_L08 = xyzi_L08["∫⁵εₚdy"].isel(time=n_final)
 #---
 
 #+++ Create 2x2 figure
-fig, axes = plt.subplots(2, 2, figsize=(14, 6))
+fig, axes = plt.subplots(2, 2, figsize=(14, 6), sharex="row", sharey="row")
 
 # Define common color range for each variable
 eps_k_range = (1e-7, 1e-4)
-eps_p_range = (1e-8, 1e-5)
+eps_p_range = (1e-8, 1e-6)
 
 # Plot ∫⁵εₖdy for L=0 (top left)
 ax = axes[0, 0]
 im1 = eps_k_L0.plot(ax=ax, x="x_caa", y="z_aac",
                     norm=LogNorm(vmin=eps_k_range[0], vmax=eps_k_range[1]),
-                    cmap="inferno", add_colorbar=True, extend="both")
+                    cmap="inferno", add_colorbar=False)
 ax.set_xlabel("x [m]")
 ax.set_ylabel("z [m]")
 ax.set_title(f"L/FWHM = {params_L0["L"]}")
@@ -92,7 +92,7 @@ ax.text(0.05, 0.95, "∫⁵εₖdy", transform=ax.transAxes,
 ax = axes[0, 1]
 im2 = eps_k_L08.plot(ax=ax, x="x_caa", y="z_aac",
                      norm=LogNorm(vmin=eps_k_range[0], vmax=eps_k_range[1]),
-                     cmap="inferno", add_colorbar=True, extend="both")
+                     cmap="inferno", add_colorbar=False)
 ax.set_xlabel("x [m]")
 ax.set_ylabel("z [m]")
 ax.set_title(f"L/FWHM = {params_L08["L"]}")
@@ -100,11 +100,15 @@ ax.text(0.05, 0.95, "∫⁵εₖdy", transform=ax.transAxes,
         bbox=dict(boxstyle="round", facecolor="white", alpha=0.8),
         verticalalignment="top", fontsize=12, fontweight="bold")
 
+# Add colorbar for first row (∫⁵εₖdy)
+cbar1 = plt.colorbar(im1, ax=axes[0, :], orientation="vertical", pad=0.01)
+cbar1.set_label("∫⁵εₖdy [m³/s³]", fontsize=10)
+
 # Plot ∫⁵εₚdy for L=0 (bottom left)
 ax = axes[1, 0]
 im3 = eps_p_L0.plot(ax=ax, x="x_caa", y="z_aac",
                     norm=LogNorm(vmin=eps_p_range[0], vmax=eps_p_range[1]),
-                    cmap="inferno", add_colorbar=True, extend="both")
+                    cmap="inferno", add_colorbar=False)
 ax.set_xlabel("x [m]")
 ax.set_ylabel("z [m]")
 ax.text(0.05, 0.95, "∫⁵εₚdy", transform=ax.transAxes,
@@ -115,12 +119,16 @@ ax.text(0.05, 0.95, "∫⁵εₚdy", transform=ax.transAxes,
 ax = axes[1, 1]
 im4 = eps_p_L08.plot(ax=ax, x="x_caa", y="z_aac",
                      norm=LogNorm(vmin=eps_p_range[0], vmax=eps_p_range[1]),
-                     cmap="inferno", add_colorbar=True, extend="both")
+                     cmap="inferno", add_colorbar=False)
 ax.set_xlabel("x [m]")
 ax.set_ylabel("z [m]")
 ax.text(0.05, 0.95, "∫⁵εₚdy", transform=ax.transAxes,
         bbox=dict(boxstyle="round", facecolor="white", alpha=0.8),
         verticalalignment="top", fontsize=12, fontweight="bold")
+
+# Add colorbar for second row (∫⁵εₚdy)
+cbar2 = plt.colorbar(im3, ax=axes[1, :], orientation="vertical", pad=0.01)
+cbar2.set_label("∫⁵εₚdy [m³/s³]", fontsize=10)
 #---
 
 #+++ Add overall title

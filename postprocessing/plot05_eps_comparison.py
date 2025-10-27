@@ -75,16 +75,23 @@ bottom_height_L0 = xyzi_L0["bottom_height"].pnsel(x=slice(-FWHM, +FWHM))
 bottom_height_L08 = xyzi_L08["bottom_height"].pnsel(x=slice(-FWHM, +FWHM))
 #---
 
-#+++ Create 3x2 figure
+#+++ Create 3x2 figure with GridSpec for height control
+from matplotlib.gridspec import GridSpec
 fig = plt.figure(figsize=(14, 10))
+gs = GridSpec(3, 2, figure=fig, height_ratios=[1.4, 0.7, 0.7])
 
 # Create 3D axes for bathymetry (top row)
-ax_3d_1 = fig.add_subplot(3, 2, 1, projection="3d")
-ax_3d_2 = fig.add_subplot(3, 2, 2, projection="3d")
+ax_3d_1 = fig.add_subplot(gs[0, 0], projection="3d")
+ax_3d_2 = fig.add_subplot(gs[0, 1], projection="3d")
 
 # Create 2D axes for dissipation plots (rows 2 and 3)
-axes = np.array([[fig.add_subplot(3, 2, 3), fig.add_subplot(3, 2, 4)],
-                 [fig.add_subplot(3, 2, 5), fig.add_subplot(3, 2, 6)]])
+ax_eps_k_L0 = fig.add_subplot(gs[1, 0])
+ax_eps_k_L08 = fig.add_subplot(gs[1, 1])
+ax_eps_p_L0 = fig.add_subplot(gs[2, 0])
+ax_eps_p_L08 = fig.add_subplot(gs[2, 1])
+
+axes = np.array([[ax_eps_k_L0, ax_eps_k_L08],
+                 [ax_eps_p_L0, ax_eps_p_L08]])
 
 # Define common color range for each variable
 eps_k_range = (1e-7, 1e-4)

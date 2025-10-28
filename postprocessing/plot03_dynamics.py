@@ -15,7 +15,7 @@ simdata_path = "../simulations/data/"
 postproc_path = "../postprocessing/data/"
 
 resolution = "dz1"
-buffer = 10
+buffer = 5
 snap_opts = dict(use_advective_periods=True,
                  unique_times=True,
                  squeeze=True,

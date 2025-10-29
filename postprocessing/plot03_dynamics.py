@@ -67,121 +67,68 @@ plt.subplots_adjust(wspace=0.05, hspace=0)
 
 datasets = [(ds_L00, "0"), (ds_L08, "0.8")]
 yticks = [-500, 0, 500]
+
+# Define row configurations
+row_configs = [
+    dict(var="PV", plot_opts={"z": ds_L00.H / 3, "method": "nearest"}, xyi=True, label="PV",
+     cmap="RdBu_r", vmin=lambda ds: -1.5*ds.N2_inf*abs(ds.f_0), vmax=lambda ds: 1.5*ds.N2_inf*abs(ds.f_0)),
+    dict(var="⟨R̄o⟩ᶻ", plot_opts={}, xyi=False, label="Ro",
+     cmap="RdBu_r", vmin=-0.4, vmax=0.4),
+    dict(var="⟨ε̄ₖ⟩ᶻ", plot_opts={}, xyi=False, label="⟨ε̄ₖ⟩ᶻ", white_text=True,
+     cmap="inferno", norm=LogNorm(vmin=1e-11, vmax=1e-8)),
+    dict(var="⟨ε̄ₚ⟩ᶻ", plot_opts={}, xyi=False, label="⟨ε̄ₚ⟩ᶻ", white_text=True,
+     cmap="inferno", norm=LogNorm(vmin=1e-11, vmax=1e-8))
+]
 #---
 
-#+++ Plot PV for both cases
-print("Plotting PV")
-xyi_sel_opts = dict(z=ds_L00.H / 3, method="nearest")
+#+++ Plot all variables
+for row_idx, config in enumerate(row_configs):
+    var_name = config["var"]
+    print(f"Plotting {var_name}")
 
-PV_inf = ds_L00.N2_inf * abs(ds_L00.f_0)
-for i, (ds, L_str) in enumerate(datasets):
-    ax = axes[0, i]
-    # Data is already loaded and time-selected
-    pv_data = ds.PV.pnsel(**xyi_sel_opts)
-    im = pv_data.plot.imshow(ax=ax, x="x_caa",
-                             cmap="RdBu_r",
-                             add_colorbar=False,
-                             rasterized=True,
-                             vmin = -1.5*PV_inf,
-                             vmax = +1.5*PV_inf)
-    ax.set_title(f"L/FWHM = {L_str}")
-    ax.set_xlabel("")
-    ax.set_yticks(yticks)
-    if i == 0:
-        ax.set_ylabel("y [m]")
-    else:
-        ax.set_ylabel("")
-        ax.set_yticklabels([])
-    ax.set_aspect('equal')
+    for i, (ds, L_str) in enumerate(datasets):
+        ax = axes[row_idx, i]
 
-# Add colorbar for PV row inside the right panel
-cax = axes[0, 1].inset_axes([0.8, 0.1, 0.03, 0.8], transform=axes[0, 1].transAxes, clip_on=False)
-cbar = plt.colorbar(im, cax=cax, orientation="vertical", label="PV")
-#---
+        # Get data
+        if config["xyi"]:
+            data = ds[var_name].pnsel(**config["plot_opts"])
+        else:
+            data = ds[var_name]
 
-#+++ Plot Ro for both cases
-var_name = "⟨R̄o⟩ᶻ"
-print(f"Plotting {var_name}")
-for i, (ds, L_str) in enumerate(datasets):
-    ax = axes[1, i]
-    # Data is already loaded and processed
-    im = ds[var_name].plot.imshow(ax=ax, x="x_caa",
-                                  cmap="RdBu_r",
-                                  add_colorbar=False,
-                                  rasterized=True,
-                                  vmin = -0.4,
-                                  vmax = +0.4)
-    ax.set_title("")
-    ax.set_xlabel("")
-    ax.set_yticks(yticks)
-    if i == 0:
-        ax.set_ylabel("y [m]")
-    else:
-        ax.set_ylabel("")
-        ax.set_yticklabels([])
-    ax.set_aspect('equal')
+        # Prepare plot kwargs
+        plot_kwargs = {
+            "ax": ax, "x": "x_caa", "cmap": config["cmap"],
+            "add_colorbar": False, "rasterized": True
+        }
+        if "norm" in config:
+            plot_kwargs["norm"] = config["norm"]
+        else:
+            vmin = config["vmin"](ds) if callable(config["vmin"]) else config["vmin"]
+            vmax = config["vmax"](ds) if callable(config["vmax"]) else config["vmax"]
+            plot_kwargs["vmin"] = vmin
+            plot_kwargs["vmax"] = vmax
 
-# Add colorbar for Ro row inside the right panel
-cax = axes[1, 1].inset_axes([0.8, 0.1, 0.03, 0.8], transform=axes[1, 1].transAxes, clip_on=False)
-cbar = plt.colorbar(im, cax=cax, orientation="vertical", label="Ro")
-#---
+        im = data.plot.imshow(**plot_kwargs)
 
-#+++ Plot εₖ z-averaged
-var_name = "⟨ε̄ₖ⟩ᶻ"
-print(f"Plotting {var_name}")
-for i, (ds, L_str) in enumerate(datasets):
-    ax = axes[2, i]
-    # Data is already loaded and processed
-    im = ds[var_name].plot.imshow(ax=ax, x="x_caa",
-                                  cmap="inferno",
-                                  add_colorbar=False,
-                                  rasterized=True,
-                                  norm=LogNorm(vmin=1e-11, vmax=1e-8))
-    ax.set_title("")
-    ax.set_xlabel("")
-    ax.set_yticks(yticks)
-    if i == 0:
-        ax.set_ylabel("y [m]")
-    else:
-        ax.set_ylabel("")
-        ax.set_yticklabels([])
-    ax.set_aspect('equal')
+        # Set labels
+        ax.set_title(f"L/FWHM = {L_str}" if row_idx == 0 else "")
+        ax.set_xlabel("x [m]" if row_idx == len(row_configs)-1 else "")
+        ax.set_yticks(yticks)
+        ax.set_ylabel("y [m]" if i == 0 else "")
+        if i > 0:
+            ax.set_yticklabels([])
+        ax.set_aspect('equal')
 
-# Add colorbar for εₖ row inside the right panel, set font and tick color to white
-cax = axes[2, 1].inset_axes([0.8, 0.1, 0.03, 0.8], transform=axes[2, 1].transAxes, clip_on=False)
-cbar = plt.colorbar(im, cax=cax, orientation="vertical", label="⟨ε̄ₖ⟩ᶻ")
-cbar.ax.yaxis.set_tick_params(color='white')
-plt.setp(cbar.ax.yaxis.get_ticklabels(), color='white')
-cbar.ax.yaxis.label.set_color('white')
-#---
+    # Add colorbar for the right panel
+    cax = axes[row_idx, 1].inset_axes([0.8, 0.1, 0.03, 0.8],
+                                       transform=axes[row_idx, 1].transAxes, clip_on=False)
+    cbar = plt.colorbar(im, cax=cax, orientation="vertical", label=config["label"])
 
-#+++ Plot εₚ z-averaged
-var_name = "⟨ε̄ₚ⟩ᶻ"
-print(f"Plotting {var_name}")
-for i, (ds, L_str) in enumerate(datasets):
-    ax = axes[3, i]
-    # Data is already loaded and processed
-    im = ds[var_name].plot.imshow(ax=ax, x="x_caa",
-                                  cmap="inferno",
-                                  add_colorbar=False,
-                                  rasterized=True,
-                                  norm=LogNorm(vmin=1e-11, vmax=1e-8))
-    ax.set_title("")
-    ax.set_xlabel("x [m]")
-    ax.set_yticks(yticks)
-    if i == 0:
-        ax.set_ylabel("y [m]")
-    else:
-        ax.set_ylabel("")
-        ax.set_yticklabels([])
-    ax.set_aspect('equal')
-
-# Add colorbar for εₚ row inside the right panel
-cax = axes[3, 1].inset_axes([0.8, 0.1, 0.03, 0.8], transform=axes[3, 1].transAxes, clip_on=False)
-cbar = plt.colorbar(im, cax=cax, orientation="vertical", label="⟨ε̄ₚ⟩ᶻ")
-cbar.ax.yaxis.set_tick_params(color='white')
-plt.setp(cbar.ax.yaxis.get_ticklabels(), color='white')
-cbar.ax.yaxis.label.set_color('white')
+    # Set white text for certain colorbars
+    if config.get("white_text", False):
+        cbar.ax.yaxis.set_tick_params(color='white')
+        plt.setp(cbar.ax.yaxis.get_ticklabels(), color='white')
+        cbar.ax.yaxis.label.set_color('white')
 #---
 
 #+++ Save

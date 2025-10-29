@@ -60,9 +60,9 @@ ds_L08 = prepare_ds(ds_L08)
 print("Data preparation complete!")
 #---
 
-#+++ Create 7x2 subplot grid
+#+++ Create subplot grid
 print("Creating subplot grid")
-fig, axes = plt.subplots(nrows=4, ncols=2, figsize=(12, 15), sharex=True, layout=None)
+fig, axes = plt.subplots(nrows=4, ncols=2, figsize=(12, 12), sharex=True, layout=None)
 plt.subplots_adjust(wspace=0.05, hspace=0)
 
 datasets = [(ds_L00, "0"), (ds_L08, "0.8")]
@@ -87,16 +87,12 @@ for i, (ds, L_str) in enumerate(datasets):
     ax.set_title(f"L/FWHM = {L_str}")
     ax.set_xlabel("")
     ax.set_yticks(yticks)
-    ax.set_aspect('equal')
     if i == 0:
         ax.set_ylabel("y [m]")
     else:
         ax.set_ylabel("")
-
-# Add colorbar for PV row (aligned with rightmost panel)
-divider = make_axes_locatable(axes[0, 1])
-cbar_ax = divider.append_axes("right", size="5%", pad=0.1)
-cbar = plt.colorbar(im, cax=cbar_ax, label="PV")
+        ax.set_yticklabels([])
+    ax.set_aspect('equal')
 #---
 
 #+++ Plot Ro for both cases
@@ -114,16 +110,12 @@ for i, (ds, L_str) in enumerate(datasets):
     ax.set_title("")
     ax.set_xlabel("")
     ax.set_yticks(yticks)
-    ax.set_aspect('equal')
     if i == 0:
         ax.set_ylabel("y [m]")
     else:
         ax.set_ylabel("")
-
-# Add colorbar for Ro row (aligned with rightmost panel)
-divider = make_axes_locatable(axes[1, 1])
-cbar_ax = divider.append_axes("right", size="5%", pad=0.1)
-cbar = plt.colorbar(im, cax=cbar_ax, label="Ro")
+        ax.set_yticklabels([])
+    ax.set_aspect('equal')
 #---
 
 #+++ Plot εₖ z-averaged
@@ -140,16 +132,12 @@ for i, (ds, L_str) in enumerate(datasets):
     ax.set_title("")
     ax.set_xlabel("")
     ax.set_yticks(yticks)
-    ax.set_aspect('equal')
     if i == 0:
         ax.set_ylabel("y [m]")
     else:
         ax.set_ylabel("")
-
-# Add colorbar for εₖ row (aligned with rightmost panel)
-divider = make_axes_locatable(axes[2, 1])
-cbar_ax = divider.append_axes("right", size="5%", pad=0.1)
-cbar = plt.colorbar(im, cax=cbar_ax, label=var_name)
+        ax.set_yticklabels([])
+    ax.set_aspect('equal')
 #---
 
 #+++ Plot εₚ z-averaged
@@ -166,16 +154,12 @@ for i, (ds, L_str) in enumerate(datasets):
     ax.set_title("")
     ax.set_xlabel("x [m]")
     ax.set_yticks(yticks)
-    ax.set_aspect('equal')
     if i == 0:
         ax.set_ylabel("y [m]")
     else:
         ax.set_ylabel("")
-
-# Add colorbar for εₚ row (aligned with rightmost panel)
-divider = make_axes_locatable(axes[3, 1])
-cbar_ax = divider.append_axes("right", size="5%", pad=0.1)
-cbar = plt.colorbar(im, cax=cbar_ax, label=var_name)
+        ax.set_yticklabels([])
+    ax.set_aspect('equal')
 #---
 
 #+++ Save

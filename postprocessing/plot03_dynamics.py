@@ -50,7 +50,7 @@ def prepare_ds(ds,
     ds["⟨VSPR⟩ᶻ"] = ds["⟨SPR⟩ᶻ"].sel(j=3)
     ds["⟨HSPR⟩ᶻ"] = ds["⟨SPR⟩ᶻ"].sel(j=[1, 2]).sum("j")
     ds["⟨TSPR⟩ᶻ"] = ds["⟨SPR⟩ᶻ"].sum("j")
-    
+
     return ds
 
 print("Preparing L=0 dataset...")
@@ -93,6 +93,10 @@ for i, (ds, L_str) in enumerate(datasets):
         ax.set_ylabel("")
         ax.set_yticklabels([])
     ax.set_aspect('equal')
+
+# Add colorbar for PV row inside the right panel
+cax = axes[0, 1].inset_axes([1.02, 0, 0.03, 1], transform=axes[0, 1].transAxes, clip_on=False)
+cbar = plt.colorbar(im, cax=cax, orientation="vertical", label="PV")
 #---
 
 #+++ Plot Ro for both cases
@@ -116,6 +120,10 @@ for i, (ds, L_str) in enumerate(datasets):
         ax.set_ylabel("")
         ax.set_yticklabels([])
     ax.set_aspect('equal')
+
+# Add colorbar for Ro row inside the right panel
+cax = axes[1, 1].inset_axes([1.02, 0, 0.03, 1], transform=axes[1, 1].transAxes, clip_on=False)
+cbar = plt.colorbar(im, cax=cax, orientation="vertical", label="Ro")
 #---
 
 #+++ Plot εₖ z-averaged
@@ -138,6 +146,10 @@ for i, (ds, L_str) in enumerate(datasets):
         ax.set_ylabel("")
         ax.set_yticklabels([])
     ax.set_aspect('equal')
+
+# Add colorbar for εₖ row inside the right panel
+cax = axes[2, 1].inset_axes([1.02, 0, 0.03, 1], transform=axes[2, 1].transAxes, clip_on=False)
+cbar = plt.colorbar(im, cax=cax, orientation="vertical", label="⟨ε̄ₖ⟩ᶻ")
 #---
 
 #+++ Plot εₚ z-averaged
@@ -160,6 +172,10 @@ for i, (ds, L_str) in enumerate(datasets):
         ax.set_ylabel("")
         ax.set_yticklabels([])
     ax.set_aspect('equal')
+
+# Add colorbar for εₚ row inside the right panel
+cax = axes[3, 1].inset_axes([1.02, 0, 0.03, 1], transform=axes[3, 1].transAxes, clip_on=False)
+cbar = plt.colorbar(im, cax=cax, orientation="vertical", label="⟨ε̄ₚ⟩ᶻ")
 #---
 
 #+++ Save

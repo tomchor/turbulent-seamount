@@ -70,7 +70,7 @@ yticks = [-500, 0, 500]
 
 # Define row configurations
 row_configs = [
-    dict(var="PV", plot_opts={"z": ds_L00.H / 3, "method": "nearest"}, xyi=True, label="PV",
+    dict(var="PV", plot_opts=dict(z=ds_L00.H / 3, method="nearest"), xyi=True, label="PV",
      cmap="RdBu_r", vmin=lambda ds: -1.5*ds.N2_inf*abs(ds.f_0), vmax=lambda ds: 1.5*ds.N2_inf*abs(ds.f_0)),
     dict(var="⟨R̄o⟩ᶻ", plot_opts={}, xyi=False, label="Ro",
      cmap="RdBu_r", vmin=-0.4, vmax=0.4),

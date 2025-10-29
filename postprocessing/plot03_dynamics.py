@@ -1,10 +1,10 @@
 import numpy as np
+from src.aux02_plotting import letterize
 import xarray as xr
 from matplotlib import pyplot as plt
 import pynanigans as pn
 from matplotlib.colors import LogNorm
 from cmocean import cm
-from mpl_toolkits.axes_grid1 import make_axes_locatable
 from src.aux00_utils import open_simulation
 
 # plt.rcParams["figure.constrained_layout.use"] = True
@@ -95,7 +95,7 @@ for i, (ds, L_str) in enumerate(datasets):
     ax.set_aspect('equal')
 
 # Add colorbar for PV row inside the right panel
-cax = axes[0, 1].inset_axes([1.02, 0.1, 0.03, 0.8], transform=axes[0, 1].transAxes, clip_on=False)
+cax = axes[0, 1].inset_axes([0.8, 0.1, 0.03, 0.8], transform=axes[0, 1].transAxes, clip_on=False)
 cbar = plt.colorbar(im, cax=cax, orientation="vertical", label="PV")
 #---
 
@@ -122,7 +122,7 @@ for i, (ds, L_str) in enumerate(datasets):
     ax.set_aspect('equal')
 
 # Add colorbar for Ro row inside the right panel
-cax = axes[1, 1].inset_axes([1.02, 0.1, 0.03, 0.8], transform=axes[1, 1].transAxes, clip_on=False)
+cax = axes[1, 1].inset_axes([0.8, 0.1, 0.03, 0.8], transform=axes[1, 1].transAxes, clip_on=False)
 cbar = plt.colorbar(im, cax=cax, orientation="vertical", label="Ro")
 #---
 
@@ -147,9 +147,12 @@ for i, (ds, L_str) in enumerate(datasets):
         ax.set_yticklabels([])
     ax.set_aspect('equal')
 
-# Add colorbar for εₖ row inside the right panel
-cax = axes[2, 1].inset_axes([1.02, 0.1, 0.03, 0.8], transform=axes[2, 1].transAxes, clip_on=False)
+# Add colorbar for εₖ row inside the right panel, set font and tick color to white
+cax = axes[2, 1].inset_axes([0.8, 0.1, 0.03, 0.8], transform=axes[2, 1].transAxes, clip_on=False)
 cbar = plt.colorbar(im, cax=cax, orientation="vertical", label="⟨ε̄ₖ⟩ᶻ")
+cbar.ax.yaxis.set_tick_params(color='white')
+plt.setp(cbar.ax.yaxis.get_ticklabels(), color='white')
+cbar.ax.yaxis.label.set_color('white')
 #---
 
 #+++ Plot εₚ z-averaged
@@ -174,11 +177,15 @@ for i, (ds, L_str) in enumerate(datasets):
     ax.set_aspect('equal')
 
 # Add colorbar for εₚ row inside the right panel
-cax = axes[3, 1].inset_axes([1.02, 0.1, 0.03, 0.8], transform=axes[3, 1].transAxes, clip_on=False)
+cax = axes[3, 1].inset_axes([0.8, 0.1, 0.03, 0.8], transform=axes[3, 1].transAxes, clip_on=False)
 cbar = plt.colorbar(im, cax=cax, orientation="vertical", label="⟨ε̄ₚ⟩ᶻ")
+cbar.ax.yaxis.set_tick_params(color='white')
+plt.setp(cbar.ax.yaxis.get_ticklabels(), color='white')
+cbar.ax.yaxis.label.set_color('white')
 #---
 
 #+++ Save
+letterize(axes.flatten(), x=0.05, y=0.9, fontsize=9)
 print("Saving figure...")
 fig.savefig(f"../figures/dynamics_comparison_{resolution}.png", dpi=300, bbox_inches="tight", pad_inches=0)
 print("Done!")

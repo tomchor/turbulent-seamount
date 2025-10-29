@@ -104,7 +104,7 @@ for j, config in enumerate(runs):
     #+++ Compute and save dataset with dask for optimal performance
     print("Computing dataset with dask...")
     xyza = gather_attributes_as_variables(xyza)
-    
+
     # Compute all dask arrays in parallel with progress tracking
     outname = f"data/xyza.{simname}.nc"
 

@@ -95,7 +95,7 @@ for i, (ds, L_str) in enumerate(datasets):
     ax.set_aspect('equal')
 
 # Add colorbar for PV row inside the right panel
-cax = axes[0, 1].inset_axes([1.02, 0, 0.03, 1], transform=axes[0, 1].transAxes, clip_on=False)
+cax = axes[0, 1].inset_axes([1.02, 0.1, 0.03, 0.8], transform=axes[0, 1].transAxes, clip_on=False)
 cbar = plt.colorbar(im, cax=cax, orientation="vertical", label="PV")
 #---
 
@@ -122,7 +122,7 @@ for i, (ds, L_str) in enumerate(datasets):
     ax.set_aspect('equal')
 
 # Add colorbar for Ro row inside the right panel
-cax = axes[1, 1].inset_axes([1.02, 0, 0.03, 1], transform=axes[1, 1].transAxes, clip_on=False)
+cax = axes[1, 1].inset_axes([1.02, 0.1, 0.03, 0.8], transform=axes[1, 1].transAxes, clip_on=False)
 cbar = plt.colorbar(im, cax=cax, orientation="vertical", label="Ro")
 #---
 
@@ -148,7 +148,7 @@ for i, (ds, L_str) in enumerate(datasets):
     ax.set_aspect('equal')
 
 # Add colorbar for εₖ row inside the right panel
-cax = axes[2, 1].inset_axes([1.02, 0, 0.03, 1], transform=axes[2, 1].transAxes, clip_on=False)
+cax = axes[2, 1].inset_axes([1.02, 0.1, 0.03, 0.8], transform=axes[2, 1].transAxes, clip_on=False)
 cbar = plt.colorbar(im, cax=cax, orientation="vertical", label="⟨ε̄ₖ⟩ᶻ")
 #---
 
@@ -174,7 +174,7 @@ for i, (ds, L_str) in enumerate(datasets):
     ax.set_aspect('equal')
 
 # Add colorbar for εₚ row inside the right panel
-cax = axes[3, 1].inset_axes([1.02, 0, 0.03, 1], transform=axes[3, 1].transAxes, clip_on=False)
+cax = axes[3, 1].inset_axes([1.02, 0.1, 0.03, 0.8], transform=axes[3, 1].transAxes, clip_on=False)
 cbar = plt.colorbar(im, cax=cax, orientation="vertical", label="⟨ε̄ₚ⟩ᶻ")
 #---
 

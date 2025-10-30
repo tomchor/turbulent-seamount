@@ -95,8 +95,8 @@ axes = np.array([[ax_eps_k_L0, ax_eps_k_L08],
                  [ax_eps_p_L0, ax_eps_p_L08]])
 
 # Define common color range for each variable
-eps_k_range = (1e-7, 1e-4)
-eps_p_range = (1e-8, 1e-6)
+eps_k_range = (1e-7, 5e-5)
+eps_p_range = (5e-9, 1e-6)
 #---
 
 #+++ Plot 3D surface of bottom_height

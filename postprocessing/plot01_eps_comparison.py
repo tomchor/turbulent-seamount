@@ -4,6 +4,7 @@ from matplotlib import pyplot as plt
 from matplotlib.colors import LogNorm
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.colors import LightSource
+from matplotlib.gridspec import GridSpec
 from src.aux00_utils import open_simulation
 
 # Set figure layout
@@ -71,12 +72,12 @@ eps_k_L08 = xyzi_L08["∫⁵εₖdy"].isel(time=n_final)
 eps_p_L08 = xyzi_L08["∫⁵εₚdy"].isel(time=n_final)
 
 # Extract bottom_height for 3D plots (doesn"t have time dimension)
-bottom_height_L0 = xyzi_L0["bottom_height"].pnsel(x=slice(-FWHM, +FWHM))
-bottom_height_L08 = xyzi_L08["bottom_height"].pnsel(x=slice(-FWHM, +FWHM))
+extent = 1.3 * FWHM
+bottom_height_L0 = xyzi_L0["bottom_height"].pnsel(x=slice(-extent, +extent), y=slice(-extent, +extent))
+bottom_height_L08 = xyzi_L08["bottom_height"].pnsel(x=slice(-extent, +extent), y=slice(-extent, +extent))
 #---
 
 #+++ Create 3x2 figure with GridSpec for height control
-from matplotlib.gridspec import GridSpec
 fig = plt.figure(figsize=(14, 10))
 gs = GridSpec(3, 2, figure=fig, height_ratios=[1.4, 0.7, 0.7])
 
@@ -101,7 +102,7 @@ eps_p_range = (1e-8, 1e-6)
 #+++ Plot 3D surface of bottom_height
 ls = LightSource(azdeg=270, altdeg=45)
 x = bottom_height_L0.x.values
-y = bottom_height_L0.y_aca.values
+y = bottom_height_L0.y.values
 x, y = np.meshgrid(x, y)
 
 # Plot bottom_height for L=0
@@ -112,7 +113,7 @@ ax_3d_1.plot_surface(x, y, z, rstride=2, cstride=2, facecolors=rgb, linewidth=0,
 ax_3d_1.set_xlabel("x [m]")
 ax_3d_1.set_ylabel("y [m]")
 ax_3d_1.set_zlabel("z [m]")
-ax_3d_1.set_title(f"L/FWHM = {params_L0["L"]}")
+ax_3d_1.set_title(f"L/W = {params_L0["L"]}")
 ax_3d_1.view_init(elev=25, azim=135)
 ax_3d_1.set_box_aspect((1, 1, 0.3))
 
@@ -124,74 +125,51 @@ ax_3d_2.plot_surface(x, y, z, rstride=2, cstride=2, facecolors=rgb, linewidth=0,
 ax_3d_2.set_xlabel("x [m]")
 ax_3d_2.set_ylabel("y [m]")
 ax_3d_2.set_zlabel("z [m]")
-ax_3d_2.set_title(f"L/FWHM = {params_L08["L"]}")
+ax_3d_2.set_title(f"L/W = {params_L08["L"]}")
 ax_3d_2.view_init(elev=25, azim=135)
 ax_3d_2.set_box_aspect((1, 1, 0.3))
 #---
+#--- Simplified plotting for ∫⁵εₖdy and ∫⁵εₚdy
 
-#+++ Plot ∫⁵εₖdy for L=0 (second row, left)
-ax = axes[0, 0]
-im1 = eps_k_L0.plot(ax=ax, x="x_caa", y="z_aac",
-                    norm=LogNorm(vmin=eps_k_range[0], vmax=eps_k_range[1]),
-                    cmap="inferno", add_colorbar=False)
-ax.set_xlabel("x [m]")
-ax.set_ylabel("z [m]")
-ax.set_title(f"L/FWHM = {params_L0["L"]}")
-ax.text(0.05, 0.95, "∫⁵εₖdy", transform=ax.transAxes,
+plot_configs = [
+    # (row_idx, col_idx, data, norm_range, label, cbar_label)
+    (0, 0, eps_k_L0, eps_k_range, "∫⁵εₖdy", "∫⁵εₖdy [m³/s³]"),
+    (0, 1, eps_k_L08, eps_k_range, "∫⁵εₖdy", None),
+    (1, 0, eps_p_L0, eps_p_range, "∫⁵εₚdy", "∫⁵εₚdy [m³/s³]"),
+    (1, 1, eps_p_L08, eps_p_range, "∫⁵εₚdy", None)
+]
+
+ims = []
+
+for (row, col, data, norm_range, label, cbar_label) in plot_configs:
+    ax = axes[row, col]
+    im = data.plot(
+        ax=ax, x="x_caa", y="z_aac",
+        norm=LogNorm(vmin=norm_range[0], vmax=norm_range[1]),
+        cmap="inferno", add_colorbar=False
+    )
+    ims.append(im)
+    ax.set_xlabel("x [m]" if row == 1 else "")
+    ax.set_ylabel("z [m]" if col == 0 else "")
+    ax.set_title("")
+    ax.text(
+        0.05, 0.95, label, transform=ax.transAxes,
         bbox=dict(boxstyle="round", facecolor="white", alpha=0.8),
-        verticalalignment="top", fontsize=12, fontweight="bold")
-
-# Plot ∫⁵εₖdy for L=0.8 (second row, right)
-ax = axes[0, 1]
-im2 = eps_k_L08.plot(ax=ax, x="x_caa", y="z_aac",
-                     norm=LogNorm(vmin=eps_k_range[0], vmax=eps_k_range[1]),
-                     cmap="inferno", add_colorbar=False)
-ax.set_xlabel("x [m]")
-ax.set_ylabel("z [m]")
-ax.set_title(f"L/FWHM = {params_L08["L"]}")
-ax.text(0.05, 0.95, "∫⁵εₖdy", transform=ax.transAxes,
-        bbox=dict(boxstyle="round", facecolor="white", alpha=0.8),
-        verticalalignment="top", fontsize=12, fontweight="bold")
-
-# Add colorbar for first row (∫⁵εₖdy)
-cbar1 = plt.colorbar(im1, ax=axes[0, :], orientation="vertical", pad=0.01)
-cbar1.set_label("∫⁵εₖdy [m³/s³]", fontsize=10)
-
-# Plot ∫⁵εₚdy for L=0 (third row, left)
-ax = axes[1, 0]
-im3 = eps_p_L0.plot(ax=ax, x="x_caa", y="z_aac",
-                    norm=LogNorm(vmin=eps_p_range[0], vmax=eps_p_range[1]),
-                    cmap="inferno", add_colorbar=False)
-ax.set_xlabel("x [m]")
-ax.set_ylabel("z [m]")
-ax.text(0.05, 0.95, "∫⁵εₚdy", transform=ax.transAxes,
-        bbox=dict(boxstyle="round", facecolor="white", alpha=0.8),
-        verticalalignment="top", fontsize=12, fontweight="bold")
-
-# Plot ∫⁵εₚdy for L=0.8 (third row, right)
-ax = axes[1, 1]
-im4 = eps_p_L08.plot(ax=ax, x="x_caa", y="z_aac",
-                     norm=LogNorm(vmin=eps_p_range[0], vmax=eps_p_range[1]),
-                     cmap="inferno", add_colorbar=False)
-ax.set_xlabel("x [m]")
-ax.set_ylabel("z [m]")
-ax.text(0.05, 0.95, "∫⁵εₚdy", transform=ax.transAxes,
-        bbox=dict(boxstyle="round", facecolor="white", alpha=0.8),
-        verticalalignment="top", fontsize=12, fontweight="bold")
-
-# Add colorbar for second row (∫⁵εₚdy)
-cbar2 = plt.colorbar(im3, ax=axes[1, :], orientation="vertical", pad=0.01)
-cbar2.set_label("∫⁵εₚdy [m³/s³]", fontsize=10)
+        verticalalignment="top", fontsize=12, fontweight="bold"
+    )
+    # Add colorbar if needed
+    if cbar_label:
+        cbar = plt.colorbar(im, ax=axes[row, :], orientation="vertical", pad=0.01)
+        cbar.set_label(cbar_label, fontsize=10)
 #---
 
 #+++ Add overall title
-title = f"Roₕ = {params_L0["Ro_b"]}, Frₕ = {params_L0["Fr_b"]}; " \
-        f"Time = {times[n_final]:.1f}"
+title = f"Ro$_b$ = {params_L0["Ro_b"]}, Fr$_b$ = {params_L0["Fr_b"]}; "
 fig.suptitle(title, fontsize=14, y=0.995)
 #---
 
 #+++ Save the plot
-output_path = "../figures/eps_comparison_L0_vs_L08.png"
+output_path = f"../figures/eps_comparison_L0_vs_L08_{resolution}.png"
 fig.savefig(output_path, dpi=300, bbox_inches="tight")
 print(f"Saved plot to {output_path}")
 #---

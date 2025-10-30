@@ -82,16 +82,16 @@ Sb_ref = np.logspace(np.log10(2e-2), np.log10(1e1), 100)
 dissip_linear_ref = 1e-2 * Sb_ref
 dissip_piecewise_ref = np.maximum(dissip_linear_ref, 5e-3)
 
-mixing_linear_ref = 1e-2 * Sb_ref
-mixing_quadratic_ref = 1e-2 * Sb_ref**2
+mixing_linear_ref = 2e-2 * Sb_ref
+mixing_quadratic_ref = 2e-2 * Sb_ref**2
 
 axes[0].set_title("Normalized dissipation rates")
 axes[0].plot(Sb_ref, dissip_linear_ref, ls='--', lw=5, color='blue', alpha=0.3, label="$\sim S_b$")
 axes[0].plot(Sb_ref, dissip_piecewise_ref, ls='--', lw=5, color='red', alpha=0.3, label=r"$\sim \max(S_b, 5 \times 10^{-3})$")
 
 axes[1].set_title("Normalized mixing efficiency")
-axes[1].plot(Sb_ref, mixing_linear_ref, ls='--', lw=5, color='blue', alpha=0.3, label="$\sim S_b$")
-axes[1].plot(Sb_ref, mixing_quadratic_ref, ls=':', lw=5, color='blue', alpha=0.3, label="$\sim S_b^2$")
+axes[1].plot(Sb_ref, mixing_linear_ref, ls='--', lw=5, color='gray', alpha=0.5, label="$\sim S_b$")
+axes[1].plot(Sb_ref, mixing_quadratic_ref, ls=':', lw=5, color='gray', alpha=0.5, label="$\sim S_b^2$")
 
 for ax in axes:
     ax.legend()

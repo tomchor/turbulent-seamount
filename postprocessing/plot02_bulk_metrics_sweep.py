@@ -1,6 +1,5 @@
 import sys
 sys.path.append("/glade/u/home/tomasc/repos/pynanigans")
-sys.path.append("../postprocessing")
 import pynanigans as pn
 from cycler import cycler
 from matplotlib import pyplot as plt
@@ -25,7 +24,8 @@ runs = paramspace * configs
 #---
 
 #+++ Load datasets
-aaaa = merge_datasets(runs, base_name=f"aaaa.{simname_base}", verbose=True, add_min_spacings=False,
+aaaa = merge_datasets(runs, base_name=f"aaaa.{simname_base}",
+                      dirpath="../paramsweep_postprocessing/data", verbose=True, add_min_spacings=False,
                       combine_by_coords_kwargs=dict(compat="override", combine_attrs="drop_conflicts", coords="minimal"))
 aaaa = aaaa.reindex(Ro_b = list(reversed(aaaa.Ro_b)))
 #---

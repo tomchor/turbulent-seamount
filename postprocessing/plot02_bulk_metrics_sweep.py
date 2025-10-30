@@ -80,7 +80,7 @@ import numpy as np
 Sb_ref = np.logspace(np.log10(2e-2), np.log10(1e1), 100)
 
 dissip_linear_ref = 1e-2 * Sb_ref
-dissip_piecewise_ref = np.maximum(dissip_linear_ref, 5e-3)
+dissip_piecewise_ref = np.maximum(dissip_linear_ref, 6e-3)
 
 mixing_linear_ref = 2e-2 * Sb_ref
 mixing_quadratic_ref = 2e-2 * Sb_ref**2

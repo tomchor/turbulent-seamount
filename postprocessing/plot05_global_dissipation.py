@@ -34,32 +34,38 @@ seamounts["total_mixing_linear"] = seamounts.mixing_linear * seamounts.total_vol
 seamounts["total_mixing_quadratic"] = seamounts.mixing_quadratic * seamounts.total_volume
 #---
 
-fig = plt.figure(figsize=(10, 5))
-gs = fig.add_gridspec(1, 2, width_ratios=[3, 1])
+fig = plt.figure(figsize=(10, 10))
+gs = fig.add_gridspec(2, 2, width_ratios=[3, 1])
 
-# Create left subplot with projection
-ax_map = fig.add_subplot(gs[0], projection=ccrs.PlateCarree())
+# Create left subplot with projection for dissipation (top row)
+ax_map_dissip = fig.add_subplot(gs[0, 0], projection=ccrs.PlateCarree())
 
 # Create right subplot without projection, sharing y-axis with left subplot
-ax_plot = fig.add_subplot(gs[1], sharey=ax_map)
+ax_plot_dissip = fig.add_subplot(gs[0, 1], sharey=ax_map_dissip)
 
-#+++ Plot scatter plot on the left axis
+# Create left subplot with projection for mixing (bottom row)
+ax_map_mixing = fig.add_subplot(gs[1, 0], projection=ccrs.PlateCarree())
+
+# Create right subplot without projection for mixing
+ax_plot_mixing = fig.add_subplot(gs[1, 1], sharey=ax_map_mixing)
+
+#+++ Plot dissipation scatter plot on the left axis (top row)
 fixed_options = dict(x="longitude", y="latitude", edgecolors="face", s=1, transform=ccrs.PlateCarree())
 
-# Add land features to all subplots
-ax_map.add_feature(cfeature.LAND, color="black", zorder=0)
-ax_map.add_feature(cfeature.COASTLINE, color="gray", linewidth=0.5, zorder=1)
-ax_map.set_ylim(-80, 80)
-ax_map.set_title("Seamount dissipation")
+# Add land features to dissipation map
+ax_map_dissip.add_feature(cfeature.LAND, color="black", zorder=0)
+ax_map_dissip.add_feature(cfeature.COASTLINE, color="gray", linewidth=0.5, zorder=1)
+ax_map_dissip.set_ylim(-80, 80)
+ax_map_dissip.set_title("Seamount dissipation")
 
 # Add latitude and longitude gridlines and labels
-gl = ax_map.gridlines(draw_labels=True, dms=False, x_inline=False, y_inline=False)
+gl = ax_map_dissip.gridlines(draw_labels=True, dms=False, x_inline=False, y_inline=False)
 gl.top_labels = False
 gl.right_labels = False
 
-im = seamounts.plot.scatter(ax=ax_map, hue="tottal_dissip_rough", cmap="YlOrRd", **fixed_options, norm=LogNorm(), vmin=1e1, vmax=1e3, add_colorbar=False)
-cbar = plt.colorbar(im, ax=ax_map, orientation="horizontal", pad=-0.05, shrink=0.8, location="top")
-cbar.set_label(r"Total KE dissipation [m$^2$/s$^3$ $\times$ m$^3$]")
+im_dissip = seamounts.plot.scatter(ax=ax_map_dissip, hue="tottal_dissip_rough", cmap="YlOrRd", **fixed_options, norm=LogNorm(), vmin=1e1, vmax=1e3, add_colorbar=False)
+cbar_dissip = plt.colorbar(im_dissip, ax=ax_map_dissip, orientation="vertical", pad=0.02, location="left", shrink=0.5)
+cbar_dissip.set_label(r"Total KE dissipation [m$^2$/s$^3$ $\times$ m$^3$]")
 #---
 
 #+++ Plot integrated line plot on the right axis
@@ -69,11 +75,38 @@ lat_bins = np.arange(-80, 81, 1)
 # Create binned statistics for various quantities
 print("Binning data")
 binned_seamounts = seamounts.groupby_bins("latitude", lat_bins).sum()
-binned_seamounts.tottal_dissip_smooth.plot(ax=ax_plot, y="latitude_bins", color="blue")
-binned_seamounts.tottal_dissip_rough.plot(ax=ax_plot, y="latitude_bins", color="red", linestyle="--")
-ax_plot.set_ylabel("Latitude (degrees)")
-ax_plot.set_xlabel("Integrated dissipation")
-ax_plot.set_title("Zonally-integrated\nseamount dissipation")
+binned_seamounts.tottal_dissip_smooth.plot(ax=ax_plot_dissip, y="latitude_bins", color="blue", label="Smooth")
+binned_seamounts.tottal_dissip_rough.plot(ax=ax_plot_dissip, y="latitude_bins", color="red", linestyle="--", label="Rough")
+ax_plot_dissip.set_ylabel("Latitude (degrees)")
+ax_plot_dissip.set_xlabel("Integrated dissipation")
+ax_plot_dissip.set_title("Zonally-integrated\nseamount dissipation")
+ax_plot_dissip.legend()
+#---
+
+#+++ Plot mixing scatter plot on the left axis (bottom row)
+# Add land features to mixing map
+ax_map_mixing.add_feature(cfeature.LAND, color="black", zorder=0)
+ax_map_mixing.add_feature(cfeature.COASTLINE, color="gray", linewidth=0.5, zorder=1)
+ax_map_mixing.set_ylim(-80, 80)
+ax_map_mixing.set_title("Seamount mixing")
+
+# Add latitude and longitude gridlines and labels
+gl_mix = ax_map_mixing.gridlines(draw_labels=True, dms=False, x_inline=False, y_inline=False)
+gl_mix.top_labels = False
+gl_mix.right_labels = False
+
+im_mixing = seamounts.plot.scatter(ax=ax_map_mixing, hue="total_mixing_quadratic", cmap="YlOrRd", **fixed_options, norm=LogNorm(), vmin=1e1, vmax=1e3, add_colorbar=False)
+cbar_mixing = plt.colorbar(im_mixing, ax=ax_map_mixing, orientation="vertical", pad=0.02, location="left", shrink=0.5)
+cbar_mixing.set_label(r"Total PE dissipation [m$^2$/s$^3$ $\times$ m$^3$]")
+#---
+
+#+++ Plot integrated mixing line plot on the right axis (bottom row)
+binned_seamounts.total_mixing_linear.plot(ax=ax_plot_mixing, y="latitude_bins", color="blue", label="Linear")
+binned_seamounts.total_mixing_quadratic.plot(ax=ax_plot_mixing, y="latitude_bins", color="red", linestyle="--", label="Quadratic")
+ax_plot_mixing.set_ylabel("Latitude (degrees)")
+ax_plot_mixing.set_xlabel("Integrated mixing")
+ax_plot_mixing.set_title("Zonally-integrated\nseamount mixing")
+ax_plot_mixing.legend()
 #---
 
 #+++ Calculate difference

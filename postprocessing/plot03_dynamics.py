@@ -75,9 +75,9 @@ row_configs = [
     dict(var="⟨R̄o⟩ᶻ", plot_opts={}, xyi=False, label="Ro",
      cmap="RdBu_r", vmin=-0.4, vmax=0.4),
     dict(var="⟨ε̄ₖ⟩ᶻ", plot_opts={}, xyi=False, label="⟨ε̄ₖ⟩ᶻ", white_text=True,
-     cmap="inferno", norm=LogNorm(vmin=1e-11, vmax=1e-8)),
+     cmap="inferno", norm=LogNorm(vmin=1e-10, vmax=1e-8)),
     dict(var="⟨ε̄ₚ⟩ᶻ", plot_opts={}, xyi=False, label="⟨ε̄ₚ⟩ᶻ", white_text=True,
-     cmap="inferno", norm=LogNorm(vmin=1e-11, vmax=1e-8))
+     cmap="inferno", norm=LogNorm(vmin=1e-11, vmax=1e-9))
 ]
 #---
 

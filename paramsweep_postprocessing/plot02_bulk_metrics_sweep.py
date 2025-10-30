@@ -15,7 +15,7 @@ Rossby_numbers = cycler(Ro_b = [0.05, 0.1, 0.2, 0.5])
 Froude_numbers = cycler(Fr_b = [0.05, 0.08, 0.3, 1, 2])
 L              = cycler(L = [0, 0.8])
 
-resolutions    = cycler(dz = [1])
+resolutions    = cycler(dz = [2])
 T_adv_spinups  = cycler(T_adv_spinup = [12])
 
 paramspace = Rossby_numbers * Froude_numbers * L
@@ -66,13 +66,11 @@ for i, var_name in enumerate(variables):
     ax = axes[i]
     for j, L_val in enumerate(aaaa.L.values):
         subset = aaaa.sel(L=L_val)
-        ax.scatter(x=subset.Slope_Bu, y=subset[var_name], color=colors[j], label=f"L = {L_val} m")
+        ax.scatter(x=subset.Slope_Bu, y=subset[var_name], color=colors[j], label=f"L/W = {L_val}")
 
     ax.set_yscale("log")
     ax.set_xscale("log")
-    ax.set_title(f"{var_name}")
     ax.grid(True)
-    ax.legend()
     ax.set_xlabel("Slope Burger number")
     ax.set_ylabel(var_name)
 #---
@@ -81,11 +79,22 @@ for i, var_name in enumerate(variables):
 import numpy as np
 Sb_ref = np.logspace(np.log10(2e-2), np.log10(1e1), 100)
 
-dissip_linear_ref = 2e-2 * Sb_ref
-dissip_piecewise_ref = np.maximum(dissip_linear_ref, 1e-2)
+dissip_linear_ref = 1e-2 * Sb_ref
+dissip_piecewise_ref = np.maximum(dissip_linear_ref, 5e-3)
 
-axes[0].plot(Sb_ref, dissip_linear_ref, ls='--', lw=5, color='blue', alpha=0.3)
-axes[0].plot(Sb_ref, dissip_piecewise_ref, ls='--', lw=5, color='red', alpha=0.3)
+mixing_linear_ref = 1e-2 * Sb_ref
+mixing_quadratic_ref = 1e-2 * Sb_ref**2
+
+axes[0].set_title("Normalized dissipation rates")
+axes[0].plot(Sb_ref, dissip_linear_ref, ls='--', lw=5, color='blue', alpha=0.3, label="$\sim S_b$")
+axes[0].plot(Sb_ref, dissip_piecewise_ref, ls='--', lw=5, color='red', alpha=0.3, label=r"$\sim \max(S_b, 5 \times 10^{-3})$")
+
+axes[1].set_title("Normalized mixing efficiency")
+axes[1].plot(Sb_ref, mixing_linear_ref, ls='--', lw=5, color='blue', alpha=0.3, label="$\sim S_b$")
+axes[1].plot(Sb_ref, mixing_quadratic_ref, ls=':', lw=5, color='blue', alpha=0.3, label="$\sim S_b^2$")
+
+for ax in axes:
+    ax.legend()
 #---
 
 

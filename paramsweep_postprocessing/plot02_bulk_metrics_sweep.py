@@ -15,7 +15,7 @@ Rossby_numbers = cycler(Ro_b = [0.05, 0.1, 0.2, 0.5])
 Froude_numbers = cycler(Fr_b = [0.05, 0.08, 0.3, 1, 2])
 L              = cycler(L = [0, 0.8])
 
-resolutions    = cycler(dz = [2])
+resolutions    = cycler(dz = [1])
 T_adv_spinups  = cycler(T_adv_spinup = [12])
 
 paramspace = Rossby_numbers * Froude_numbers * L
@@ -79,11 +79,13 @@ for i, var_name in enumerate(variables):
 
 #+++ Add reference lines
 import numpy as np
-x_ref = np.logspace(np.log10(2e-1), np.log10(1e1), 100)
-y_ref = 1e-2 * x_ref
+Sb_ref = np.logspace(np.log10(2e-2), np.log10(1e1), 100)
 
-for ax in axes:
-    ax.plot(x_ref, y_ref, '--k', alpha=0.5)
+dissip_linear_ref = 2e-2 * Sb_ref
+dissip_piecewise_ref = np.maximum(dissip_linear_ref, 1e-2)
+
+axes[0].plot(Sb_ref, dissip_linear_ref, ls='--', lw=5, color='blue', alpha=0.3)
+axes[0].plot(Sb_ref, dissip_piecewise_ref, ls='--', lw=5, color='red', alpha=0.3)
 #---
 
 

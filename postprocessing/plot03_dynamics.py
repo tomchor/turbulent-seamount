@@ -71,13 +71,10 @@ yticks = [-500, 0, 500]
 # Define row configurations
 row_configs = [
     dict(var="PV", plot_opts=dict(z=ds_L00.H / 3, method="nearest"), xyi=True, label="PV",
-     cmap="RdBu_r", vmin=lambda ds: -1.5*ds.N2_inf*abs(ds.f_0), vmax=lambda ds: 1.5*ds.N2_inf*abs(ds.f_0)),
-    dict(var="⟨R̄o⟩ᶻ", plot_opts={}, xyi=False, label="Ro",
-     cmap="RdBu_r", vmin=-0.4, vmax=0.4),
-    dict(var="⟨ε̄ₖ⟩ᶻ", plot_opts={}, xyi=False, label="⟨ε̄ₖ⟩ᶻ", white_text=True,
-     cmap="inferno", norm=LogNorm(vmin=1e-10, vmax=1e-8)),
-    dict(var="⟨ε̄ₚ⟩ᶻ", plot_opts={}, xyi=False, label="⟨ε̄ₚ⟩ᶻ", white_text=True,
-     cmap="inferno", norm=LogNorm(vmin=1e-11, vmax=1e-9))
+         cmap="RdBu_r", vmin=lambda ds: -1.5*ds.N2_inf*abs(ds.f_0), vmax=lambda ds: 1.5*ds.N2_inf*abs(ds.f_0), white_text=True),
+    dict(var="⟨R̄o⟩ᶻ", plot_opts={}, xyi=False, label="Ro", cmap="RdBu_r", vmin=-0.4, vmax=0.4),
+    dict(var="⟨ε̄ₖ⟩ᶻ", plot_opts={}, xyi=False, label="⟨ε̄ₖ⟩ᶻ", white_text=True, cmap="inferno", norm=LogNorm(vmin=1e-10, vmax=1e-8)),
+    dict(var="⟨ε̄ₚ⟩ᶻ", plot_opts={}, xyi=False, label="⟨ε̄ₚ⟩ᶻ", white_text=True, cmap="inferno", norm=LogNorm(vmin=1e-11, vmax=1e-9))
 ]
 #---
 

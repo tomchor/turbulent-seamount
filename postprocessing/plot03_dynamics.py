@@ -93,17 +93,14 @@ for row_idx, config in enumerate(row_configs):
             data = ds[var_name]
 
         # Prepare plot kwargs
-        plot_kwargs = {
-            "ax": ax, "x": "x_caa", "cmap": config["cmap"],
-            "add_colorbar": False, "rasterized": True
-        }
+        plot_kwargs = dict(ax=ax, x="x_caa", cmap=config["cmap"],
+                           add_colorbar=False, rasterized=True)
         if "norm" in config:
-            plot_kwargs["norm"] = config["norm"]
+            plot_kwargs |= dict(norm=config["norm"])
         else:
             vmin = config["vmin"](ds) if callable(config["vmin"]) else config["vmin"]
             vmax = config["vmax"](ds) if callable(config["vmax"]) else config["vmax"]
-            plot_kwargs["vmin"] = vmin
-            plot_kwargs["vmax"] = vmax
+            plot_kwargs |= dict(vmin=vmin, vmax=vmax)
 
         im = data.plot.imshow(**plot_kwargs)
 
@@ -123,14 +120,14 @@ for row_idx, config in enumerate(row_configs):
 
     # Set white text for certain colorbars
     if config.get("white_text", False):
-        cbar.ax.yaxis.set_tick_params(color='white')
-        plt.setp(cbar.ax.yaxis.get_ticklabels(), color='white')
-        cbar.ax.yaxis.label.set_color('white')
+        cbar.ax.yaxis.set_tick_params(color="white")
+        plt.setp(cbar.ax.yaxis.get_ticklabels(), color="white")
+        cbar.ax.yaxis.label.set_color("white")
 #---
 
 #+++ Save
 letterize(axes.flatten(), x=0.05, y=0.9, fontsize=9)
 print("Saving figure...")
-fig.savefig(f"../figures/dynamics_comparison_{resolution}.png", dpi=300, bbox_inches="tight", pad_inches=0)
+fig.savefig(f"../figures/dynamics_comparison_{resolution}.pdf", dpi=300, bbox_inches="tight", pad_inches=0)
 print("Done!")
 #---

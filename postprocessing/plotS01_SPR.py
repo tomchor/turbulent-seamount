@@ -14,8 +14,14 @@ print("Reading datasets...")
 simdata_path = "../simulations/data/"
 postproc_path = "../postprocessing/data/"
 
+# Simulation parameters
+Ro_b = 0.1
+Fr_b = 1
+L_rough = 0.4
+L_smooth = 0.8
 resolution = "dz1"
 buffer = 5
+
 snap_opts = dict(use_advective_periods=True,
                  unique_times=True,
                  squeeze=True,
@@ -26,21 +32,24 @@ avgd_opts = dict(unique_times=False,
                  load=False,
                  get_grid=False,
                  open_dataset_kwargs=dict(chunks="auto"))
-xyzi_L00 = open_simulation(simdata_path  + f"xyzi.balanus_Ro_b0.1_Fr_b1_L0_FWHM500_{resolution}.nc", **snap_opts)[["PV", "Ro", "Δz_aac"]]
-xyzd_L00 = open_simulation(postproc_path + f"xyzd.balanus_Ro_b0.1_Fr_b1_L0_FWHM500_{resolution}.nc", **avgd_opts)
-aaad_L00 = open_simulation(postproc_path + f"aaad.balanus_Ro_b0.1_Fr_b1_L0_FWHM500_{resolution}.nc", **avgd_opts).sel(buffer=10)
-ds_L00 = xr.merge([xyzi_L00, xyzd_L00, aaad_L00])
 
-xyzi_L08 = open_simulation(simdata_path  + f"xyzi.balanus_Ro_b0.1_Fr_b1_L0.8_FWHM500_{resolution}.nc", **snap_opts)[["PV", "Ro", "Δz_aac"]]
-xyzd_L08 = open_simulation(postproc_path + f"xyzd.balanus_Ro_b0.1_Fr_b1_L0.8_FWHM500_{resolution}.nc", **avgd_opts)
-aaad_L08 = open_simulation(postproc_path + f"aaad.balanus_Ro_b0.1_Fr_b1_L0.8_FWHM500_{resolution}.nc", **avgd_opts).sel(buffer=10)
-ds_L08 = xr.merge([xyzi_L08, xyzd_L08, aaad_L08])
+# Load rough topography datasets
+xyzi_rough = open_simulation(simdata_path  + f"xyzi.balanus_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_rough}_FWHM500_{resolution}.nc", **snap_opts)[["PV", "Ro", "Δz_aac"]]
+xyzd_rough = open_simulation(postproc_path + f"xyzd.balanus_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_rough}_FWHM500_{resolution}.nc", **avgd_opts)
+aaad_rough = open_simulation(postproc_path + f"aaad.balanus_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_rough}_FWHM500_{resolution}.nc", **avgd_opts).sel(buffer=buffer)
+ds_rough = xr.merge([xyzi_rough, xyzd_rough, aaad_rough])
+
+# Load smooth topography datasets
+xyzi_smooth = open_simulation(simdata_path  + f"xyzi.balanus_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_smooth}_FWHM500_{resolution}.nc", **snap_opts)[["PV", "Ro", "Δz_aac"]]
+xyzd_smooth = open_simulation(postproc_path + f"xyzd.balanus_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_smooth}_FWHM500_{resolution}.nc", **avgd_opts)
+aaad_smooth = open_simulation(postproc_path + f"aaad.balanus_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_smooth}_FWHM500_{resolution}.nc", **avgd_opts).sel(buffer=buffer)
+ds_smooth = xr.merge([xyzi_smooth, xyzd_smooth, aaad_smooth])
 #---
 
 #+++ Create new variables and restrict volume
 def prepare_ds(ds,
-               x_slice = slice(-1.5*ds_L00.FWHM, np.inf),
-               z_slice = slice(0, ds_L00.Lz - ds_L00.h_sponge),
+               x_slice = slice(-1.5*ds_rough.FWHM, np.inf),
+               z_slice = slice(0, ds_rough.Lz - ds_rough.h_sponge),
                t_slice = 20):
     print("  Restricting domain and selecting time...")
     # Restrict domain first and select time immediately to minimize data
@@ -53,10 +62,10 @@ def prepare_ds(ds,
 
     return ds
 
-print("Preparing L=0 dataset...")
-ds_L00 = prepare_ds(ds_L00)
-print("Preparing L=0.8 dataset...")
-ds_L08 = prepare_ds(ds_L08)
+print(f"Preparing L={L_rough} (rough) dataset...")
+ds_rough = prepare_ds(ds_rough)
+print(f"Preparing L={L_smooth} (smooth) dataset...")
+ds_smooth = prepare_ds(ds_smooth)
 print("Data preparation complete!")
 #---
 
@@ -65,7 +74,7 @@ print("Creating subplot grid")
 fig, axes = plt.subplots(nrows=4, ncols=2, figsize=(12, 12), sharex=True, layout=None)
 plt.subplots_adjust(wspace=0.05, hspace=0)
 
-datasets = [(ds_L00, "0"), (ds_L08, "0.8")]
+datasets = [(ds_rough, str(L_rough)), (ds_smooth, str(L_smooth))]
 yticks = [-500, 0, 500]
 
 # Define row configurations
@@ -129,6 +138,6 @@ for row_idx, config in enumerate(row_configs):
 #+++ Save
 letterize(axes.flatten(), x=0.05, y=0.9, fontsize=9)
 print("Saving figure...")
-fig.savefig(f"../figures/dynamics_comparison_{resolution}.pdf", dpi=300, bbox_inches="tight", pad_inches=0)
+fig.savefig(f"../figures/extra_dynamics_comparison_{resolution}.pdf", dpi=300, bbox_inches="tight", pad_inches=0)
 print("Done!")
 #---

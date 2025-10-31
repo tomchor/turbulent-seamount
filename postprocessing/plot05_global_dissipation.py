@@ -120,5 +120,5 @@ print(f"South ratio: {south_ratio:.2f}")
 #---
 
 #+++ Save figure
-fig.savefig("../figures/integrated_dissipation.png", dpi=300)
+fig.savefig("../figures/global_dissipation.pdf", dpi=300, bbox_inches="tight", pad_inches=0)
 #---

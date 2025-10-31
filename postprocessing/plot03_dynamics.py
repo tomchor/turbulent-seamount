@@ -19,8 +19,8 @@ Ro_b = 0.1
 Fr_b = 1
 L_rough = 0
 L_smooth = 0.8
-resolution = "dz1"
 buffer = 5
+resolution = "dz1"
 
 snap_opts = dict(use_advective_periods=True,
                  unique_times=True,
@@ -137,6 +137,6 @@ for row_idx, config in enumerate(row_configs):
 #+++ Save
 letterize(axes.flatten(), x=0.05, y=0.9, fontsize=9)
 print("Saving figure...")
-fig.savefig(f"../figures/dynamics_comparison_{resolution}.pdf", dpi=300, bbox_inches="tight", pad_inches=0)
+fig.savefig(f"../figures/dynamics_comparison_buffer{buffer}m_{resolution}.pdf", dpi=300, bbox_inches="tight", pad_inches=0)
 print("Done!")
 #---

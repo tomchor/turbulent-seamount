@@ -143,20 +143,16 @@ ims = []
 
 for (row, col, data, norm_range, label, cbar_label) in plot_configs:
     ax = axes[row, col]
-    im = data.plot(
-        ax=ax, x="x_caa", y="z_aac",
-        norm=LogNorm(vmin=norm_range[0], vmax=norm_range[1]),
-        cmap="inferno", add_colorbar=False
-    )
+    im = data.plot(ax=ax, x="x_caa", y="z_aac",
+                   norm=LogNorm(vmin=norm_range[0], vmax=norm_range[1]),
+                   cmap="inferno", add_colorbar=False, rasterized=True)
     ims.append(im)
     ax.set_xlabel("x [m]" if row == 1 else "")
     ax.set_ylabel("z [m]" if col == 0 else "")
     ax.set_title("")
-    ax.text(
-        0.05, 0.95, label, transform=ax.transAxes,
-        bbox=dict(boxstyle="round", facecolor="white", alpha=0.8),
-        verticalalignment="top", fontsize=12, fontweight="bold"
-    )
+    ax.text(0.05, 0.95, label, transform=ax.transAxes,
+            bbox=dict(boxstyle="round", facecolor="white", alpha=0.8),
+            verticalalignment="top", fontsize=12, fontweight="bold")
     # Add colorbar if needed
     if cbar_label:
         cbar = plt.colorbar(im, ax=axes[row, :], orientation="vertical", pad=0.01)
@@ -169,7 +165,7 @@ fig.suptitle(title, fontsize=14, y=0.995)
 #---
 
 #+++ Save the plot
-output_path = f"../figures/eps_comparison_L0_vs_L08_{resolution}.png"
+output_path = f"../figures/eps_comparison_L0_vs_L08_{resolution}.pdf"
 fig.savefig(output_path, dpi=300, bbox_inches="tight")
 print(f"Saved plot to {output_path}")
 #---

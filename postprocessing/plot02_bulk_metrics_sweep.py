@@ -86,12 +86,12 @@ mixing_linear_ref = 2e-2 * Sb_ref
 mixing_quadratic_ref = 2e-2 * Sb_ref**2
 
 axes[0].set_title("Normalized dissipation rates")
-axes[0].plot(Sb_ref, dissip_linear_ref, ls='--', lw=5, color='blue', alpha=0.3, label="$\sim S_b$")
-axes[0].plot(Sb_ref, dissip_piecewise_ref, ls='--', lw=5, color='red', alpha=0.3, label=r"$\sim \max(S_b, 5 \times 10^{-3})$")
+axes[0].plot(Sb_ref, dissip_linear_ref, ls="--", lw=5, color="blue", alpha=0.3, label="$\sim S_b$")
+axes[0].plot(Sb_ref, dissip_piecewise_ref, ls="--", lw=5, color="red", alpha=0.3, label=r"$\sim \max(S_b, 5 \times 10^{-3})$")
 
 axes[1].set_title("Normalized mixing efficiency")
-axes[1].plot(Sb_ref, mixing_linear_ref, ls='--', lw=5, color='gray', alpha=0.5, label="$\sim S_b$")
-axes[1].plot(Sb_ref, mixing_quadratic_ref, ls=':', lw=5, color='gray', alpha=0.5, label="$\sim S_b^2$")
+axes[1].plot(Sb_ref, mixing_linear_ref, ls="--", lw=5, color="gray", alpha=0.5, label="$\sim S_b$")
+axes[1].plot(Sb_ref, mixing_quadratic_ref, ls=":", lw=5, color="gray", alpha=0.5, label="$\sim S_b^2$")
 
 for ax in axes:
     ax.legend()
@@ -99,7 +99,7 @@ for ax in axes:
 
 
 #+++ Save figure
-figure_name = f"../figures/paramsweep_bulk_metrics_{simname_base}_dz{aaaa.dz.item()}m.png"
+figure_name = f"../figures/paramsweep_bulk_metrics_{simname_base}_dz{aaaa.dz.item()}m.pdf"
 plt.savefig(figure_name, dpi=300, bbox_inches="tight")
 print(f"Figure saved to: {figure_name}")
 #---

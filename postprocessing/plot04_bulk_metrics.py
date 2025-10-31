@@ -15,7 +15,7 @@ Froude_numbers = cycler(Fr_b = [1])
 L              = cycler(L = [0, 0.05, 0.1, 0.2, 0.4, 0.8])
 FWHM           = cycler(FWHM = [500, 500, 500, 500, 500, 500])
 
-resolutions    = cycler(dz = [2])
+resolutions    = cycler(dz = [1])
 
 paramspace = Rossby_numbers * Froude_numbers * (L + FWHM)
 configs    = resolutions
@@ -47,9 +47,11 @@ aaaa["γ"] = aaaa["∭ᵇε̄ₚdV"] / (aaaa["∭ᵇε̄ₚdV"] + aaaa["∭ᵇε
 aaaa["RoFr"] = aaaa.Ro_b * aaaa.Fr_b
 
 # Normalized dissipation rates
-norm_factor = aaaa.attrs["U∞"]**3 * aaaa.FWHM * aaaa.H
-aaaa["ℰₖ"] = aaaa["∭ᵇε̄ₖdV"] / norm_factor
-aaaa["ℰₚ"] = aaaa["∭ᵇε̄ₚdV"] / norm_factor
+dtKE_scaling = aaaa.attrs["U∞"]**3 * aaaa.FWHM**2 # Assume ε̄ₖ scales as U^3 / H
+aaaa["ℰₖ"] = aaaa["∭ᵇε̄ₖdV"] / dtKE_scaling
+aaaa["ℰₚ"] = aaaa["∭ᵇε̄ₚdV"] / dtKE_scaling
+aaaa["ℬ"] = aaaa["∭⟨w′b′⟩ₜdV"] / dtKE_scaling
+aaaa["𝒮"] = aaaa["∭SPRdV"] / dtKE_scaling
 aaaa["𝒦⁵"] = (aaaa["∭ᵇε̄ₚdV"] / aaaa["N²∞"]) / (aaaa["U∞"] * aaaa.FWHM**2 * aaaa.H**2)
 
 # Add metadata
@@ -64,7 +66,7 @@ def plot_variable(ax, data, var_name):
         ax.scatter(subset.L, subset.values, label=f"FWHM={fwhm_val}", alpha=0.7)
 
     # Use symlog scale for w"b" variable (can be positive or negative)
-    if var_name == "∭⟨w′b′⟩ₜdV":
+    if (var_name == "∭⟨w′b′⟩ₜdV") or (var_name == "ℬ"):
         ax.set_yscale("symlog", linthresh=1e-6)
     else:
         ax.set_yscale("log")
@@ -76,11 +78,11 @@ def plot_variable(ax, data, var_name):
     ax.legend()
 
 #+++ Create plots
-fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(12, 10))
+fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(12, 10), sharey="row")
 plt.subplots_adjust(hspace=0.4, wspace=0.3)
 
 # Variables to plot (first 3 use buffer=5m, last 2 don"t have buffer dimension)
-variables = ["ℰₖ", "ℰₚ", "∭⟨w′b′⟩ₜdV", "∭SPRdV"]
+variables = ["ℰₖ", "ℰₚ", "ℬ", "𝒮"]
 
 aaaa = aaaa.sel(dz=0, buffer=5, method="nearest").sum("j")
 # Create plots for each variable

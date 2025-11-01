@@ -4,6 +4,7 @@ import pynanigans as pn
 from cycler import cycler
 from matplotlib import pyplot as plt
 from src.aux00_utils import merge_datasets, condense
+from src.aux02_plotting import letterize
 from IPython import embed
 plt.rcParams["figure.constrained_layout.use"] = True
 
@@ -14,7 +15,7 @@ Rossby_numbers = cycler(Ro_b = [0.05, 0.1, 0.2, 0.5])
 Froude_numbers = cycler(Fr_b = [0.05, 0.08, 0.3, 1, 2])
 L              = cycler(L = [0, 0.8])
 
-resolutions    = cycler(dz = [2])
+resolutions    = cycler(dz = [1])
 T_adv_spinups  = cycler(T_adv_spinup = [12])
 
 paramspace = Rossby_numbers * Froude_numbers * L
@@ -95,11 +96,13 @@ axes[1].plot(Sb_ref, mixing_quadratic_ref, ls=":", lw=5, color="gray", alpha=0.5
 
 for ax in axes:
     ax.legend()
+
+letterize(axes.flatten(), x=0.8, y=0.92, fontsize=11, bbox=dict(boxstyle="round", facecolor="white", alpha=0.4))
 #---
 
 
 #+++ Save figure
-figure_name = f"../figures/paramsweep_bulk_metrics_{simname_base}_dz{aaaa.dz.item()}m.pdf"
+figure_name = f"../figures/paramsweep_bulk_metrics_{simname_base}_dz{aaaa.dz.item()}.pdf"
 plt.savefig(figure_name, dpi=300, bbox_inches="tight")
 print(f"Figure saved to: {figure_name}")
 #---

@@ -22,6 +22,7 @@ paramspace = Rossby_numbers * Froude_numbers * (L + FWHM)
 configs    = resolutions
 
 runs = paramspace * configs
+buffer = 5
 #---
 
 #+++ Load datasets
@@ -72,7 +73,7 @@ variables = ["ℰₖ", "ℰₚ", "ℬ", "𝒮", "𝒯"]
 colors = ["blue", "red", "green", "orange", "purple"]
 
 aaaa = aaaa.pnsel(x=np.inf, method="nearest") # To get the advection out term
-aaaa = aaaa.sel(dz=0, buffer=5, method="nearest").sum("j", keep_attrs=True)
+aaaa = aaaa.sel(dz=0, buffer=buffer, method="nearest").sum("j", keep_attrs=True)
 
 # Plot each variable using xarray plot method
 for var_name, color in zip(variables, colors):
@@ -88,7 +89,7 @@ ax.grid(True, which="both", alpha=0.3)
 ax.legend(fontsize=11, loc="upper right", framealpha=0.4)
 
 #+++ Save figure
-figure_name = f"../figures/bulk_metrics_{simname_base}_dz{aaaa.dz.item()}m_buffer{aaaa.buffer.item()}m.pdf"
+figure_name = f"../figures/bulk_metrics_{simname_base}_dz{aaaa.dz.item()}_buffer{aaaa.buffer.item()}.pdf"
 plt.savefig(figure_name, dpi=300, bbox_inches="tight")
 print(f"Figure saved to: {figure_name}")
 #---

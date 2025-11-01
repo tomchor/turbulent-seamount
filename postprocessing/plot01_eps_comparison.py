@@ -6,6 +6,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.colors import LightSource
 from matplotlib.gridspec import GridSpec
 from src.aux00_utils import open_simulation
+from src.aux02_plotting import letterize
 
 # Set figure layout
 plt.rcParams["figure.constrained_layout.use"] = True
@@ -16,11 +17,12 @@ simdata_path = "../simulations/data/"
 # Parameters for the comparison
 Ro_b = 0.1
 Fr_b = 1  # Can be changed to compare different Fr_b values
-resolution = "dz1"
+resolution = 1
+buffer = 5
 
 # File paths for L=0 and L=0.8 simulations
-simname_L0 = f"balanus_Ro_b{Ro_b}_Fr_b{Fr_b}_L0_FWHM500_{resolution}"
-simname_L08 = f"balanus_Ro_b{Ro_b}_Fr_b{Fr_b}_L0.8_FWHM500_{resolution}"
+simname_L0 = f"balanus_Ro_b{Ro_b}_Fr_b{Fr_b}_L0_FWHM500_dz{resolution}"
+simname_L08 = f"balanus_Ro_b{Ro_b}_Fr_b{Fr_b}_L0.8_FWHM500_dz{resolution}"
 
 fpath_L0 = f"{simdata_path}xyzi.{simname_L0}.nc"
 fpath_L08 = f"{simdata_path}xyzi.{simname_L08}.nc"
@@ -63,13 +65,18 @@ n_final = len(times) - 1
 #---
 
 #+++ Extract the two variables at the final time step
-var_names = ["∫⁵εₖdy", "∫⁵εₚdy"]
+if buffer == 5:
+    integration_bound = "⁵"
+elif buffer == 10:
+    integration_bound = "¹⁰"
+else:
+    raise ValueError(f"Buffer {buffer} wasn't calculated.")
 
-eps_k_L0 = xyzi_L0["∫⁵εₖdy"].isel(time=n_final)
-eps_p_L0 = xyzi_L0["∫⁵εₚdy"].isel(time=n_final)
+eps_k_L0 = xyzi_L0[f"∫{integration_bound}εₖdy"].isel(time=n_final)
+eps_p_L0 = xyzi_L0[f"∫{integration_bound}εₚdy"].isel(time=n_final)
 
-eps_k_L08 = xyzi_L08["∫⁵εₖdy"].isel(time=n_final)
-eps_p_L08 = xyzi_L08["∫⁵εₚdy"].isel(time=n_final)
+eps_k_L08 = xyzi_L08[f"∫{integration_bound}εₖdy"].isel(time=n_final)
+eps_p_L08 = xyzi_L08[f"∫{integration_bound}εₚdy"].isel(time=n_final)
 
 # Extract bottom_height for 3D plots (doesn"t have time dimension)
 extent = 1.3 * FWHM
@@ -150,7 +157,9 @@ for (row, col, data, norm_range, label, cbar_label) in plot_configs:
     ax.set_xlabel("x [m]" if row == 1 else "")
     ax.set_ylabel("z [m]" if col == 0 else "")
     ax.set_title("")
-    ax.text(0.05, 0.95, label, transform=ax.transAxes,
+    if row == 0:  # Remove xlabel from middle row
+        ax.set_xlabel("")
+    ax.text(0.85, 0.95, label, transform=ax.transAxes,
             bbox=dict(boxstyle="round", facecolor="white", alpha=0.8),
             verticalalignment="top", fontsize=12, fontweight="bold")
     # Add colorbar if needed
@@ -162,10 +171,11 @@ for (row, col, data, norm_range, label, cbar_label) in plot_configs:
 #+++ Add overall title
 title = f"Ro$_b$ = {params_L0["Ro_b"]}, Fr$_b$ = {params_L0["Fr_b"]}; "
 fig.suptitle(title, fontsize=14, y=0.995)
+# letterize(fig.axes, x=0.05, y=0.9, fontsize=9)
 #---
 
 #+++ Save the plot
-output_path = f"../figures/eps_comparison_L0_vs_L08_{resolution}.pdf"
+output_path = f"../figures/eps_comparison_L0_vs_L08_dz{resolution}_buffer{buffer}.pdf"
 fig.savefig(output_path, dpi=300, bbox_inches="tight")
 print(f"Saved plot to {output_path}")
 #---

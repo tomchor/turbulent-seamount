@@ -22,7 +22,7 @@ paramspace = Rossby_numbers * Froude_numbers * L
 configs    = resolutions  * T_adv_spinups
 
 runs = paramspace * configs
-buffer = 5
+buffer = 10
 #---
 
 #+++ Load datasets
@@ -88,12 +88,12 @@ mixing_linear_ref = 2e-2 * Sb_ref
 mixing_quadratic_ref = 2e-2 * Sb_ref**2
 
 axes[0].set_title("Normalized dissipation rates")
-axes[0].plot(Sb_ref, dissip_linear_ref, ls="--", lw=5, color="blue", alpha=0.3, label="$2 S_b$")
-axes[0].plot(Sb_ref, dissip_piecewise_ref, ls="--", lw=5, color="red", alpha=0.3, label=r"$\max(2S_b, 2 \times 10^{-2})$")
+axes[0].plot(Sb_ref, dissip_linear_ref, ls="--", lw=5, color="blue", alpha=0.3, label="$\sim S_b$")
+axes[0].plot(Sb_ref, dissip_piecewise_ref, ls="--", lw=5, color="red", alpha=0.3, label=r"$\max(\sim S_b, 2 \times 10^{-2})$")
 
 axes[1].set_title("Normalized mixing efficiency")
-axes[1].plot(Sb_ref, mixing_linear_ref, ls="--", lw=5, color="gray", alpha=0.5, label="$2 S_b$")
-axes[1].plot(Sb_ref, mixing_quadratic_ref, ls=":", lw=5, color="gray", alpha=0.5, label="$2 S_b^2$")
+axes[1].plot(Sb_ref, mixing_linear_ref, ls="--", lw=5, color="gray", alpha=0.5, label="$\sim S_b$")
+axes[1].plot(Sb_ref, mixing_quadratic_ref, ls=":", lw=5, color="gray", alpha=0.5, label="$\sim S_b^2$")
 
 for ax in axes:
     ax.legend()

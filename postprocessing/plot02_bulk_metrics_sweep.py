@@ -22,6 +22,7 @@ paramspace = Rossby_numbers * Froude_numbers * L
 configs    = resolutions  * T_adv_spinups
 
 runs = paramspace * configs
+buffer = 5
 #---
 
 #+++ Load datasets
@@ -58,7 +59,7 @@ plt.subplots_adjust(hspace=0.4, wspace=0.3)
 # Variables to plot (first 3 use buffer=5m, last 2 don"t have buffer dimension)
 variables = ["ℰₖ", "ℰₚ"]
 
-aaaa = aaaa.sel(dz=0, buffer=10, method="nearest")
+aaaa = aaaa.sel(dz=0, buffer=buffer, method="nearest")
 # Create plots for each variable
 colors = ["red", "blue", "purple", "orange"]  # Generate different colors for each L value
 
@@ -78,21 +79,21 @@ for i, var_name in enumerate(variables):
 
 #+++ Add reference lines
 import numpy as np
-Sb_ref = np.logspace(np.log10(2e-2), np.log10(1e1), 100)
+Sb_ref = np.logspace(np.log10(3e-2), np.log10(1e1), 100)
 
-dissip_linear_ref = 1e-2 * Sb_ref
-dissip_piecewise_ref = np.maximum(dissip_linear_ref, 6e-3)
+dissip_linear_ref = 2e-2 * Sb_ref
+dissip_piecewise_ref = np.maximum(dissip_linear_ref, 2e-2)
 
 mixing_linear_ref = 2e-2 * Sb_ref
 mixing_quadratic_ref = 2e-2 * Sb_ref**2
 
 axes[0].set_title("Normalized dissipation rates")
-axes[0].plot(Sb_ref, dissip_linear_ref, ls="--", lw=5, color="blue", alpha=0.3, label="$\sim S_b$")
-axes[0].plot(Sb_ref, dissip_piecewise_ref, ls="--", lw=5, color="red", alpha=0.3, label=r"$\sim \max(S_b, 5 \times 10^{-3})$")
+axes[0].plot(Sb_ref, dissip_linear_ref, ls="--", lw=5, color="blue", alpha=0.3, label="$2 S_b$")
+axes[0].plot(Sb_ref, dissip_piecewise_ref, ls="--", lw=5, color="red", alpha=0.3, label=r"$\max(2S_b, 2 \times 10^{-2})$")
 
 axes[1].set_title("Normalized mixing efficiency")
-axes[1].plot(Sb_ref, mixing_linear_ref, ls="--", lw=5, color="gray", alpha=0.5, label="$\sim S_b$")
-axes[1].plot(Sb_ref, mixing_quadratic_ref, ls=":", lw=5, color="gray", alpha=0.5, label="$\sim S_b^2$")
+axes[1].plot(Sb_ref, mixing_linear_ref, ls="--", lw=5, color="gray", alpha=0.5, label="$2 S_b$")
+axes[1].plot(Sb_ref, mixing_quadratic_ref, ls=":", lw=5, color="gray", alpha=0.5, label="$2 S_b^2$")
 
 for ax in axes:
     ax.legend()
@@ -102,7 +103,7 @@ letterize(axes.flatten(), x=0.8, y=0.92, fontsize=11, bbox=dict(boxstyle="round"
 
 
 #+++ Save figure
-figure_name = f"../figures/paramsweep_bulk_metrics_{simname_base}_dz{aaaa.dz.item()}.pdf"
+figure_name = f"../figures/paramsweep_bulk_metrics_{simname_base}_dz{aaaa.dz.item()}_buffer{aaaa.buffer.item()}.pdf"
 plt.savefig(figure_name, dpi=300, bbox_inches="tight")
 print(f"Figure saved to: {figure_name}")
 #---

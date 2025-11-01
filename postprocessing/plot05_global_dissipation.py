@@ -12,26 +12,22 @@ seamounts["Slope_Bu"] = seamounts.rossby_number / seamounts.froude_height
 
 #+++ Dissipation calculations
 # Dissipation according to linear formula (smooth seamounts)
-seamounts["dissip_linear"] = 1e-2 * seamounts.Slope_Bu * seamounts.velocity**3 / seamounts.height
-seamounts["mixing_linear"] = 2e-2 * seamounts.Slope_Bu * seamounts.velocity**3 / seamounts.height
-seamounts["mixing_quadratic"] = 2e-2 * seamounts.Slope_Bu**2 * seamounts.velocity**3 / seamounts.height
+seamounts["dissip_linear"] = 1e-2 * seamounts.Slope_Bu
+seamounts["dissip_minimum"] = 1e-2 * 0.6
+seamounts["dissip_piecewise"] = np.maximum(seamounts.dissip_linear, seamounts.dissip_minimum)
 
-# Dissipation minimum value, which fixes a Slope_Bu but still depends on the velocity and height of seamount
-Slope_Bu_threshold = 0.6
-seamounts["dissip_minimum"] = 1e-2 * Slope_Bu_threshold * seamounts.velocity**3 / seamounts.height
+seamounts["mixing_linear"] = 2e-2 * seamounts.Slope_Bu
+seamounts["mixing_quadratic"] = 2e-2 * seamounts.Slope_Bu**2
 
-# Put both together for piecewise dissipation
-seamounts["dissip_piecewise"] = xr.where(seamounts.Slope_Bu > Slope_Bu_threshold,
-                                         seamounts.dissip_linear,
-                                         seamounts.dissip_minimum)
-
+seamounts["dissip_scale"] = seamounts.velocity**3 / seamounts.height
+seamounts["mixing_scale"] = seamounts.dissip_scale
 seamounts["total_volume"] = seamounts.basal_radius_L**2 * seamounts.height
 
-seamounts["tottal_dissip_smooth"] = seamounts.dissip_linear * seamounts.total_volume
-seamounts["tottal_dissip_rough"] = seamounts.dissip_piecewise * seamounts.total_volume
+seamounts["tottal_dissip_smooth"] = seamounts.dissip_linear * seamounts.dissip_scale * seamounts.total_volume
+seamounts["tottal_dissip_rough"] = seamounts.dissip_piecewise * seamounts.dissip_scale * seamounts.total_volume
 
-seamounts["total_mixing_linear"] = seamounts.mixing_linear * seamounts.total_volume
-seamounts["total_mixing_quadratic"] = seamounts.mixing_quadratic * seamounts.total_volume
+seamounts["total_mixing_linear"] = seamounts.mixing_linear * seamounts.mixing_scale * seamounts.total_volume
+seamounts["total_mixing_quadratic"] = seamounts.mixing_quadratic * seamounts.mixing_scale * seamounts.total_volume
 #---
 
 fig = plt.figure(figsize=(10, 13))
@@ -63,7 +59,8 @@ gl1.bottom_labels = False
 
 vmin_dissip = 1e1
 vmax_dissip = 1e4
-im_dissip_smooth = seamounts.plot.scatter(ax=ax_map_dissip_smooth, hue="tottal_dissip_smooth", cmap="YlOrRd", **fixed_options, norm=LogNorm(), vmin=vmin_dissip, vmax=vmax_dissip, add_colorbar=False)
+cmap_dissip = "YlOrRd"
+im_dissip_smooth = seamounts.plot.scatter(ax=ax_map_dissip_smooth, hue="tottal_dissip_smooth", cmap=cmap_dissip, **fixed_options, norm=LogNorm(), vmin=vmin_dissip, vmax=vmax_dissip, add_colorbar=False)
 cbar_dissip_smooth = plt.colorbar(im_dissip_smooth, ax=ax_map_dissip_smooth, orientation="vertical", pad=0.02, location="left", shrink=0.5)
 cbar_dissip_smooth.set_label(r"Total KE dissipation [m$^2$/s$^3$ $\times$ m$^3$]")
 
@@ -78,7 +75,7 @@ gl2.top_labels = False
 gl2.right_labels = False
 gl2.bottom_labels = False
 
-im_dissip_rough = seamounts.plot.scatter(ax=ax_map_dissip_rough, hue="tottal_dissip_rough", cmap="YlOrRd", **fixed_options, norm=LogNorm(), vmin=vmin_dissip, vmax=vmax_dissip, add_colorbar=False)
+im_dissip_rough = seamounts.plot.scatter(ax=ax_map_dissip_rough, hue="tottal_dissip_rough", cmap=cmap_dissip, **fixed_options, norm=LogNorm(), vmin=vmin_dissip, vmax=vmax_dissip, add_colorbar=False)
 cbar_dissip_rough = plt.colorbar(im_dissip_rough, ax=ax_map_dissip_rough, orientation="vertical", pad=0.02, location="left", shrink=0.5)
 cbar_dissip_rough.set_label(r"Total KE dissipation [m$^2$/s$^3$ $\times$ m$^3$]")
 
@@ -96,7 +93,8 @@ labels = False
 
 vmin_mixing = 1e1
 vmax_mixing = 1e4
-im_mixing_smooth = seamounts.plot.scatter(ax=ax_map_mixing_smooth, hue="total_mixing_linear", cmap="YlOrRd", **fixed_options, norm=LogNorm(), vmin=vmin_mixing, vmax=vmax_mixing, add_colorbar=False)
+cmap_mixing = "GnBu"
+im_mixing_smooth = seamounts.plot.scatter(ax=ax_map_mixing_smooth, hue="total_mixing_linear", cmap=cmap_mixing, **fixed_options, norm=LogNorm(), vmin=vmin_mixing, vmax=vmax_mixing, add_colorbar=False)
 cbar_mixing_smooth = plt.colorbar(im_mixing_smooth, ax=ax_map_mixing_smooth, orientation="vertical", pad=0.02, location="left", shrink=0.5)
 cbar_mixing_smooth.set_label(r"Total PE dissipation [m$^2$/s$^3$ $\times$ m$^3$]")
 
@@ -110,7 +108,7 @@ gl4 = ax_map_mixing_rough.gridlines(draw_labels=True, dms=False, x_inline=False,
 gl4.top_labels = False
 gl4.right_labels = False
 
-im_mixing_rough = seamounts.plot.scatter(ax=ax_map_mixing_rough, hue="total_mixing_quadratic", cmap="YlOrRd", **fixed_options, norm=LogNorm(), vmin=vmin_mixing, vmax=vmax_mixing, add_colorbar=False)
+im_mixing_rough = seamounts.plot.scatter(ax=ax_map_mixing_rough, hue="total_mixing_quadratic", cmap=cmap_mixing, **fixed_options, norm=LogNorm(), vmin=vmin_mixing, vmax=vmax_mixing, add_colorbar=False)
 cbar_mixing_rough = plt.colorbar(im_mixing_rough, ax=ax_map_mixing_rough, orientation="vertical", pad=0.02, location="left", shrink=0.5)
 cbar_mixing_rough.set_label(r"Total PE dissipation [m$^2$/s$^3$ $\times$ m$^3$]")
 #---

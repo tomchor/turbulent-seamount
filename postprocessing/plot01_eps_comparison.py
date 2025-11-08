@@ -17,8 +17,8 @@ simdata_path = "../simulations/data/"
 # Parameters for the comparison
 Ro_b = 0.1
 Fr_b = 1  # Can be changed to compare different Fr_b values
-resolution = 1
 buffer = 5
+resolution = 1
 
 # File paths for L=0 and L=0.8 simulations
 simname_L0 = f"balanus_Ro_b{Ro_b}_Fr_b{Fr_b}_L0_FWHM500_dz{resolution}"
@@ -116,7 +116,7 @@ x, y = np.meshgrid(x, y)
 z = bottom_height_L0.values
 
 rgb = ls.shade(bottom_height_L0.values, cmap=plt.cm.gist_earth, vert_exag=0.1, blend_mode="soft")
-ax_3d_1.plot_surface(x, y, z, rstride=2, cstride=2, facecolors=rgb, linewidth=0, antialiased=False, shade=False)
+ax_3d_1.plot_surface(x, y, z, rstride=2, cstride=2, facecolors=rgb, linewidth=0, antialiased=False, shade=False, rasterized=True)
 ax_3d_1.set_xlabel("x [m]")
 ax_3d_1.set_ylabel("y [m]")
 ax_3d_1.set_zlabel("z [m]")
@@ -128,7 +128,7 @@ ax_3d_1.set_box_aspect((1, 1, 0.3))
 z = bottom_height_L08.values
 
 rgb = ls.shade(bottom_height_L08.values, cmap=plt.cm.gist_earth, vert_exag=0.1, blend_mode="soft")
-ax_3d_2.plot_surface(x, y, z, rstride=2, cstride=2, facecolors=rgb, linewidth=0, antialiased=False, shade=False)
+ax_3d_2.plot_surface(x, y, z, rstride=2, cstride=2, facecolors=rgb, linewidth=0, antialiased=False, shade=False, rasterized=True)
 ax_3d_2.set_xlabel("x [m]")
 ax_3d_2.set_ylabel("y [m]")
 ax_3d_2.set_zlabel("z [m]")
@@ -136,8 +136,8 @@ ax_3d_2.set_title(f"L/W = {params_L08["L"]}")
 ax_3d_2.view_init(elev=25, azim=135)
 ax_3d_2.set_box_aspect((1, 1, 0.3))
 #---
-#--- Simplified plotting for ∫⁵εₖdy and ∫⁵εₚdy
 
+#+++ Simplified plotting for ∫⁵εₖdy and ∫⁵εₚdy
 plot_configs = [
     # (row_idx, col_idx, data, norm_range, label, cbar_label)
     (0, 0, eps_k_L0, eps_k_range, "∫⁵εₖdy", "∫⁵εₖdy [m³/s³]"),
@@ -160,18 +160,18 @@ for (row, col, data, norm_range, label, cbar_label) in plot_configs:
     if row == 0:  # Remove xlabel from middle row
         ax.set_xlabel("")
     ax.text(0.85, 0.95, label, transform=ax.transAxes,
-            bbox=dict(boxstyle="round", facecolor="white", alpha=0.8),
-            verticalalignment="top", fontsize=12, fontweight="bold")
+            bbox=dict(boxstyle="square", facecolor="white", alpha=0.8),
+            verticalalignment="top", fontsize=14, fontweight="bold")
     # Add colorbar if needed
     if cbar_label:
         cbar = plt.colorbar(im, ax=axes[row, :], orientation="vertical", pad=0.01)
-        cbar.set_label(cbar_label, fontsize=10)
+        cbar.set_label(cbar_label, fontsize=11)
 #---
 
 #+++ Add overall title
 title = f"Ro$_b$ = {params_L0["Ro_b"]}, Fr$_b$ = {params_L0["Fr_b"]}; "
 fig.suptitle(title, fontsize=14, y=0.995)
-# letterize(fig.axes, x=0.05, y=0.9, fontsize=9)
+letterize(fig.axes[:6], x=0.05, y=0.9, fontsize=12, bbox=dict(boxstyle="square", facecolor="white", alpha=0.8))
 #---
 
 #+++ Save the plot

@@ -241,10 +241,13 @@ def plot_scatter(ds, ax=None, x=None, y=None, hue="simulation", add_guide=True, 
 #+++ Letterize plot axes
 def letterize(axes, x, y, coords=True, bbox=dict(boxstyle='round',
                                                  facecolor='white', alpha=0.8),
-                     **kwargs):
+              **kwargs):
     from string import ascii_lowercase
-    for ax, c in zip(axes.flatten(), ascii_lowercase*2):
-        ax.text(x, y, c, transform=ax.transAxes, bbox=bbox, **kwargs)
+    for ax, c in zip(axes, ascii_lowercase*2):
+        if hasattr(ax, "name") and ax.name == "3d": # Do things differently for 3D axes
+            ax.text2D(x, y, c, transform=ax.transAxes, bbox=bbox, **kwargs)
+        else: # 2D axes
+            ax.text(x, y, c, transform=ax.transAxes, bbox=bbox, **kwargs)
     return
 #---
 
@@ -252,7 +255,7 @@ def letterize(axes, x, y, coords=True, bbox=dict(boxstyle='round',
 def truncate_colormap(cmap, minval=0.0, maxval=1.0, n=100):
     import matplotlib.colors as colors
     new_cmap = colors.LinearSegmentedColormap.from_list(
-        'trunc({n},{a:.2f},{b:.2f})'.format(n=cmap.name, a=minval, b=maxval),
+        "trunc({n},{a:.2f},{b:.2f})".format(n=cmap.name, a=minval, b=maxval),
         cmap(np.linspace(minval, maxval, n)))
     return new_cmap
 

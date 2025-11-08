@@ -72,8 +72,8 @@ print("Data preparation complete!")
 
 #+++ Create subplot grid
 print("Creating subplot grid")
-fig, axes = plt.subplots(nrows=4, ncols=2, figsize=(12, 12), sharex=True, layout=None)
-plt.subplots_adjust(wspace=0.05, hspace=0)
+fig, axes = plt.subplots(nrows=4, ncols=2, figsize=(11, 10), sharex=True, constrained_layout=False)
+plt.subplots_adjust(wspace=0.05, hspace=0.02)
 
 datasets = [(ds_rough, str(L_rough)), (ds_smooth, str(L_smooth))]
 yticks = [-500, 0, 500]
@@ -81,7 +81,7 @@ yticks = [-500, 0, 500]
 # Define row configurations
 row_configs = [
     dict(var="PV", plot_opts=dict(z=ds_rough.H / 3, method="nearest"), xyi=True, label="Potential vorticity",
-         cmap="RdBu_r", vmin=lambda ds: -1.5*ds.N2_inf*abs(ds.f_0), vmax=lambda ds: 1.5*ds.N2_inf*abs(ds.f_0), white_text=False),
+         cmap="RdBu_r", vmin=lambda ds: -1.5*ds.N2_inf*abs(ds.f_0), vmax=lambda ds: 1.5*ds.N2_inf*abs(ds.f_0)),
     dict(var="⟨R̄o⟩ᶻ", plot_opts={}, xyi=False, label="⟨Ro⟩ᶻ", cmap="RdBu_r", vmin=-0.4, vmax=0.4),
     dict(var="⟨ε̄ₖ⟩ᶻ", plot_opts={}, xyi=False, label="⟨ε̄ₖ⟩ᶻ", white_text=True, cmap="inferno", norm=LogNorm(vmin=1e-10, vmax=1e-8)),
     dict(var="⟨ε̄ₚ⟩ᶻ", plot_opts={}, xyi=False, label="⟨ε̄ₚ⟩ᶻ", white_text=True, cmap="inferno", norm=LogNorm(vmin=1e-11, vmax=1e-9))
@@ -125,18 +125,18 @@ for row_idx, config in enumerate(row_configs):
         ax.set_ylabel("y [m]" if i == 0 else "")
         if i > 0:
             ax.set_yticklabels([])
-        ax.set_aspect('equal')
+        ax.set_aspect("equal")
 
     # Add colorbar for the right panel
-    cax = axes[row_idx, 1].inset_axes([0.8, 0.1, 0.03, 0.8],
+    cax = axes[row_idx, 1].inset_axes([0.75, 0.1, 0.03, 0.8],
                                        transform=axes[row_idx, 1].transAxes, clip_on=False)
     cbar = plt.colorbar(im, cax=cax, orientation="vertical", label=config["label"])
 
-    # Set white text for certain colorbars
     if config.get("white_text", False):
         cbar.ax.yaxis.set_tick_params(color="white")
         plt.setp(cbar.ax.yaxis.get_ticklabels(), color="white")
         cbar.ax.yaxis.label.set_color("white")
+        cbar.outline.set_edgecolor("white")
 #---
 
 #+++ Save

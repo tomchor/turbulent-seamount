@@ -229,7 +229,8 @@ params = (; params..., Δz_min = minimum_zspacing(grid_base))
 x_grid = xnodes(grid_base, Center(), Center(), Center())
 y_grid = ynodes(grid_base, Center(), Center(), Center())
 
-if params.simname == "labanus" # Use 90° rotation of the bathymetry
+if occursin("labanus", params.simname) # Use 90° rotation of the bathymetry
+    @warn "Using 90° rotation of the bathymetry!"
     interpolated_bathymetry_cpu = bathymetry_itp.(reshape(y_grid, (1, grid_base.Ny)), reshape(x_grid, (grid_base.Nx, 1)))
 else # Use regular bathymetry
     interpolated_bathymetry_cpu = bathymetry_itp.(reshape(x_grid, (grid_base.Nx, 1)), reshape(y_grid, (1, grid_base.Ny)))

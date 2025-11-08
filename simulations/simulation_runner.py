@@ -29,8 +29,7 @@ def get_submission_options(scheduler, job_size):
 
     if job_size == "very_small":
         if scheduler == "pbs":
-            options = ["select=1:ncpus=1:ngpus=1",
-                       "gpu_type=v100"]
+            options = ["select=1:ncpus=1:ngpus=1:gpu_type=v100"]
         elif scheduler == "slurm":
             options = ["--ntasks=1",
                        "--constraint=gpu",
@@ -40,8 +39,7 @@ def get_submission_options(scheduler, job_size):
 
     elif job_size == "small":
         if scheduler == "pbs":
-            options = ["select=1:ncpus=1:ngpus=1",
-                       "gpu_type=a100"]
+            options = ["select=1:ncpus=1:ngpus=1:gpu_type=cc80"]
         elif scheduler == "slurm":
             options = ["--ntasks=1",
                        "--constraint=gpu",
@@ -51,8 +49,7 @@ def get_submission_options(scheduler, job_size):
 
     elif job_size == "big":
         if scheduler == "pbs":
-            options = ["select=1:ncpus=1:ngpus=1",
-                       "gpu_type=h100",
+            options = ["select=1:ncpus=1:ngpus=1:gpu_type=h100",
                        "job_priority=regular"]
         elif scheduler == "slurm":
             options = ["--ntasks=1",

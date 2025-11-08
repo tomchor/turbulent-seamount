@@ -20,7 +20,7 @@ Fr_b = 1
 L_rough = 0
 L_smooth = 0.8
 buffer = 5
-resolution = "dz1"
+resolution = 1
 
 snap_opts = dict(use_advective_periods=True,
                  unique_times=True,
@@ -34,15 +34,16 @@ avgd_opts = dict(unique_times=False,
                  open_dataset_kwargs=dict(chunks="auto"))
 
 # Load rough topography datasets
-xyzi_rough = open_simulation(simdata_path  + f"xyzi.balanus_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_rough}_FWHM500_{resolution}.nc", **snap_opts)[["PV", "Ro", "Δz_aac"]]
-xyzd_rough = open_simulation(postproc_path + f"xyzd.balanus_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_rough}_FWHM500_{resolution}.nc", **avgd_opts)
-aaad_rough = open_simulation(postproc_path + f"aaad.balanus_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_rough}_FWHM500_{resolution}.nc", **avgd_opts).sel(buffer=10)
+xyzi_variables = ["PV", "Ro", "Δz_aac", "peripheral_nodes_ccc"]
+xyzi_rough = open_simulation(simdata_path  + f"xyzi.balanus_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_rough}_FWHM500_dz{resolution}.nc", **snap_opts)[xyzi_variables]
+xyzd_rough = open_simulation(postproc_path + f"xyzd.balanus_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_rough}_FWHM500_dz{resolution}.nc", **avgd_opts)
+aaad_rough = open_simulation(postproc_path + f"aaad.balanus_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_rough}_FWHM500_dz{resolution}.nc", **avgd_opts).sel(buffer=10)
 ds_rough = xr.merge([xyzi_rough, xyzd_rough, aaad_rough])
 
 # Load smooth topography datasets
-xyzi_smooth = open_simulation(simdata_path  + f"xyzi.balanus_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_smooth}_FWHM500_{resolution}.nc", **snap_opts)[["PV", "Ro", "Δz_aac"]]
-xyzd_smooth = open_simulation(postproc_path + f"xyzd.balanus_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_smooth}_FWHM500_{resolution}.nc", **avgd_opts)
-aaad_smooth = open_simulation(postproc_path + f"aaad.balanus_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_smooth}_FWHM500_{resolution}.nc", **avgd_opts).sel(buffer=10)
+xyzi_smooth = open_simulation(simdata_path  + f"xyzi.balanus_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_smooth}_FWHM500_dz{resolution}.nc", **snap_opts)[xyzi_variables]
+xyzd_smooth = open_simulation(postproc_path + f"xyzd.balanus_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_smooth}_FWHM500_dz{resolution}.nc", **avgd_opts)
+aaad_smooth = open_simulation(postproc_path + f"aaad.balanus_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_smooth}_FWHM500_dz{resolution}.nc", **avgd_opts).sel(buffer=10)
 ds_smooth = xr.merge([xyzi_smooth, xyzd_smooth, aaad_smooth])
 #---
 
@@ -79,9 +80,9 @@ yticks = [-500, 0, 500]
 
 # Define row configurations
 row_configs = [
-    dict(var="PV", plot_opts=dict(z=ds_rough.H / 3, method="nearest"), xyi=True, label="PV",
-         cmap="RdBu_r", vmin=lambda ds: -1.5*ds.N2_inf*abs(ds.f_0), vmax=lambda ds: 1.5*ds.N2_inf*abs(ds.f_0), white_text=True),
-    dict(var="⟨R̄o⟩ᶻ", plot_opts={}, xyi=False, label="Ro", cmap="RdBu_r", vmin=-0.4, vmax=0.4),
+    dict(var="PV", plot_opts=dict(z=ds_rough.H / 3, method="nearest"), xyi=True, label="Potential vorticity",
+         cmap="RdBu_r", vmin=lambda ds: -1.5*ds.N2_inf*abs(ds.f_0), vmax=lambda ds: 1.5*ds.N2_inf*abs(ds.f_0), white_text=False),
+    dict(var="⟨R̄o⟩ᶻ", plot_opts={}, xyi=False, label="⟨Ro⟩ᶻ", cmap="RdBu_r", vmin=-0.4, vmax=0.4),
     dict(var="⟨ε̄ₖ⟩ᶻ", plot_opts={}, xyi=False, label="⟨ε̄ₖ⟩ᶻ", white_text=True, cmap="inferno", norm=LogNorm(vmin=1e-10, vmax=1e-8)),
     dict(var="⟨ε̄ₚ⟩ᶻ", plot_opts={}, xyi=False, label="⟨ε̄ₚ⟩ᶻ", white_text=True, cmap="inferno", norm=LogNorm(vmin=1e-11, vmax=1e-9))
 ]
@@ -98,8 +99,10 @@ for row_idx, config in enumerate(row_configs):
         # Get data
         if config["xyi"]:
             data = ds[var_name].pnsel(**config["plot_opts"])
+            bathymetry = ds.peripheral_nodes_ccc.pnsel(**config["plot_opts"])
         else:
             data = ds[var_name]
+            bathymetry = None
 
         # Prepare plot kwargs
         plot_kwargs = dict(ax=ax, x="x_caa", cmap=config["cmap"],
@@ -112,9 +115,11 @@ for row_idx, config in enumerate(row_configs):
             plot_kwargs |= dict(vmin=vmin, vmax=vmax)
 
         im = data.plot.imshow(**plot_kwargs)
+        if bathymetry is not None:
+            bathymetry.plot.imshow(ax=ax, cmap="Greys", vmin=0, vmax=1, origin="lower", alpha=0.25, zorder=2, add_colorbar=False)
 
         # Set labels
-        ax.set_title(f"L/FWHM = {L_str}" if row_idx == 0 else "")
+        ax.set_title(f"$L/W = {L_str}$" if row_idx == 0 else "")
         ax.set_xlabel("x [m]" if row_idx == len(row_configs)-1 else "")
         ax.set_yticks(yticks)
         ax.set_ylabel("y [m]" if i == 0 else "")
@@ -137,6 +142,6 @@ for row_idx, config in enumerate(row_configs):
 #+++ Save
 letterize(axes.flatten(), x=0.05, y=0.9, fontsize=9)
 print("Saving figure...")
-fig.savefig(f"../figures/dynamics_comparison_buffer{buffer}m_{resolution}.pdf", dpi=300, bbox_inches="tight", pad_inches=0)
+fig.savefig(f"../figures/dynamics_comparison_buffer{buffer}m_dz{resolution}.pdf", dpi=300, bbox_inches="tight", pad_inches=0)
 print("Done!")
 #---

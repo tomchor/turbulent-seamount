@@ -5,8 +5,6 @@ from cycler import cycler
 from matplotlib import pyplot as plt
 from src.aux00_utils import merge_datasets, condense
 from src.aux02_plotting import letterize
-from IPython import embed
-plt.rcParams["figure.constrained_layout.use"] = True
 
 #+++ Define simulation parameters
 simname_base = "balanus"
@@ -47,23 +45,31 @@ norm_factor = aaaa.attrs["U∞"]**3 * aaaa.FWHM * aaaa.H
 aaaa["ℰₖ"] = aaaa["∭ᵇε̄ₖdV"] / norm_factor
 aaaa["ℰₚ"] = aaaa["∭ᵇε̄ₚdV"] / norm_factor
 aaaa["𝒦⁵"] = (aaaa["∭ᵇε̄ₚdV"] / aaaa["N²∞"]) / (aaaa["U∞"] * aaaa.FWHM**2 * aaaa.H**2)
+aaaa["γ"] = aaaa["∭ᵇε̄ₚdV"] / (aaaa["∭ᵇε̄ₚdV"] + aaaa["∭ᵇε̄ₖdV"])
 
 # Add metadata
 aaaa["𝒦⁵"].attrs = dict(long_name=r"Norm buoyancy diffusivity $\mathcal{K}$")
+aaaa["γ"].attrs = dict(long_name=r"Bulk mixing efficiency $\gamma$")
 #---
 
 #+++ Create plots
-fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(8, 4), sharey=True)
-plt.subplots_adjust(hspace=0.4, wspace=0.3)
+# Define the layout pattern
+mosaic = """
+aabb
+.cc.
+"""
+
+# Create the figure and axes using subplot_mosaic
+fig, axes = plt.subplot_mosaic(mosaic, figsize=(10, 8), gridspec_kw=dict(wspace=-1))
 
 # Variables to plot (first 3 use buffer=5m, last 2 don"t have buffer dimension)
-variables = ["ℰₖ", "ℰₚ"]
+variables = ["ℰₖ", "ℰₚ", "γ"]
 
 aaaa = aaaa.sel(dz=0, buffer=buffer, method="nearest")
 # Create plots for each variable
 colors = ["red", "blue", "purple", "orange"]  # Generate different colors for each L value
 
-for i, var_name in enumerate(variables):
+for i, var_name in zip(axes.keys(), variables):
     data = aaaa[var_name]
     ax = axes[i]
     for j, L_val in enumerate(aaaa.L.values):
@@ -87,18 +93,28 @@ dissip_piecewise_ref = np.maximum(dissip_linear_ref, 2e-2)
 mixing_linear_ref = 2e-2 * Sb_ref
 mixing_quadratic_ref = 2e-2 * Sb_ref**2
 
-axes[0].set_title("Normalized dissipation")
-axes[0].plot(Sb_ref, dissip_linear_ref, ls="--", lw=5, color="blue", alpha=0.3, label="$\sim S_b$")
-axes[0].plot(Sb_ref, dissip_piecewise_ref, ls="--", lw=5, color="red", alpha=0.3, label=r"$\max(\sim S_b, 2 \times 10^{-2})$")
+efficiency_ref = 0.5 * Sb_ref
 
-axes[1].set_title("Normalized buoyancy mixing")
-axes[1].plot(Sb_ref, mixing_linear_ref, ls="--", lw=5, color="gray", alpha=0.5, label="$\sim S_b$")
-axes[1].plot(Sb_ref, mixing_quadratic_ref, ls=":", lw=5, color="gray", alpha=0.5, label="$\sim S_b^2$")
+axes["a"].set_title("Normalized dissipation")
+axes["a"].plot(Sb_ref, dissip_linear_ref, ls="--", lw=5, color="blue", alpha=0.3, label="$\sim S_b$")
+axes["a"].plot(Sb_ref, dissip_piecewise_ref, ls="--", lw=5, color="red", alpha=0.3, label=r"$\max(\sim S_b, 2 \times 10^{-2})$")
 
-for ax in axes:
-    ax.legend()
+axes["b"].set_title("Normalized buoyancy mixing")
+axes["b"].set_yticklabels([])
+axes["b"].plot(Sb_ref, mixing_linear_ref, ls="--", lw=5, color="gray", alpha=0.5, label="$\sim S_b$")
+axes["b"].plot(Sb_ref, mixing_quadratic_ref, ls=":", lw=5, color="gray", alpha=0.5, label="$\sim S_b^2$")
 
-letterize(axes.flatten(), x=0.8, y=0.92, fontsize=11, bbox=dict(boxstyle="round", facecolor="white", alpha=0.4))
+axes["c"].set_title("Bulk mixing efficiency")
+axes["c"].plot(Sb_ref, efficiency_ref, ls="--", lw=5, color="gray", alpha=0.5, label="$\sim S_b$")
+
+for ax in (axes["a"], axes["b"]):
+    ax.set_ylim(1e-5, 1)
+axes["c"].set_ylim(1e-3, 1)
+
+for ax in axes.values():
+    ax.legend(loc="lower right", borderaxespad=0, framealpha=0.7, edgecolor="black", fancybox=False)
+
+letterize(axes.values(), x=0.05, y=0.92, fontsize=11, bbox=dict(boxstyle="square", facecolor="white", alpha=0.4))
 #---
 
 

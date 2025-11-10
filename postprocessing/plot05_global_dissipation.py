@@ -46,21 +46,18 @@ seamounts.total_mixing_quadratic.attrs = dict(units="W", longer_name="Buoyancy m
 #---
 
 #+++ Create figure with projections
-fig = plt.figure(figsize=(10, 13))
-gs = fig.add_gridspec(4, 2, width_ratios=[3, 1])
+fig = plt.figure(figsize=(10, 7))
+gs = fig.add_gridspec(2, 2, width_ratios=[3, 1])
 
-# Create left subplots with projection for heatmaps (4 rows)
+# Create left subplots with projection for heatmaps (2 rows)
 ax_map_dissip_smooth = fig.add_subplot(gs[0, 0], projection=ccrs.PlateCarree())
 ax_map_dissip_rough = fig.add_subplot(gs[1, 0], projection=ccrs.PlateCarree())
-ax_map_mixing_smooth = fig.add_subplot(gs[2, 0], projection=ccrs.PlateCarree())
-ax_map_mixing_rough = fig.add_subplot(gs[3, 0], projection=ccrs.PlateCarree())
 
-# Create right subplots for line plots (only 2 rows, span 2 rows each)
+# Create right subplot for line plot (spans 2 rows)
 ax_plot_dissip = fig.add_subplot(gs[0:2, 1])
-ax_plot_mixing = fig.add_subplot(gs[2:4, 1])
 #---
 
-#+++ Plot heatmaps on the left column (4 rows)
+#+++ Plot heatmaps on the left column (2 rows)
 fixed_options = dict(x="longitude", y="latitude", edgecolors="face", s=1, transform=ccrs.PlateCarree(), rasterized=True)
 
 # Row 1: KE dissipation for smooth seamounts
@@ -90,47 +87,13 @@ ax_map_dissip_rough.set_title("KE dissipation (rough)")
 gl2 = ax_map_dissip_rough.gridlines(draw_labels=True, dms=False, x_inline=False, y_inline=False)
 gl2.top_labels = False
 gl2.right_labels = False
-gl2.bottom_labels = False
 
 im_dissip_rough = seamounts.plot.scatter(ax=ax_map_dissip_rough, hue="total_dissip_rough", cmap=cmap_dissip, **fixed_options, norm=LogNorm(), vmin=vmin_dissip, vmax=vmax_dissip, add_colorbar=False)
 cbar_dissip_rough = plt.colorbar(im_dissip_rough, ax=ax_map_dissip_rough, orientation="vertical", pad=0.02, location="left", shrink=0.5)
 cbar_dissip_rough.set_label(r"KE dissipation [W]")
-
-# Row 3: PE mixing for smooth seamounts
-ax_map_mixing_smooth.add_feature(cfeature.LAND, color="black", zorder=0)
-ax_map_mixing_smooth.add_feature(cfeature.COASTLINE, color="gray", linewidth=0.5, zorder=1)
-ax_map_mixing_smooth.set_ylim(-80, 80)
-ax_map_mixing_smooth.set_title("Buoyancy mixing (linear)")
-
-gl3 = ax_map_mixing_smooth.gridlines(draw_labels=True, dms=False, x_inline=False, y_inline=False)
-gl3.top_labels = False
-gl3.right_labels = False
-gl3.bottom_labels = False
-labels = False
-
-vmin_mixing = 1e4
-vmax_mixing = 1e7
-cmap_mixing = "GnBu"
-im_mixing_smooth = seamounts.plot.scatter(ax=ax_map_mixing_smooth, hue="total_mixing_linear", cmap=cmap_mixing, **fixed_options, norm=LogNorm(), vmin=vmin_mixing, vmax=vmax_mixing, add_colorbar=False)
-cbar_mixing_smooth = plt.colorbar(im_mixing_smooth, ax=ax_map_mixing_smooth, orientation="vertical", pad=0.02, location="left", shrink=0.5)
-cbar_mixing_smooth.set_label(r"Buoyancy mixing [W]")
-
-# Row 4: PE mixing for rough seamounts
-ax_map_mixing_rough.add_feature(cfeature.LAND, color="black", zorder=0)
-ax_map_mixing_rough.add_feature(cfeature.COASTLINE, color="gray", linewidth=0.5, zorder=1)
-ax_map_mixing_rough.set_ylim(-80, 80)
-ax_map_mixing_rough.set_title("Buoyancy mixing (quadratic)")
-
-gl4 = ax_map_mixing_rough.gridlines(draw_labels=True, dms=False, x_inline=False, y_inline=False)
-gl4.top_labels = False
-gl4.right_labels = False
-
-im_mixing_rough = seamounts.plot.scatter(ax=ax_map_mixing_rough, hue="total_mixing_quadratic", cmap=cmap_mixing, **fixed_options, norm=LogNorm(), vmin=vmin_mixing, vmax=vmax_mixing, add_colorbar=False)
-cbar_mixing_rough = plt.colorbar(im_mixing_rough, ax=ax_map_mixing_rough, orientation="vertical", pad=0.02, location="left", shrink=0.5)
-cbar_mixing_rough.set_label(r"Buoyancy mixing [W]")
 #---
 
-#+++ Plot integrated line plots on the right column (2 rows spanning)
+#+++ Plot integrated line plot on the right column (spanning 2 rows)
 # Bin seamounts data by latitude and longitude with 1 degree resolution
 lat_bins = np.arange(-80, 81, 1)
 
@@ -138,7 +101,7 @@ lat_bins = np.arange(-80, 81, 1)
 print("Binning data")
 binned_seamounts = seamounts.groupby_bins("latitude", lat_bins).sum()
 
-# Top right: KE dissipation line plot
+# Right plot: KE dissipation line plot
 binned_seamounts.total_dissip_smooth.plot(ax=ax_plot_dissip, y="latitude_bins", color="blue", linestyle="--", label="Smooth")
 binned_seamounts.total_dissip_rough.plot(ax=ax_plot_dissip, y="latitude_bins", color="red", linestyle="--", label="Rough")
 ax_plot_dissip.set_ylabel("Latitude (degrees)")
@@ -146,15 +109,6 @@ ax_plot_dissip.set_xlabel("KE dissipation [W]")
 ax_plot_dissip.set_title("KE dissipation\nper degree of latitude")
 ax_plot_dissip.grid(True)
 ax_plot_dissip.legend()
-
-# Bottom right: PE mixing line plot
-binned_seamounts.total_mixing_linear.plot(ax=ax_plot_mixing, y="latitude_bins", color="blue", linestyle="--", label="Linear")
-binned_seamounts.total_mixing_quadratic.plot(ax=ax_plot_mixing, y="latitude_bins", color="red", linestyle="--", label="Quadratic")
-ax_plot_mixing.set_ylabel("Latitude (degrees)")
-ax_plot_mixing.set_xlabel("Buoyancy mixing [W]")
-ax_plot_mixing.set_title("Buoyancy mixing\nper degree of latitude")
-ax_plot_mixing.grid(True)
-ax_plot_mixing.legend()
 #---
 
 #+++ Calculate difference

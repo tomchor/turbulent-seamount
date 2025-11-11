@@ -55,6 +55,7 @@ for simname_base in simname_bases:
     dtKE_scaling = aaaa.attrs["U∞"]**3 * aaaa.FWHM**2 # Assume ε̄ₖ scales as U^3 / H
     aaaa["ℰₖ"] = aaaa["∭ᵇε̄ₖdV"] / dtKE_scaling
     aaaa["ℰₚ"] = aaaa["∭ᵇε̄ₚdV"] / dtKE_scaling
+    aaaa["ℰₛ"] = aaaa["∭ε̄ₛdV"] / dtKE_scaling
     aaaa["ℬ"] = -aaaa["∭⟨w′b′⟩ₜdV"] / dtKE_scaling
     aaaa["𝒮"] = aaaa["∭SPRdV"] / dtKE_scaling
     aaaa["𝒯"] = aaaa["U∞∬⟨Ek′⟩ₜdxdz"] / dtKE_scaling
@@ -63,6 +64,7 @@ for simname_base in simname_bases:
     # Add metadata
     aaaa["ℰₖ"].attrs = dict(long_name=r"TKE dissipation rate $\mathcal{E}_k$")
     aaaa["ℰₚ"].attrs = dict(long_name=r"Buoyancy dissipation rate $\mathcal{E}_p$")
+    aaaa["ℰₛ"].attrs = dict(long_name=r"Sponge dissipation rate $\mathcal{E}_s$")
     aaaa["ℬ"].attrs = dict(long_name=r"Turbulent buoyancy flux $\mathcal{B}$")
     aaaa["𝒮"].attrs = dict(long_name=r"Shear production rate $\mathcal{S}$")
     aaaa["𝒯"].attrs = dict(long_name=r"TKE advection out $\mathcal{T}$")

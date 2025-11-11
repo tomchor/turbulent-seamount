@@ -25,7 +25,7 @@ buffer = 5
 
 #+++ Load datasets
 aaaa = merge_datasets(runs, base_name=f"aaaa.{simname_base}",
-                      dirpath="../paramsweep_postprocessing/data", verbose=True, add_min_spacings=False,
+                      dirpath="data", verbose=True, add_min_spacings=False,
                       combine_by_coords_kwargs=dict(compat="override", combine_attrs="drop_conflicts", coords="minimal"))
 aaaa = aaaa.reindex(Ro_b = list(reversed(aaaa.Ro_b)))
 #---
@@ -60,7 +60,7 @@ aabb
 """
 
 # Create the figure and axes using subplot_mosaic
-fig, axes = plt.subplot_mosaic(mosaic, figsize=(10, 8), gridspec_kw=dict(wspace=-1))
+fig, axes = plt.subplot_mosaic(mosaic, figsize=(10, 8))
 
 # Variables to plot (first 3 use buffer=5m, last 2 don"t have buffer dimension)
 variables = ["ℰₖ", "ℰₚ", "γ"]

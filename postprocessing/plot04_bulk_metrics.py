@@ -92,8 +92,9 @@ for var_name, color in zip(variables, colors):
     for i, (simname, aaaa) in enumerate(datasets.items()):
         variable_da = aaaa[var_name]
         label = variable_da.attrs["long_name"] if i == 0 else None  # Only label once per variable
+        alpha = 0.5 if simname == "labanus" else 1.0
         variable_da.plot.scatter(ax=ax, x="L", label=label, color=color,
-                                 marker=markers[simname], s=marker_sizes[simname]**2)
+                                 marker=markers[simname], s=marker_sizes[simname]**2, alpha=alpha)
 
 # Create custom legend with both variables and markers
 from matplotlib.lines import Line2D
@@ -104,8 +105,8 @@ var_legend = ax.legend(fontsize=11, loc="upper right", framealpha=0.4)
 
 # Add marker legend
 marker_handles = [
-    Line2D([0], [0], marker='o', color='gray', linestyle='None', markersize=6, label='balanus'),
-    Line2D([0], [0], marker='x', color='gray', linestyle='None', markersize=8, label='labanus')
+    Line2D([0], [0], marker="o", color="gray", linestyle="None", markersize=6, label="Original Balanus"),
+    Line2D([0], [0], marker="x", color="gray", linestyle="None", markersize=8, label="90° rotated Balanus")
 ]
 marker_legend = ax.legend(handles=marker_handles, fontsize=11, loc="lower left", framealpha=0.4)
 

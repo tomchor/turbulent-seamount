@@ -4,7 +4,7 @@ using Oceananigans.Grids: Center, Face
 import Oceananigans.TurbulenceClosures: viscosity, diffusivity
 
 using Oceanostics: KineticEnergyDissipationRate, KineticEnergyForcing,
-                   ErtelPotentialVorticity, RossbyNumber, RichardsonNumber,
+                   ErtelPotentialVorticity, DirectionalErtelPotentialVorticity, RossbyNumber, RichardsonNumber,
                    TracerVarianceDissipationRate
 
 viscosity(model)           = viscosity(model.closure, model.diffusivity_fields)
@@ -79,9 +79,11 @@ end
 Ri = @at CellCenter RichardsonNumber(model, u, v, w, b)
 Ro = @at CellCenter RossbyNumber(model)
 PV = @at CellCenter ErtelPotentialVorticity(model, u, v, w, b, model.coriolis)
+PV_z = @at CellCenter DirectionalErtelPotentialVorticity(model, (0, 0, 1))
+
 
 outputs_dissip = Dict(pairs((; εₖ, εₚ, κ, εₛ)))
-outputs_misc = Dict(pairs((; ω_x, Ri, Ro, PV,)))
+outputs_misc = Dict(pairs((; ω_x, Ri, Ro, PV, PV_z)))
 #---
 
 #+++ Define covariances
@@ -110,8 +112,7 @@ outputs_grads = Dict{Symbol, Any}(:∂u∂x => (@at CellCenter ∂x(u)),
 
 #+++ Volume averages
 @info "Defining volume averages"
-# Define conditions to avoid unresolved bottom, sponge layer, and couple of points closest to the
-# open boundary
+# Define conditions to avoid unresolved bottom, sponge layer, and couple of points closest to the eastern open boundary
 dc5  = DistanceCondition(from_bottom=5meters , from_top=params.h_sponge, from_east=2minimum_xspacing(grid))
 dc10 = DistanceCondition(from_bottom=10meters, from_top=params.h_sponge, from_east=2minimum_xspacing(grid))
 

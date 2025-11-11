@@ -109,7 +109,7 @@ axes["c"].plot(Sb_ref, efficiency_ref, ls="--", lw=5, color="gray", alpha=0.5, l
 
 for ax in (axes["a"], axes["b"]):
     ax.set_ylim(1e-5, 1)
-axes["c"].set_ylim(1e-3, 1)
+axes["c"].set_ylim(5e-3, 1)
 
 for ax in axes.values():
     ax.legend(loc="lower right", borderaxespad=0, framealpha=0.7, edgecolor="black", fancybox=False)

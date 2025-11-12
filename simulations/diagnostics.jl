@@ -74,13 +74,26 @@ else
     κ = diffusivity(model, Val(:b))
 end
 
-εₛ = @at CellCenter KineticEnergyForcing(model)
+
+using Oceananigans.Fields: FunctionField
+mask_top_u = Oceananigans.Fields.FunctionField{Face, Center, Center}(mask_top, grid) |> Field
+mask_top_v = Oceananigans.Fields.FunctionField{Center, Face, Center}(mask_top, grid) |> Field
+mask_top_w = Oceananigans.Fields.FunctionField{Center, Center, Face}(mask_top, grid) |> Field
+
+const σ = params.sponge_damping_rate
+const U∞ = params.U∞
+u_sponge_field = -σ * (u - U∞) * mask_top_u
+v_sponge_field = -σ * v * mask_top_v
+w_sponge_field = -σ * w * mask_top_w
+
+εₛ_u = @at CellCenter u * u_sponge_field |> Field
+εₛ_aux = @at CellCenter (εₛ_u + v * v_sponge_field) |> Field
+εₛ = @at CellCenter (εₛ_aux + w * w_sponge_field) |> Field
 
 Ri = @at CellCenter RichardsonNumber(model, u, v, w, b)
 Ro = @at CellCenter RossbyNumber(model)
 PV = @at CellCenter ErtelPotentialVorticity(model, u, v, w, b, model.coriolis)
 PV_z = @at CellCenter DirectionalErtelPotentialVorticity(model, (0, 0, 1))
-
 
 outputs_dissip = Dict(pairs((; εₖ, εₚ, κ, εₛ)))
 outputs_misc = Dict(pairs((; ω_x, Ri, Ro, PV, PV_z)))

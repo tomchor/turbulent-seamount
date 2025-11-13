@@ -14,7 +14,7 @@
 
 # Clear the environment from any previously loaded modules
 module purge
-module load ncarenv/23.10 gcc ncarcompilers netcdf
+module load ncarenv/25.10 gcc ncarcompilers netcdf
 module li
 
 #/glade/u/apps/ch/opt/usr/bin/dumpenv # Dumps environment (for debugging with CISL support)

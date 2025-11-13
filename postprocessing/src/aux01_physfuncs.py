@@ -166,6 +166,7 @@ def temporal_average(ds, rename_dict=None, normalize_unicode=True):
                        "∂ⱼuᵢ"    : "∂ⱼūᵢ",
                        "εₖ"      : "ε̄ₖ",
                        "εₚ"      : "ε̄ₚ",
+                       "εₛ"      : "ε̄ₛ",
                        "ν"       : "ν̄",
                        "κ"       : "κ̄",
                        "PV"      : "q̄",
@@ -174,12 +175,17 @@ def temporal_average(ds, rename_dict=None, normalize_unicode=True):
                        "ω_y"     : "ω̄_y",
                        "∭⁵εₖdV"  : "∭⁵ε̄ₖdV",
                        "∭⁵εₚdV"  : "∭⁵ε̄ₚdV",
+                       "∭⁵εₛdV"  : "∭⁵ε̄ₛdV",
                        "∭¹⁰εₖdV" : "∭¹⁰ε̄ₖdV",
                        "∭¹⁰εₚdV" : "∭¹⁰ε̄ₚdV",
+                       "∭¹⁰εₛdV" : "∭¹⁰ε̄ₛdV",
                        "∭²⁰εₖdV" : "∭²⁰ε̄ₖdV",
                        "∭²⁰εₚdV" : "∭²⁰ε̄ₚdV",
+                       "∭²⁰εₛdV" : "∭²⁰ε̄ₛdV",
+                       "∭εₛdV"   : "∭ε̄ₛdV",
                        "∫εₖdx"    : "∫ε̄ₖdx",
                        "∫εₚdx"    : "∫ε̄ₚdx",
+                       "∫εₛdx"    : "∫ε̄ₛdx",
                        }
 
     # Filter rename_dict to only include keys that exist in the dataset

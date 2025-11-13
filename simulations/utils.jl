@@ -1,4 +1,3 @@
-using Parameters
 using ImageFiltering: imfilter, Kernel
 import Optim
 using Optim: GoldenSection, Fminbox, LBFGS, optimize

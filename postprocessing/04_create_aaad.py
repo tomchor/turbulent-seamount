@@ -22,7 +22,7 @@ if basename(__file__) != "00_run_postproc.py":
     Froude_numbers = cycler(Fr_b = [1])
     L              = cycler(L = [0])
 
-    resolutions    = cycler(dz = [8])
+    resolutions    = cycler(dz = [4])
     FWHM           = cycler(FWHM = [500])
 
     paramspace = Rossby_numbers * Froude_numbers * (L + FWHM)
@@ -68,14 +68,28 @@ for j, config in enumerate(runs):
         aaad[int_buf_10m] = integrate(xyza[var], dV=masked_dV_10m)
 
         aaad = condense(aaad, [int_buf_5m, int_buf_10m], f"∭{var}dV", dimname="buffer", indices=[5, 10])
+    #---
 
+    #+++ yz integrals of selected variables using buffer masks
+    for var in ["ε̄ₚ", "ε̄ₖ", "SPR", "⟨Ek′⟩ₜ", "⟨w′b′⟩ₜ"]:
+        # 5-meter buffer yz integral
+        int_yz_5m = f"∬⁵{var}dydz"
+        masked_dydz_5m = xyza.ΔyΔz.where(xyza.distance_condition_5meters)
+        aaad[int_yz_5m] = integrate(xyza[var], dV=masked_dydz_5m, dims=("y", "z"))
+
+        # 10-meter buffer yz integral
+        int_yz_10m = f"∬¹⁰{var}dydz"
+        masked_dydz_10m = xyza.ΔyΔz.where(xyza.distance_condition_10meters)
+        aaad[int_yz_10m] = integrate(xyza[var], dV=masked_dydz_10m, dims=("y", "z"))
+
+        aaad = condense(aaad, [int_yz_5m, int_yz_10m], f"∬{var}dydz", dimname="buffer", indices=[5, 10])
     #---
 
     #+++ Calculate turbulent quantities for the average turbulence region
     aaad["average_turbulence_mask"] = xyza["ε̄ₖ"] > 1e-11
     xyza["1"] = mask_immersed(xr.ones_like(xyza["ε̄ₖ"]), xyza.peripheral_nodes_ccc)
     for var in ["ε̄ₖ", "1"]:
-        int_turb = f"∭ᵋ{var}dxdy"
+        int_turb = f"∭ᵋ{var}dV"
         masked_dV = xyza.ΔxΔyΔz.where(aaad.average_turbulence_mask)
         aaad[int_turb] = integrate(xyza[var], dV=masked_dV)
     #---
@@ -99,9 +113,9 @@ for j, config in enumerate(runs):
 
     #+++ Create aaad dataset
     aaad["U∞∬⟨Ek′⟩ₜdxdz"] = xyza["U∞∬⟨Ek′⟩ₜdydz"]
-    aaad["⟨ε̄ₖ⟩ᵋ"]     = aaad["∭ᵋε̄ₖdxdy"] / aaad["∭ᵋ1dxdy"]
-    aaad["Loᵋ"]       = 2*π * np.sqrt(aaad["⟨ε̄ₖ⟩ᵋ"] / aaad.N2_inf**(3/2))
-    aaad["Δz̃"]        = aaad.Δz_min / aaad["Loᵋ"]
+    aaad["⟨ε̄ₖ⟩ᵋ"]         = aaad["∭ᵋε̄ₖdV"] / aaad["∭ᵋ1dV"]
+    aaad["Loᵋ"]           = 2*π * np.sqrt(aaad["⟨ε̄ₖ⟩ᵋ"] / aaad.N2_inf**(3/2))
+    aaad["Δz̃"]            = aaad.Δz_min / aaad["Loᵋ"]
 
     aaad = gather_attributes_as_variables(aaad, ds_ref=xyza)
     #---

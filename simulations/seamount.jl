@@ -102,7 +102,7 @@ function parse_command_line_arguments()
             arg_type = Float64
 
         "--T_adv_stats"
-            default = 8 # Should be a multiple of interval_time_avg
+            default = 10 # Should be a multiple of interval_time_avg
             arg_type = Float64
 
     end
@@ -127,8 +127,8 @@ end
 bathymetry_filepath = joinpath(@__DIR__, "../bathymetry/balanus-GMRT-bathymetry-preprocessed.nc")
 ds_bathymetry = NCDataset(bathymetry_filepath)
 elevation = ds_bathymetry["periodic_elevation"] |> collect
-x = ds_bathymetry["x"]
-y = ds_bathymetry["y"]
+x = ds_bathymetry["x"] |> collect
+y = ds_bathymetry["y"] |> collect
 
 # Double check that the FWHM is the same as the data's FWHM
 original_FWHM = measure_FWHM(x, y, elevation)
@@ -229,7 +229,8 @@ params = (; params..., Δz_min = minimum_zspacing(grid_base))
 x_grid = xnodes(grid_base, Center(), Center(), Center())
 y_grid = ynodes(grid_base, Center(), Center(), Center())
 
-if params.simname == "labanus" # Use 90° rotation of the bathymetry
+if occursin("labanus", params.simname) # Use 90° rotation of the bathymetry
+    @warn "Using 90° rotation of the bathymetry!"
     interpolated_bathymetry_cpu = bathymetry_itp.(reshape(y_grid, (1, grid_base.Ny)), reshape(x_grid, (grid_base.Nx, 1)))
 else # Use regular bathymetry
     interpolated_bathymetry_cpu = bathymetry_itp.(reshape(x_grid, (grid_base.Nx, 1)), reshape(y_grid, (1, grid_base.Ny)))

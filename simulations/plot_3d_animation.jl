@@ -5,7 +5,8 @@ using Printf
 using Oceananigans: prettytime
 
 #+++ Preamble
-fpath_xyzi = (@isdefined simulation) ? simulation.output_writers[:nc_xyzi].filepath : "data/xyzi.seamount_Ro_b0.2_Fr_b1.25_L0.8_dz2.nc"
+fpath_xyzi = (@isdefined simulation) ? simulation.output_writers[:nc_xyzi].filepath : "data/xyzi.balanus_Ro_b0.1_Fr_b1_L0.4_FWHM500_dz2.nc"
+# fpath_xyzi = (@isdefined simulation) ? simulation.output_writers[:nc_xyzi].filepath : "data/xyzi.balanus_Ro_b0.2_Fr_b0.3_L0_dz1_T_adv_spinup12.nc"
 
 @info "Reading NetCDF file: $fpath_xyzi"
 xyzi = RasterStack(fpath_xyzi, name=(:PV, :εₖ, :εₚ, :bottom_height), lazy=true)
@@ -15,7 +16,7 @@ md = metadata(xyzi)
 params = (; (Symbol(k) => v for (k, v) in md)...)
 
 # Extract grid coordinates
-xyzi = xyzi[z_aac = 0..1.1*params.H, y_aca = -Inf..6*params.FWHM]
+xyzi = xyzi[z_aac = 0..1.1*params.H, x_caa = -Inf..6*params.FWHM]
 x_range = extrema(dims(xyzi, :x_caa))
 y_range = extrema(dims(xyzi, :y_aca))
 z_range = extrema(dims(xyzi, :z_aac))
@@ -45,7 +46,7 @@ isorange_εₚ₂ = isovalue_εₚ₂/2
 Lx = diff(x_range |> collect)[]
 Ly = diff(y_range |> collect)[]
 Lz = diff(z_range |> collect)[]
-settings_axis3 = (aspect = (Lx, Ly, 5*Lz), azimuth = 0.6π, elevation = 0.18π,
+settings_axis3 = (aspect = (Lx, Ly, 5*Lz), azimuth = +0.7π, elevation = 0.18π,
                   perspectiveness=0.8, viewmode=:fitzoom,
                   xlabel="x [m]", ylabel="y [m]", zlabel="z [m]")
 
@@ -71,10 +72,10 @@ end
 
 #+++ PV plot
 vol1_kwargs = (algorithm = :iso, colormap=:balance, transparency = true, isorange=isorange_q, colorrange=PV_range)
-vol1 = volume!(ax1, x_range, y_range, z_range, PVₙ, isovalue=-isovalue_q; alpha=0.9, vol1_kwargs...)
-vol1 = volume!(ax1, x_range, y_range, z_range, PVₙ, isovalue=+isovalue_q; alpha=0.7, vol1_kwargs...)
+vol1 = volume!(ax1, x_range, y_range, z_range, PVₙ, isovalue=-isovalue_q; alpha=1, vol1_kwargs...)
+vol1 = volume!(ax1, x_range, y_range, z_range, PVₙ, isovalue=+isovalue_q; alpha=1, vol1_kwargs...)
 Colorbar(fig, vol1, bbox=ax1.scene.viewport,
-         label="PV", height=15, width=Relative(0.5), vertical=false,
+         label="Potential vorticity", height=15, width=Relative(0.5), vertical=false,
          alignmode = Outside(10), halign = 0.15, valign = 1.02)
 #---
 
@@ -83,7 +84,7 @@ vol2_kwargs = (algorithm = :iso, colormap=Reverse(:roma), transparency = true, c
 vol2 = volume!(ax2, x_range, y_range, z_range, εₖₙ, isovalue=isovalue_εₖ₁, isorange=isorange_εₖ₁, alpha=0.7; vol2_kwargs...)
 vol2 = volume!(ax2, x_range, y_range, z_range, εₖₙ, isovalue=isovalue_εₖ₂, isorange=isorange_εₖ₂; alpha=0.9, vol2_kwargs...)
 Colorbar(fig, vol2, bbox=ax2.scene.viewport,
-         label="εₖ", height=15, width=Relative(0.5), vertical=false,
+         label="Kinetic energy dissipation rate", height=15, width=Relative(0.5), vertical=false,
          alignmode = Outside(10), halign = 0.5, valign = 1.02)
 #---
 
@@ -96,23 +97,27 @@ Colorbar(fig, vol3, bbox=ax3.scene.viewport,
          alignmode = Outside(10), halign = 0.85, valign = 1.02)
 #---
 
-
-# Create title with time and parameters
+#+++ Create title with time and parameters
 title = @lift "Roₕ = $(params.Ro_b), Frₕ = $(params.Fr_b), L = $(params.L) m, dz = $(params.dz) m;    " *
               "Time = $(@sprintf "%s" prettytime(times[$n]))"
 fig[0, 1:3] = Label(fig, title, fontsize=18, tellwidth=false, height=8)
 
 # Save a snapshot as png
-save("$(@__DIR__)/../figures/seamount_3d_PV_snapshot.png", fig, px_per_unit=2)
+snapshot_path = "$(@__DIR__)/../figures/seamount_3d_PV_snapshot.png"
+save(snapshot_path, fig, px_per_unit=2)
 
 # Record animation
 @info "Recording animation with $(length(times)) frames"
 resize_to_layout!(fig)
+#---
 
-GLMakie.record(fig, "$(@__DIR__)/../anims/3d_$(params.simname).mp4", 1:length(times),
-               framerate=12, compression=30, px_per_unit=1) do frame
+#+++ Record animation
+animation_path = "$(@__DIR__)/../anims/3d_$(params.simname).mp4"
+GLMakie.record(fig, animation_path, 1:length(times),
+               framerate=10, compression=10, px_per_unit=1) do frame
     @info "Frame $frame / $(length(times))"
     n[] = frame
 end
 
-@info "Animation saved successfully!"
+@info "Animation saved successfully to $animation_path"
+#---

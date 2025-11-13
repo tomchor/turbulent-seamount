@@ -13,15 +13,17 @@
 # Clear the environment from any previously loaded modules
 module li
 module --force purge
-module load ncarenv/23.10
-module load cuda
+module load ncarenv/25.10
 module li
 
 #/glade/u/apps/ch/opt/usr/bin/dumpenv # Dumps environment (for debugging with CISL support)
 
-export JULIA_DEPOT_PATH="$WORK/.julia"
 echo $CUDA_VISIBLE_DEVICES
 
+export JULIA_DEPOT_PATH="$WORK/.julia"
+export JULIA_CPU_TARGET="generic"
+export JULIA_NUM_THREADS=10
+juliaup default 1.10
 time julia --project {julia_script} {run_options} --simname={simname} 2>&1 | tee logs/{simname_ascii}.out
 
 qstat -f $PBS_JOBID >> logs/{simname_ascii}.log

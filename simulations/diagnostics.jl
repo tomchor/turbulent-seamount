@@ -136,7 +136,8 @@ outputs_vol_integrals = Dict{Symbol, Any}(:∭εₛdV   => Integral(εₛ),
                                           :∭¹⁰εₚdV => Integral(εₚ; condition = dc10),
                                           )
 
-outputs_x_integrals = Dict{Symbol, Any}(:∫⁵εₖdy   => Integral(εₖ; condition = dc5, dims=2),
+outputs_x_integrals = Dict{Symbol, Any}(:∫εₛdy   => Integral(εₛ; dims=2),
+                                        :∫⁵εₖdy   => Integral(εₖ; condition = dc5, dims=2),
                                         :∫⁵εₚdy   => Integral(εₚ; condition = dc5, dims=2),
                                         :∫¹⁰εₖdy  => Integral(εₖ; condition = dc10, dims=2),
                                         :∫¹⁰εₚdy  => Integral(εₚ; condition = dc10, dims=2),

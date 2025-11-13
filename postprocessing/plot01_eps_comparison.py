@@ -13,6 +13,7 @@ plt.rcParams["figure.constrained_layout.use"] = True
 
 #+++ Define simulation paths
 simdata_path = "../simulations/data/"
+simname_base = "balanus"
 
 # Parameters for the comparison
 Ro_b = 0.1
@@ -21,8 +22,8 @@ buffer = 5
 resolution = 1
 
 # File paths for L=0 and L=0.8 simulations
-simname_L0 = f"balanus_Ro_b{Ro_b}_Fr_b{Fr_b}_L0_FWHM500_dz{resolution}"
-simname_L08 = f"balanus_Ro_b{Ro_b}_Fr_b{Fr_b}_L0.8_FWHM500_dz{resolution}"
+simname_L0 = f"{simname_base}_Ro_b{Ro_b}_Fr_b{Fr_b}_L0_FWHM500_dz{resolution}"
+simname_L08 = f"{simname_base}_Ro_b{Ro_b}_Fr_b{Fr_b}_L0.8_FWHM500_dz{resolution}"
 
 fpath_L0 = f"{simdata_path}xyzi.{simname_L0}.nc"
 fpath_L08 = f"{simdata_path}xyzi.{simname_L08}.nc"
@@ -175,7 +176,7 @@ letterize(fig.axes[:6], x=0.05, y=0.9, fontsize=12, bbox=dict(boxstyle="square",
 #---
 
 #+++ Save the plot
-output_path = f"../figures/eps_comparison_L0_vs_L08_dz{resolution}_buffer{buffer}.pdf"
+output_path = f"../figures/{simname_base}_eps_comparison_L0_vs_L08_dz{resolution}_buffer{buffer}.pdf"
 fig.savefig(output_path, dpi=300, bbox_inches="tight")
 print(f"Saved plot to {output_path}")
 #---

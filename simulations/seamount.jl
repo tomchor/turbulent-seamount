@@ -127,8 +127,8 @@ end
 bathymetry_filepath = joinpath(@__DIR__, "../bathymetry/balanus-GMRT-bathymetry-preprocessed.nc")
 ds_bathymetry = NCDataset(bathymetry_filepath)
 elevation = ds_bathymetry["periodic_elevation"] |> collect
-x = ds_bathymetry["x"]
-y = ds_bathymetry["y"]
+x = ds_bathymetry["x"] |> collect
+y = ds_bathymetry["y"] |> collect
 
 # Double check that the FWHM is the same as the data's FWHM
 original_FWHM = measure_FWHM(x, y, elevation)

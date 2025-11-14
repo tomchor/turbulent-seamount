@@ -7,8 +7,8 @@ using Oceanostics: KineticEnergyDissipationRate, KineticEnergyForcing,
                    ErtelPotentialVorticity, DirectionalErtelPotentialVorticity, RossbyNumber, RichardsonNumber,
                    TracerVarianceDissipationRate
 
-viscosity(model)           = viscosity(model.closure, model.diffusivity_fields)
-diffusivity(model, tracer) = diffusivity(model.closure, model.diffusivity_fields, tracer)
+viscosity(model)           = viscosity(model.closure, model.closure_fields)
+diffusivity(model, tracer) = diffusivity(model.closure, model.closure_fields, tracer)
 
 
 #+++ Write to NCDataset

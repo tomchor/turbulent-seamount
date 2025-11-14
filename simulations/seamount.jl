@@ -12,7 +12,7 @@ import Interpolations # To use Flat in a way that doesn't conflict with Oceanani
 using Oceananigans
 using Oceananigans.Units
 using Oceananigans: on_architecture
-using Oceananigans.TurbulenceClosures: Smagorinsky, DynamicCoefficient, LagrangianAveraging, DynamicSmagorinsky
+using Oceananigans.TurbulenceClosures: LagrangianAveraging
 using Oceananigans.Solvers: ConjugateGradientPoissonSolver, fft_poisson_solver
 
 include("$(@__DIR__)/utils.jl")
@@ -299,7 +299,7 @@ Fᵥ = Forcing(geostrophy, parameters = (; params.f₀, params.U∞))
 if params.closure == "CSM"
     closure = SmagorinskyLilly(C=0.13, Pr=1)
 elseif params.closure == "DSM"
-    closure = Smagorinsky(coefficient=DynamicCoefficient(averaging=LagrangianAveraging(), schedule=IterationInterval(5)), Pr=1)
+    closure = DynamicSmagorinsky(averaging=LagrangianAveraging(), schedule=IterationInterval(5), Pr=1)
 elseif params.closure == "AMD"
     closure = AnisotropicMinimumDissipation(C=1/12)
 elseif params.closure == "NON"

@@ -15,7 +15,7 @@ export SLURM_CPU_BIND="cores"
 echo $CUDA_VISIBLE_DEVICES
 
 cd $SCRATCH/tokara-strait/simulations/
-juliaup default 1.10
+juliaup default 1.12
 time julia --project --pkgimages=no {julia_script} {run_options} --simname={simname} 2>&1 | tee logs/{simname_ascii}.out
 
 #scontrol show job $PBS_JOBID >> logs/{simname_ascii}.log

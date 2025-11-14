@@ -34,14 +34,13 @@ avgd_opts = dict(unique_times=False,
                  open_dataset_kwargs=dict(chunks="auto"))
 
 # Load rough topography datasets
-xyzi_variables = ["PV", "Ro", "Δz_aac", "peripheral_nodes_ccc"]
-xyzi_rough = open_simulation(simdata_path  + f"xyzi.balanus_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_rough}_FWHM500_dz{resolution}.nc", **snap_opts)[xyzi_variables]
+xyzi_rough = open_simulation(simdata_path  + f"xyzi.balanus_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_rough}_FWHM500_dz{resolution}.nc", **snap_opts)
 xyzd_rough = open_simulation(postproc_path + f"xyzd.balanus_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_rough}_FWHM500_dz{resolution}.nc", **avgd_opts)
 aaad_rough = open_simulation(postproc_path + f"aaad.balanus_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_rough}_FWHM500_dz{resolution}.nc", **avgd_opts).sel(buffer=10)
 ds_rough = xr.merge([xyzi_rough, xyzd_rough, aaad_rough])
 
 # Load smooth topography datasets
-xyzi_smooth = open_simulation(simdata_path  + f"xyzi.balanus_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_smooth}_FWHM500_dz{resolution}.nc", **snap_opts)[xyzi_variables]
+xyzi_smooth = open_simulation(simdata_path  + f"xyzi.balanus_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_smooth}_FWHM500_dz{resolution}.nc", **snap_opts)
 xyzd_smooth = open_simulation(postproc_path + f"xyzd.balanus_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_smooth}_FWHM500_dz{resolution}.nc", **avgd_opts)
 aaad_smooth = open_simulation(postproc_path + f"aaad.balanus_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_smooth}_FWHM500_dz{resolution}.nc", **avgd_opts).sel(buffer=10)
 ds_smooth = xr.merge([xyzi_smooth, xyzd_smooth, aaad_smooth])
@@ -53,13 +52,29 @@ def prepare_ds(ds,
                z_slice = slice(0, ds_rough.Lz - ds_rough.h_sponge),
                t_slice = 20):
     print("  Restricting domain and selecting time...")
-    # Restrict domain first and select time immediately to minimize data
-    ds = ds.sel(z_aac=z_slice, x_caa=x_slice).sel(time=t_slice, method="nearest")
+    # Restrict domain first
+    ds = ds.sel(z_aac=z_slice, x_caa=x_slice)
+
+    # Select time - use last time for integrated dissipation, method="nearest" for time-averaged
+    if "time" in ds.dims:
+        # For variables with time dimension
+        times = ds.time.values
+        n_final = len(times) - 1
+
+        # Select final time for integrated dissipation (from xyzi)
+        eps_vars = [v for v in ds.data_vars if "∫" in v and "ε" in v]
+        if eps_vars:
+            ds_eps = ds[eps_vars].isel(time=n_final)
+            ds_other = ds.drop_vars(eps_vars).sel(time=t_slice, method="nearest")
+            ds = xr.merge([ds_eps, ds_other])
+        else:
+            ds = ds.sel(time=t_slice, method="nearest")
 
     print("  Calculating shear production components...")
-    ds["⟨VSPR⟩ᶻ"] = ds["⟨SPR⟩ᶻ"].sel(j=3)
-    ds["⟨HSPR⟩ᶻ"] = ds["⟨SPR⟩ᶻ"].sel(j=[1, 2]).sum("j")
-    ds["⟨TSPR⟩ᶻ"] = ds["⟨SPR⟩ᶻ"].sum("j")
+    if "⟨SPR⟩ᶻ" in ds:
+        ds["⟨VSPR⟩ᶻ"] = ds["⟨SPR⟩ᶻ"].sel(j=3)
+        ds["⟨HSPR⟩ᶻ"] = ds["⟨SPR⟩ᶻ"].sel(j=[1, 2]).sum("j")
+        ds["⟨TSPR⟩ᶻ"] = ds["⟨SPR⟩ᶻ"].sum("j")
 
     return ds
 
@@ -72,18 +87,21 @@ print("Data preparation complete!")
 
 #+++ Create subplot grid
 print("Creating subplot grid")
-fig, axes = plt.subplots(nrows=4, ncols=2, figsize=(11, 10), sharex=True, constrained_layout=False)
+fig, axes = plt.subplots(nrows=4, ncols=2, figsize=(11, 10), sharex=True, sharey="row", constrained_layout=False)
 plt.subplots_adjust(wspace=0.05, hspace=0.02)
 
 datasets = [(ds_rough, str(L_rough)), (ds_smooth, str(L_smooth))]
 yticks = [-500, 0, 500]
 
 # Define row configurations
+# Map buffer to superscript
+integration_bound = "⁵" if buffer == 5 else "¹⁰"
+
 row_configs = [
-    dict(var="PV", plot_opts=dict(z=ds_rough.H / 3, method="nearest"), xyi=True, label="Potential vorticity", cmap="RdBu_r", vmin=lambda ds: -1.5*ds.N2_inf*abs(ds.f_0), vmax=lambda ds: 1.5*ds.N2_inf*abs(ds.f_0)),
-    dict(var="⟨R̄o⟩ᶻ", plot_opts={}, xyi=False, label="⟨Ro⟩ᶻ", cmap="RdBu_r", vmin=-0.4, vmax=0.4),
-    dict(var="⟨ε̄ₖ⟩ᶻ", plot_opts={}, xyi=False, label="⟨ε̄ₖ⟩ᶻ", white_text=True, cmap="inferno", norm=LogNorm(vmin=1e-10, vmax=1e-8)),
-    dict(var="⟨ε̄ₚ⟩ᶻ", plot_opts={}, xyi=False, label="⟨ε̄ₚ⟩ᶻ", white_text=True, cmap="inferno", norm=LogNorm(vmin=1e-11, vmax=1e-9))
+    dict(var=f"∫{integration_bound}εₖdy", plot_opts={}, xyi=False, label=f"∫{integration_bound}εₖdy", white_text=True, cmap="inferno", norm=LogNorm(vmin=1e-7, vmax=5e-5), plot_type="xz"),
+    dict(var=f"∫{integration_bound}εₚdy", plot_opts={}, xyi=False, label=f"∫{integration_bound}εₚdy", white_text=True, cmap="inferno", norm=LogNorm(vmin=5e-9, vmax=1e-6), plot_type="xz"),
+    dict(var="⟨ε̄ₖ⟩ᶻ", plot_opts={}, xyi=False, label="⟨ε̄ₖ⟩ᶻ", white_text=True, cmap="inferno", norm=LogNorm(vmin=1e-10, vmax=1e-8), plot_type="xy"),
+    dict(var="⟨ε̄ₚ⟩ᶻ", plot_opts={}, xyi=False, label="⟨ε̄ₚ⟩ᶻ", white_text=True, cmap="inferno", norm=LogNorm(vmin=1e-11, vmax=1e-9), plot_type="xy")
 ]
 #---
 
@@ -96,14 +114,9 @@ for row_idx, config in enumerate(row_configs):
         ax = axes[row_idx, i]
 
         # Get data
-        if config["xyi"]:
-            data = ds[var_name].pnsel(**config["plot_opts"])
-            bathymetry = ds.peripheral_nodes_ccc.pnsel(**config["plot_opts"])
-        else:
-            data = ds[var_name]
-            bathymetry = None
+        data = ds[var_name]
 
-        # Prepare plot kwargs
+        # Prepare plot kwargs based on plot type
         plot_kwargs = dict(ax=ax, x="x_caa", cmap=config["cmap"],
                            add_colorbar=False, rasterized=True)
         if "norm" in config:
@@ -113,18 +126,26 @@ for row_idx, config in enumerate(row_configs):
             vmax = config["vmax"](ds) if callable(config["vmax"]) else config["vmax"]
             plot_kwargs |= dict(vmin=vmin, vmax=vmax)
 
-        im = data.plot.imshow(**plot_kwargs)
-        if bathymetry is not None:
-            bathymetry.plot.imshow(ax=ax, cmap="Greys", vmin=0, vmax=1, origin="lower", alpha=0.25, zorder=2, add_colorbar=False)
+        # Choose the right y-coordinate based on plot type
+        if config["plot_type"] == "xy":
+            # xy plot (plan view)
+            im = data.plot.imshow(**plot_kwargs)
+            ylabel = "y [m]"
+            ax.set_yticks(yticks)
+            ax.set_aspect("equal")
+        else:
+            # xz plot (vertical slice)
+            plot_kwargs["y"] = "z_aac"
+            im = data.plot(**plot_kwargs)
+            ylabel = "z [m]"
+            ax.set_aspect("auto")
 
         # Set labels
         ax.set_title(f"$L/W = {L_str}$" if row_idx == 0 else "")
         ax.set_xlabel("x [m]" if row_idx == len(row_configs)-1 else "")
-        ax.set_yticks(yticks)
-        ax.set_ylabel("y [m]" if i == 0 else "")
+        ax.set_ylabel(ylabel if i == 0 else "")
         if i > 0:
             ax.set_yticklabels([])
-        ax.set_aspect("equal")
 
     # Add colorbar for the right panel
     cax = axes[row_idx, 1].inset_axes([0.75, 0.1, 0.03, 0.8],

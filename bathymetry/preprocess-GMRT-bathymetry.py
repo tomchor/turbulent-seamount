@@ -1,6 +1,5 @@
 import numpy as np
 import xarray as xr
-from matplotlib import pyplot as plt
 from scipy import interpolate
 
 #+++ Utility functions
@@ -162,7 +161,7 @@ ds["periodic_elevation"] = interpolate_2d_scipy(ringed_periodic_elevation)
 ds = ds.drop_vars(["detrended_elevation", "distance_from_peak"])
 
 # Coarsen to reduce points by half in x and y directions
-ds = ds.coarsen(x=2, y=2).mean()
+ds = ds.coarsen(x=2, y=2, boundary="pad").mean()
 #---
 
 #+++ Extend the dataset in x and y directions using native xarray functions

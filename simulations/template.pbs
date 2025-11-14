@@ -23,7 +23,7 @@ echo $CUDA_VISIBLE_DEVICES
 export JULIA_DEPOT_PATH="$WORK/.julia"
 export JULIA_CPU_TARGET="generic"
 export JULIA_NUM_THREADS=10
-juliaup default 1.10
+juliaup default 1.12
 time julia --project {julia_script} {run_options} --simname={simname} 2>&1 | tee logs/{simname_ascii}.out
 
 qstat -f $PBS_JOBID >> logs/{simname_ascii}.log

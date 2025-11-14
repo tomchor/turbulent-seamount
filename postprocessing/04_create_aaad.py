@@ -101,13 +101,18 @@ for j, config in enumerate(runs):
         # 5-meter buffer vertical average
         masked_dz_5m = xyza.Δz_aac.where(xyza.distance_condition_5meters)
         vert_avg_name_5m = f"⟨{var}⟩ᶻ⁵"  # vertical average with 5m buffer
-        aaad[vert_avg_name_5m] = (xyza[var] * masked_dz_5m).sum("z_aac") / masked_dz_5m.sum("z_aac")
+        vert_int_name_5m = f"∫⁵{var}dz"  # vertical integral with 5m buffer
+        aaad[vert_int_name_5m] = integrate(xyza[var], dV=masked_dz_5m, dims=("z",))
+        aaad[vert_avg_name_5m] = aaad[vert_int_name_5m] / masked_dz_5m.sum("z_aac")
 
         # 10-meter buffer vertical average
         masked_dz_10m = xyza.Δz_aac.where(xyza.distance_condition_10meters)
         vert_avg_name_10m = f"⟨{var}⟩ᶻ¹⁰"  # vertical average with 10m buffer
-        aaad[vert_avg_name_10m] = (xyza[var] * masked_dz_10m).sum("z_aac") / masked_dz_10m.sum("z_aac")
+        vert_int_name_10m = f"∫¹⁰{var}dz"  # vertical integral with 10m buffer
+        aaad[vert_int_name_10m] = integrate(xyza[var], dV=masked_dz_10m, dims=("z",))
+        aaad[vert_avg_name_10m] = aaad[vert_int_name_10m] / masked_dz_10m.sum("z_aac")
 
+        aaad = condense(aaad, [vert_int_name_5m, vert_int_name_10m], f"∫{var}dz", dimname="buffer", indices=[5, 10])
         aaad = condense(aaad, [vert_avg_name_5m, vert_avg_name_10m], f"⟨{var}⟩ᶻ", dimname="buffer", indices=[5, 10])
     #---
 

@@ -233,7 +233,7 @@ letterize(fig.axes[:6], x=0.05, y=0.9, fontsize=12, bbox=dict(boxstyle="square",
 #---
 
 #+++ Save the plot
-output_path = f"../figures/{simname_base}_eps_comparison_L0_vs_L08_dz{resolution}_buffer{buffer}.pdf"
+output_path = f"../figures/{simname_base}_dynamics_comparison_L0_vs_L08_dz{resolution}_buffer{buffer}.pdf"
 fig.savefig(output_path, dpi=300, bbox_inches="tight")
 print(f"Saved plot to {output_path}")
 #---

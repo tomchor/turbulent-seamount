@@ -9,6 +9,7 @@ from src.aux00_utils import open_simulation
 
 #+++ Load datasets
 print("Reading datasets...")
+simname_base = "balanus"
 simdata_path = "../simulations/data/"
 postproc_path = "../postprocessing/data/"
 
@@ -35,14 +36,14 @@ avgd_opts = dict(unique_times=False,
 
 # Load rough topography datasets
 print("Loading rough topography datasets...")
-xyza_rough = open_simulation(postproc_path + f"xyza.balanus_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_rough}_FWHM500_dz{resolution}.nc", **avgd_opts)
-aaad_rough = open_simulation(postproc_path + f"aaad.balanus_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_rough}_FWHM500_dz{resolution}.nc", **avgd_opts).sel(buffer=buffer)
+xyza_rough = open_simulation(postproc_path + f"xyza.{simname_base}_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_rough}_FWHM500_dz{resolution}.nc", **avgd_opts)
+aaad_rough = open_simulation(postproc_path + f"aaad.{simname_base}_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_rough}_FWHM500_dz{resolution}.nc", **avgd_opts).sel(buffer=buffer)
 ds_rough = xr.merge([xyza_rough[variables_xz], aaad_rough[variables_xy]])
 
 # Load smooth topography datasets
 print("Loading smooth topography datasets...")
-xyza_smooth = open_simulation(postproc_path + f"xyza.balanus_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_smooth}_FWHM500_dz{resolution}.nc", **avgd_opts)
-aaad_smooth = open_simulation(postproc_path + f"aaad.balanus_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_smooth}_FWHM500_dz{resolution}.nc", **avgd_opts).sel(buffer=buffer)
+xyza_smooth = open_simulation(postproc_path + f"xyza.{simname_base}_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_smooth}_FWHM500_dz{resolution}.nc", **avgd_opts)
+aaad_smooth = open_simulation(postproc_path + f"aaad.{simname_base}_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_smooth}_FWHM500_dz{resolution}.nc", **avgd_opts).sel(buffer=buffer)
 ds_smooth = xr.merge([xyza_smooth[variables_xz], aaad_smooth[variables_xy]])
 #---
 
@@ -159,6 +160,6 @@ for row_idx, config in enumerate(row_configs):
 #+++ Save
 letterize(axes.flatten(), x=0.05, y=0.9, fontsize=9)
 print("Saving figure...")
-fig.savefig(f"../figures/dynamics_comparison_buffer{buffer}m_dz{resolution}.pdf", dpi=300, bbox_inches="tight", pad_inches=0)
+fig.savefig(f"../figures/{simname_base}_eps_comparison_buffer{buffer}m_dz{resolution}.pdf", dpi=300, bbox_inches="tight", pad_inches=0)
 print("Done!")
 #---

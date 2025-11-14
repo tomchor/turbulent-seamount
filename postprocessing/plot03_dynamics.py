@@ -7,8 +7,6 @@ from matplotlib.colors import LogNorm
 from cmocean import cm
 from src.aux00_utils import open_simulation
 
-# plt.rcParams["figure.constrained_layout.use"] = True
-
 #+++ Load datasets
 print("Reading datasets...")
 simdata_path = "../simulations/data/"
@@ -21,6 +19,8 @@ L_rough = 0
 L_smooth = 0.8
 buffer = 5
 resolution = 1
+variables_xz = ["∫⁵εₖdy", "∫⁵εₚdy", "∫¹⁰εₖdy", "∫¹⁰εₚdy"]
+variables_xy = ["⟨ε̄ₖ⟩ᶻ", "⟨ε̄ₚ⟩ᶻ"]
 
 snap_opts = dict(use_advective_periods=True,
                  unique_times=True,
@@ -34,22 +34,22 @@ avgd_opts = dict(unique_times=False,
                  open_dataset_kwargs=dict(chunks="auto"))
 
 # Load rough topography datasets
-xyzi_rough = open_simulation(simdata_path  + f"xyzi.balanus_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_rough}_FWHM500_dz{resolution}.nc", **snap_opts)
-xyzd_rough = open_simulation(postproc_path + f"xyzd.balanus_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_rough}_FWHM500_dz{resolution}.nc", **avgd_opts)
-aaad_rough = open_simulation(postproc_path + f"aaad.balanus_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_rough}_FWHM500_dz{resolution}.nc", **avgd_opts).sel(buffer=10)
-ds_rough = xr.merge([xyzi_rough, xyzd_rough, aaad_rough])
+print("Loading rough topography datasets...")
+xyza_rough = open_simulation(postproc_path + f"xyza.balanus_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_rough}_FWHM500_dz{resolution}.nc", **avgd_opts)
+aaad_rough = open_simulation(postproc_path + f"aaad.balanus_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_rough}_FWHM500_dz{resolution}.nc", **avgd_opts).sel(buffer=buffer)
+ds_rough = xr.merge([xyza_rough[variables_xz], aaad_rough[variables_xy]])
 
 # Load smooth topography datasets
-xyzi_smooth = open_simulation(simdata_path  + f"xyzi.balanus_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_smooth}_FWHM500_dz{resolution}.nc", **snap_opts)
-xyzd_smooth = open_simulation(postproc_path + f"xyzd.balanus_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_smooth}_FWHM500_dz{resolution}.nc", **avgd_opts)
-aaad_smooth = open_simulation(postproc_path + f"aaad.balanus_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_smooth}_FWHM500_dz{resolution}.nc", **avgd_opts).sel(buffer=10)
-ds_smooth = xr.merge([xyzi_smooth, xyzd_smooth, aaad_smooth])
+print("Loading smooth topography datasets...")
+xyza_smooth = open_simulation(postproc_path + f"xyza.balanus_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_smooth}_FWHM500_dz{resolution}.nc", **avgd_opts)
+aaad_smooth = open_simulation(postproc_path + f"aaad.balanus_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_smooth}_FWHM500_dz{resolution}.nc", **avgd_opts).sel(buffer=buffer)
+ds_smooth = xr.merge([xyza_smooth[variables_xz], aaad_smooth[variables_xy]])
 #---
 
 #+++ Create new variables and restrict volume
 def prepare_ds(ds,
                x_slice = slice(-1.5*ds_rough.FWHM, np.inf),
-               z_slice = slice(0, ds_rough.Lz - ds_rough.h_sponge),
+               z_slice = slice(buffer, 1.3*ds_smooth.H),
                t_slice = 20):
     print("  Restricting domain and selecting time...")
     # Restrict domain first
@@ -70,11 +70,10 @@ def prepare_ds(ds,
         else:
             ds = ds.sel(time=t_slice, method="nearest")
 
-    print("  Calculating shear production components...")
-    if "⟨SPR⟩ᶻ" in ds:
-        ds["⟨VSPR⟩ᶻ"] = ds["⟨SPR⟩ᶻ"].sel(j=3)
-        ds["⟨HSPR⟩ᶻ"] = ds["⟨SPR⟩ᶻ"].sel(j=[1, 2]).sum("j")
-        ds["⟨TSPR⟩ᶻ"] = ds["⟨SPR⟩ᶻ"].sum("j")
+    ds["∫⁵εₖdy_normalized"] = ds["∫⁵εₖdy"] / ds.FWHM
+    ds["∫⁵εₚdy_normalized"] = ds["∫⁵εₚdy"] / ds.FWHM
+    ds["∫¹⁰εₖdy_normalized"] = ds["∫¹⁰εₖdy"] / ds.FWHM
+    ds["∫¹⁰εₚdy_normalized"] = ds["∫¹⁰εₚdy"] / ds.FWHM
 
     return ds
 
@@ -87,20 +86,20 @@ print("Data preparation complete!")
 
 #+++ Create subplot grid
 print("Creating subplot grid")
-fig, axes = plt.subplots(nrows=4, ncols=2, figsize=(11, 10), sharex=True, sharey="row", constrained_layout=False)
+fig, axes = plt.subplots(nrows=4, ncols=2, figsize=(11, 10), sharex="col", sharey="row", constrained_layout=False)
 plt.subplots_adjust(wspace=0.05, hspace=0.02)
 
 datasets = [(ds_rough, str(L_rough)), (ds_smooth, str(L_smooth))]
 yticks = [-500, 0, 500]
 
-# Define row configurations
 # Map buffer to superscript
 integration_bound = "⁵" if buffer == 5 else "¹⁰"
 
+# Define row configurations
 row_configs = [
-    dict(var=f"∫{integration_bound}εₖdy", plot_opts={}, xyi=False, label=f"∫{integration_bound}εₖdy", white_text=True, cmap="inferno", norm=LogNorm(vmin=1e-7, vmax=5e-5), plot_type="xz"),
-    dict(var=f"∫{integration_bound}εₚdy", plot_opts={}, xyi=False, label=f"∫{integration_bound}εₚdy", white_text=True, cmap="inferno", norm=LogNorm(vmin=5e-9, vmax=1e-6), plot_type="xz"),
+    dict(var=f"∫{integration_bound}εₖdy_normalized", plot_opts={}, xyi=False, label=f"∫ε̄ₖdy / W [m²/s³]", white_text=True, cmap="inferno", norm=LogNorm(vmin=2e-10, vmax=1e-7), plot_type="xz"),
     dict(var="⟨ε̄ₖ⟩ᶻ", plot_opts={}, xyi=False, label="⟨ε̄ₖ⟩ᶻ", white_text=True, cmap="inferno", norm=LogNorm(vmin=1e-10, vmax=1e-8), plot_type="xy"),
+    dict(var=f"∫{integration_bound}εₚdy_normalized", plot_opts={}, xyi=False, label=f"∫ε̄ₚdy / W [m²/s³]", white_text=True, cmap="inferno", norm=LogNorm(vmin=1e-11, vmax=2e-9), plot_type="xz"),
     dict(var="⟨ε̄ₚ⟩ᶻ", plot_opts={}, xyi=False, label="⟨ε̄ₚ⟩ᶻ", white_text=True, cmap="inferno", norm=LogNorm(vmin=1e-11, vmax=1e-9), plot_type="xy")
 ]
 #---
@@ -132,20 +131,18 @@ for row_idx, config in enumerate(row_configs):
             im = data.plot.imshow(**plot_kwargs)
             ylabel = "y [m]"
             ax.set_yticks(yticks)
-            ax.set_aspect("equal")
+            ax.set_aspect(1)
         else:
             # xz plot (vertical slice)
             plot_kwargs["y"] = "z_aac"
             im = data.plot(**plot_kwargs)
             ylabel = "z [m]"
-            ax.set_aspect("auto")
+            ax.set_aspect(8)
 
         # Set labels
         ax.set_title(f"$L/W = {L_str}$" if row_idx == 0 else "")
         ax.set_xlabel("x [m]" if row_idx == len(row_configs)-1 else "")
         ax.set_ylabel(ylabel if i == 0 else "")
-        if i > 0:
-            ax.set_yticklabels([])
 
     # Add colorbar for the right panel
     cax = axes[row_idx, 1].inset_axes([0.75, 0.1, 0.03, 0.8],

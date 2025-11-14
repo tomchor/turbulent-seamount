@@ -87,24 +87,20 @@ bottom_height_L08 = xyzi_L08["bottom_height"].pnsel(x=slice(-extent, +extent), y
 
 #+++ Create 3x2 figure with GridSpec for height control
 fig = plt.figure(figsize=(14, 10))
-gs = GridSpec(3, 2, figure=fig, height_ratios=[1.4, 0.7, 0.7])
+gs = GridSpec(3, 2, figure=fig, height_ratios=[1.4, 0.7, 0.7], hspace=0)
 
 # Create 3D axes for bathymetry (top row)
 ax_3d_1 = fig.add_subplot(gs[0, 0], projection="3d")
 ax_3d_2 = fig.add_subplot(gs[0, 1], projection="3d")
 
 # Create 2D axes for dissipation plots (rows 2 and 3)
-ax_eps_k_L0 = fig.add_subplot(gs[1, 0])
-ax_eps_k_L08 = fig.add_subplot(gs[1, 1])
-ax_eps_p_L0 = fig.add_subplot(gs[2, 0])
-ax_eps_p_L08 = fig.add_subplot(gs[2, 1])
+ax_PV_L0 = fig.add_subplot(gs[1, 0])
+ax_PV_L08 = fig.add_subplot(gs[1, 1])
+ax_Ro_L0 = fig.add_subplot(gs[2, 0])
+ax_Ro_L08 = fig.add_subplot(gs[2, 1])
 
-axes = np.array([[ax_eps_k_L0, ax_eps_k_L08],
-                 [ax_eps_p_L0, ax_eps_p_L08]])
-
-# Define common color range for each variable
-eps_k_range = (1e-7, 5e-5)
-eps_p_range = (5e-9, 1e-6)
+axes = np.array([[ax_PV_L0, ax_PV_L08],
+                 [ax_Ro_L0, ax_Ro_L08]])
 #---
 
 #+++ Plot 3D surface of bottom_height
@@ -138,35 +134,96 @@ ax_3d_2.view_init(elev=25, azim=135)
 ax_3d_2.set_box_aspect((1, 1, 0.3))
 #---
 
-#+++ Simplified plotting for ∫⁵εₖdy and ∫⁵εₚdy
-plot_configs = [
-    # (row_idx, col_idx, data, norm_range, label, cbar_label)
-    (0, 0, eps_k_L0, eps_k_range, "∫⁵εₖdy", "∫⁵εₖdy [m³/s³]"),
-    (0, 1, eps_k_L08, eps_k_range, "∫⁵εₖdy", None),
-    (1, 0, eps_p_L0, eps_p_range, "∫⁵εₚdy", "∫⁵εₚdy [m³/s³]"),
-    (1, 1, eps_p_L08, eps_p_range, "∫⁵εₚdy", None)
-]
+#+++ Load additional datasets for PV and Ro plots
+import pynanigans as pn
+from cmocean import cm
 
-ims = []
+postproc_path = "../postprocessing/data/"
 
-for (row, col, data, norm_range, label, cbar_label) in plot_configs:
-    ax = axes[row, col]
-    im = data.plot(ax=ax, x="x_caa", y="z_aac",
-                   norm=LogNorm(vmin=norm_range[0], vmax=norm_range[1]),
-                   cmap="inferno", add_colorbar=False, rasterized=True)
-    ims.append(im)
-    ax.set_xlabel("x [m]" if row == 1 else "")
-    ax.set_ylabel("z [m]" if col == 0 else "")
+# Load datasets for both L values
+avgd_opts = dict(unique_times=False,
+                 load=False,
+                 get_grid=False,
+                 open_dataset_kwargs=dict(chunks="auto"))
+
+xyzd_L0 = open_simulation(postproc_path + f"xyzd.{simname_base}_Ro_b{Ro_b}_Fr_b{Fr_b}_L0_FWHM500_dz{resolution}.nc", **avgd_opts)
+aaad_L0 = open_simulation(postproc_path + f"aaad.{simname_base}_Ro_b{Ro_b}_Fr_b{Fr_b}_L0_FWHM500_dz{resolution}.nc", **avgd_opts).sel(buffer=10)
+ds_L0 = xr.merge([xyzi_L0, xyzd_L0, aaad_L0])
+
+xyzd_L08 = open_simulation(postproc_path + f"xyzd.{simname_base}_Ro_b{Ro_b}_Fr_b{Fr_b}_L0.8_FWHM500_dz{resolution}.nc", **avgd_opts)
+aaad_L08 = open_simulation(postproc_path + f"aaad.{simname_base}_Ro_b{Ro_b}_Fr_b{Fr_b}_L0.8_FWHM500_dz{resolution}.nc", **avgd_opts).sel(buffer=10)
+ds_L08 = xr.merge([xyzi_L08, xyzd_L08, aaad_L08])
+
+# Restrict domain and select time
+t_slice = 20
+x_slice = slice(-1.5*FWHM, np.inf)
+z_slice = slice(0, H * 2 - ds_L0.h_sponge)  # Lz = 2*H from Lz_ratio
+
+ds_L0 = ds_L0.sel(z_aac=z_slice, x_caa=x_slice).sel(time=t_slice, method="nearest")
+ds_L08 = ds_L08.sel(z_aac=z_slice, x_caa=x_slice).sel(time=t_slice, method="nearest")
+#---
+
+#+++ Plot PV and Ro in rows 1 and 2
+datasets_2d = [(ds_L0, "0"), (ds_L08, "0.8")]
+yticks = [-500, 0, 500]
+
+# Row 0: PV slice
+row_idx = 0
+print("Plotting PV")
+for i, (ds, L_str) in enumerate(datasets_2d):
+    ax = axes[row_idx, i]
+
+    # Get PV data at z = H/3
+    data = ds["PV"].pnsel(z=H / 3, method="nearest")
+    bathymetry = ds.peripheral_nodes_ccc.pnsel(z=H / 3, method="nearest")
+
+    vmin = -1.5 * ds.N2_inf * abs(ds.f_0)
+    vmax = 1.5 * ds.N2_inf * abs(ds.f_0)
+
+    im = data.plot.imshow(ax=ax, x="x_caa", cmap="RdBu_r",
+                          vmin=vmin, vmax=vmax,
+                          add_colorbar=False, rasterized=True)
+    bathymetry.plot.imshow(ax=ax, cmap="Greys", vmin=0, vmax=1, origin="lower", alpha=0.25, zorder=2, add_colorbar=False)
+
+    ax.set_xlabel("")
+    ax.set_xticklabels([])
+    ax.set_ylabel("y [m]" if i == 0 else "")
+    ax.set_yticks(yticks)
+    if i > 0:
+        ax.set_yticklabels([])
+    ax.set_aspect("equal")
     ax.set_title("")
-    if row == 0:  # Remove xlabel from middle row
-        ax.set_xlabel("")
-    ax.text(0.85, 0.95, label, transform=ax.transAxes,
-            bbox=dict(boxstyle="square", facecolor="white", alpha=0.8),
-            verticalalignment="top", fontsize=14, fontweight="bold")
-    # Add colorbar if needed
-    if cbar_label:
-        cbar = plt.colorbar(im, ax=axes[row, :], orientation="vertical", pad=0.01)
-        cbar.set_label(cbar_label, fontsize=11)
+
+# Add colorbar for PV
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+cax = axes[row_idx, 1].inset_axes([0.75, 0.1, 0.03, 0.8],
+                                   transform=axes[row_idx, 1].transAxes, clip_on=False)
+cbar = plt.colorbar(im, cax=cax, orientation="vertical", label="Potential vorticity")
+
+# Row 1: ⟨Ro⟩ᶻ
+row_idx = 1
+print("Plotting ⟨Ro⟩ᶻ")
+for i, (ds, L_str) in enumerate(datasets_2d):
+    ax = axes[row_idx, i]
+
+    data = ds["⟨R̄o⟩ᶻ"]
+
+    im = data.plot.imshow(ax=ax, x="x_caa", cmap="RdBu_r",
+                          vmin=-0.4, vmax=0.4,
+                          add_colorbar=False, rasterized=True)
+
+    ax.set_xlabel("x [m]")
+    ax.set_ylabel("y [m]" if i == 0 else "")
+    ax.set_yticks(yticks)
+    if i > 0:
+        ax.set_yticklabels([])
+    ax.set_aspect("equal")
+    ax.set_title("")
+
+# Add colorbar for Ro
+cax = axes[row_idx, 1].inset_axes([0.75, 0.1, 0.03, 0.8],
+                                   transform=axes[row_idx, 1].transAxes, clip_on=False)
+cbar = plt.colorbar(im, cax=cax, orientation="vertical", label="⟨Ro⟩ᶻ")
 #---
 
 #+++ Add overall title

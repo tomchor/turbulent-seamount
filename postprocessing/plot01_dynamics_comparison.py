@@ -31,10 +31,10 @@ datasets = {}
 
 for L_val in L_values:
     simname = f"{simname_base}_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_val}_FWHM500_dz{resolution}"
-    
+
     xyzi = open_simulation(f"{simdata_path}xyzi.{simname}.nc", **dataset_opts)
     aaad = open_simulation(f"{postproc_path}aaad.{simname}.nc", **avgd_opts).sel(buffer=buffer)
-    
+
     ds = xr.merge([xyzi, aaad]).sel(time=np.inf, method="nearest")
     datasets[L_val] = ds
 
@@ -62,10 +62,10 @@ ls = LightSource(azdeg=270, altdeg=45)
 for i, L_val in enumerate(L_values):
     ds = datasets[L_val]
     bathy = ds["bottom_height"].pnsel(x=slice(-extent, +extent), y=slice(-extent, +extent))
-    
+
     x, y = np.meshgrid(bathy.x.values, bathy.y.values)
     rgb = ls.shade(bathy.values, cmap=plt.cm.gist_earth, vert_exag=0.1, blend_mode="soft")
-    
+
     ax_3d[i].plot_surface(x, y, bathy.values, rstride=2, cstride=2, facecolors=rgb,
                           linewidth=0, antialiased=False, shade=False, rasterized=True)
     ax_3d[i].set_xlabel("x [m]")
@@ -98,31 +98,31 @@ for row_idx, config in enumerate(rows):
     for col_idx, L_val in enumerate(L_values):
         ds = datasets[L_val]
         ax = axes[row_idx, col_idx]
-        
+
         data = config["get_data"](ds)
         vmin = config["vmin"](ds)
         vmax = config["vmax"](ds)
-        
+
         im = data.plot.imshow(ax=ax, x="x_caa", cmap=config["cmap"],
                               vmin=vmin, vmax=vmax, add_colorbar=False, rasterized=True)
-        
+
         # Add bathymetry mask for PV plot
         if row_idx == 0:
             bathy_mask = ds.peripheral_nodes_ccc.pnsel(z=H/3, method="nearest")
             bathy_mask.plot.imshow(ax=ax, cmap="Greys", vmin=0, vmax=1, origin="lower",
                                    alpha=0.25, zorder=2, add_colorbar=False)
-        
+
         ax.set_xlabel(config["xlabel"])
         ax.set_ylabel("y [m]" if col_idx == 0 else "")
         ax.set_yticks(yticks)
         ax.set_aspect("equal")
         ax.set_title("")
-        
+
         if config["remove_xticks"]:
             ax.set_xticklabels([])
         if col_idx > 0:
             ax.set_yticklabels([])
-    
+
     # Add colorbar
     cax = axes[row_idx, 1].inset_axes([0.75, 0.1, 0.03, 0.8],
                                       transform=axes[row_idx, 1].transAxes, clip_on=False)
@@ -130,7 +130,7 @@ for row_idx, config in enumerate(rows):
 #---
 
 #+++ Finalize
-fig.suptitle(f"Ro$_b$ = {datasets['0'].Ro_b}, Fr$_b$ = {datasets['0'].Fr_b}", 
+fig.suptitle(f"Ro$_b$ = {datasets['0'].Ro_b}, Fr$_b$ = {datasets['0'].Fr_b}",
              fontsize=14, y=0.995)
 letterize(fig.axes[:6], x=0.05, y=0.9, fontsize=12,
           bbox=dict(boxstyle="square", facecolor="white", alpha=0.8))

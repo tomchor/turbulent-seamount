@@ -1,165 +1,143 @@
 import numpy as np
-from src.aux02_plotting import letterize
 import xarray as xr
 from matplotlib import pyplot as plt
-import pynanigans as pn
 from matplotlib.colors import LogNorm
-from cmocean import cm
+from matplotlib.gridspec import GridSpec
 from src.aux00_utils import open_simulation
+from src.aux02_plotting import letterize
 
-#+++ Load datasets
-print("Reading datasets...")
-simname_base = "balanus"
+#+++ Parameters
+simname_base = "labanus"
 simdata_path = "../simulations/data/"
 postproc_path = "../postprocessing/data/"
-
-# Simulation parameters
 Ro_b = 0.1
 Fr_b = 1
 L_rough = 0
 L_smooth = 0.8
 buffer = 5
 resolution = 1
-variables_xz = ["∫⁵εₖdy", "∫⁵εₚdy", "∫¹⁰εₖdy", "∫¹⁰εₚdy"]
+t_slice = 20
+#---
+
+#+++ Load datasets
+print("Loading datasets...")
+averaged_options = dict(unique_times=False, load=False, get_grid=False,
+                        open_dataset_kwargs=dict(chunks="auto"))
+
+# Variables to load
+variables_xz = ["∫⁵εₖdy", "∫¹⁰εₖdy", "∫⁵εₚdy", "∫¹⁰εₚdy"]
 variables_xy = ["⟨ε̄ₖ⟩ᶻ", "⟨ε̄ₚ⟩ᶻ"]
 
-snap_opts = dict(use_advective_periods=True,
-                 unique_times=True,
-                 squeeze=True,
-                 load=False,
-                 get_grid=False,
-                 open_dataset_kwargs=dict(chunks="auto"))
-avgd_opts = dict(unique_times=False,
-                 load=False,
-                 get_grid=False,
-                 open_dataset_kwargs=dict(chunks="auto"))
+datasets = {}
+for L_value, L_key in [(L_rough, "rough"), (L_smooth, "smooth")]:
+    simulation_name = f"{simname_base}_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_value}_FWHM500_dz{resolution}"
 
-# Load rough topography datasets
-print("Loading rough topography datasets...")
-xyza_rough = open_simulation(postproc_path + f"xyza.{simname_base}_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_rough}_FWHM500_dz{resolution}.nc", **avgd_opts)
-aaad_rough = open_simulation(postproc_path + f"aaad.{simname_base}_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_rough}_FWHM500_dz{resolution}.nc", **avgd_opts).sel(buffer=buffer)
-ds_rough = xr.merge([xyza_rough[variables_xz], aaad_rough[variables_xy]])
+    xyza_dataset = open_simulation(f"{postproc_path}xyza.{simulation_name}.nc", **averaged_options)
+    aaad_dataset = open_simulation(f"{postproc_path}aaad.{simulation_name}.nc", **averaged_options).sel(buffer=buffer)
 
-# Load smooth topography datasets
-print("Loading smooth topography datasets...")
-xyza_smooth = open_simulation(postproc_path + f"xyza.{simname_base}_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_smooth}_FWHM500_dz{resolution}.nc", **avgd_opts)
-aaad_smooth = open_simulation(postproc_path + f"aaad.{simname_base}_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_smooth}_FWHM500_dz{resolution}.nc", **avgd_opts).sel(buffer=buffer)
-ds_smooth = xr.merge([xyza_smooth[variables_xz], aaad_smooth[variables_xy]])
+    dataset = xr.merge([xyza_dataset[variables_xz], aaad_dataset[variables_xy]])
+
+    # Domain restriction
+    full_width_half_maximum = dataset.FWHM
+    depth = dataset.H
+    dataset = dataset.sel(z_aac=slice(buffer, 1.3*depth), x_caa=slice(-1.5*full_width_half_maximum, np.inf))
+
+    # Time selection
+    if "time" in dataset.dims:
+        epsilon_variables = [variable_name for variable_name in dataset.data_vars if "∫" in variable_name]
+        dataset_epsilon = dataset[epsilon_variables].isel(time=-1)
+        dataset_other = dataset.drop_vars(epsilon_variables).sel(time=t_slice, method="nearest")
+        dataset = xr.merge([dataset_epsilon, dataset_other])
+
+    # Normalize integrated dissipation
+    for variable_name in variables_xz:
+        dataset[f"{variable_name}_normalized"] = dataset[variable_name] / full_width_half_maximum
+
+    datasets[L_key] = dataset
+
+print("Data loaded!")
 #---
 
-#+++ Create new variables and restrict volume
-def prepare_ds(ds,
-               x_slice = slice(-1.5*ds_rough.FWHM, np.inf),
-               z_slice = slice(buffer, 1.3*ds_smooth.H),
-               t_slice = 20):
-    print("  Restricting domain and selecting time...")
-    # Restrict domain first
-    ds = ds.sel(z_aac=z_slice, x_caa=x_slice)
+#+++ Create figure and plot
+fig = plt.figure(figsize=(11, 10))
 
-    # Select time - use last time for integrated dissipation, method="nearest" for time-averaged
-    if "time" in ds.dims:
-        # For variables with time dimension
-        times = ds.time.values
-        n_final = len(times) - 1
+# Create GridSpec with 6 rows: rows 0-1 for first pair, row 2 for spacing,
+# rows 3-4 for second pair, row 5 for spacing, but we'll use height_ratios
+# to control spacing more precisely
+gs = GridSpec(5, 2, figure=fig, wspace=0.05,
+              height_ratios=[1, 1, 0.05, 1, 1],
+              hspace=0)
 
-        # Select final time for integrated dissipation (from xyzi)
-        eps_vars = [v for v in ds.data_vars if "∫" in v and "ε" in v]
-        if eps_vars:
-            ds_eps = ds[eps_vars].isel(time=n_final)
-            ds_other = ds.drop_vars(eps_vars).sel(time=t_slice, method="nearest")
-            ds = xr.merge([ds_eps, ds_other])
+# Create axes manually with GridSpec, sharing x-axis across columns
+axes = np.zeros((4, 2), dtype=object)
+for j in range(axes.shape[1]):
+    for i in range(axes.shape[0]):
+        if i >= 2:
+            I = i + 1
         else:
-            ds = ds.sel(time=t_slice, method="nearest")
+            I = i
+        axes[i, j] = fig.add_subplot(gs[I, j])
 
-    ds["∫⁵εₖdy_normalized"] = ds["∫⁵εₖdy"] / ds.FWHM
-    ds["∫⁵εₚdy_normalized"] = ds["∫⁵εₚdy"] / ds.FWHM
-    ds["∫¹⁰εₖdy_normalized"] = ds["∫¹⁰εₖdy"] / ds.FWHM
-    ds["∫¹⁰εₚdy_normalized"] = ds["∫¹⁰εₚdy"] / ds.FWHM
-
-    return ds
-
-print(f"Preparing L={L_rough} (rough) dataset...")
-ds_rough = prepare_ds(ds_rough)
-print(f"Preparing L={L_smooth} (smooth) dataset...")
-ds_smooth = prepare_ds(ds_smooth)
-print("Data preparation complete!")
-#---
-
-#+++ Create subplot grid
-print("Creating subplot grid")
-fig, axes = plt.subplots(nrows=4, ncols=2, figsize=(11, 10), sharex="col", sharey="row", constrained_layout=False)
-plt.subplots_adjust(wspace=0.05, hspace=0.02)
-
-datasets = [(ds_rough, str(L_rough)), (ds_smooth, str(L_smooth))]
-yticks = [-500, 0, 500]
-
-# Map buffer to superscript
+# Row configurations
 integration_bound = "⁵" if buffer == 5 else "¹⁰"
-
-# Define row configurations
-row_configs = [
-    dict(var=f"∫{integration_bound}εₖdy_normalized", plot_opts={}, xyi=False, label=f"∫ε̄ₖdy / W [m²/s³]", white_text=True, cmap="inferno", norm=LogNorm(vmin=2e-10, vmax=1e-7), plot_type="xz"),
-    dict(var="⟨ε̄ₖ⟩ᶻ", plot_opts={}, xyi=False, label="⟨ε̄ₖ⟩ᶻ", white_text=True, cmap="inferno", norm=LogNorm(vmin=1e-10, vmax=1e-8), plot_type="xy"),
-    dict(var=f"∫{integration_bound}εₚdy_normalized", plot_opts={}, xyi=False, label=f"∫ε̄ₚdy / W [m²/s³]", white_text=True, cmap="inferno", norm=LogNorm(vmin=1e-11, vmax=2e-9), plot_type="xz"),
-    dict(var="⟨ε̄ₚ⟩ᶻ", plot_opts={}, xyi=False, label="⟨ε̄ₚ⟩ᶻ", white_text=True, cmap="inferno", norm=LogNorm(vmin=1e-11, vmax=1e-9), plot_type="xy")
+rows = [
+    dict(var=f"∫{integration_bound}εₖdy_normalized", label=f"∫ε̄ₖdy / W [m²/s³]",
+         norm=LogNorm(vmin=2e-10, vmax=1e-7), plot_type="xz"),
+    dict(var="⟨ε̄ₖ⟩ᶻ", label="⟨ε̄ₖ⟩ᶻ",
+         norm=LogNorm(vmin=1e-10, vmax=1e-8), plot_type="xy"),
+    dict(var=f"∫{integration_bound}εₚdy_normalized", label=f"∫ε̄ₚdy / W [m²/s³]",
+         norm=LogNorm(vmin=1e-11, vmax=2e-9), plot_type="xz"),
+    dict(var="⟨ε̄ₚ⟩ᶻ", label="⟨ε̄ₚ⟩ᶻ",
+         norm=LogNorm(vmin=1e-11, vmax=1e-9), plot_type="xy")
 ]
-#---
 
-#+++ Plot all variables
-for row_idx, config in enumerate(row_configs):
-    var_name = config["var"]
-    print(f"Plotting {var_name}")
+yticks = [-500, 0, 500]
+L_vals = [("rough", str(L_rough)), ("smooth", str(L_smooth))]
 
-    for i, (ds, L_str) in enumerate(datasets):
-        ax = axes[row_idx, i]
+# Determine common x-limits from both datasets
+x_min = min(datasets["rough"].x_caa.min().values, datasets["smooth"].x_caa.min().values)
+x_max = max(datasets["rough"].x_caa.max().values, datasets["smooth"].x_caa.max().values)
 
-        # Get data
-        data = ds[var_name]
+print("Plotting...")
+for row_idx, config in enumerate(rows):
+    for col_idx, (ds_name, L_str) in enumerate(L_vals):
+        ax = axes[row_idx, col_idx]
+        ds = datasets[ds_name]
 
-        # Prepare plot kwargs based on plot type
-        plot_kwargs = dict(ax=ax, x="x_caa", cmap=config["cmap"],
-                           add_colorbar=False, rasterized=True)
-        if "norm" in config:
-            plot_kwargs |= dict(norm=config["norm"])
-        else:
-            vmin = config["vmin"](ds) if callable(config["vmin"]) else config["vmin"]
-            vmax = config["vmax"](ds) if callable(config["vmax"]) else config["vmax"]
-            plot_kwargs |= dict(vmin=vmin, vmax=vmax)
+        # Plot kwargs
+        kwargs = dict(ax=ax, x="x_caa", cmap="inferno", norm=config["norm"],
+                      add_colorbar=False, rasterized=True)
 
-        # Choose the right y-coordinate based on plot type
         if config["plot_type"] == "xy":
-            # xy plot (plan view)
-            im = data.plot.imshow(**plot_kwargs)
+            im = ds[config["var"]].plot.imshow(**kwargs)
             ylabel = "y [m]"
             ax.set_yticks(yticks)
-            ax.set_aspect(1)
+            ax.set_aspect("auto")
         else:
-            # xz plot (vertical slice)
-            plot_kwargs["y"] = "z_aac"
-            im = data.plot(**plot_kwargs)
+            kwargs["y"] = "z_aac"
+            im = ds[config["var"]].plot(**kwargs)
             ylabel = "z [m]"
-            ax.set_aspect(8)
+            ax.set_aspect(10)
 
-        # Set labels
+        # Set common x-limits for all plots
+        ax.set_xlim(x_min, x_max)
         ax.set_title(f"$L/W = {L_str}$" if row_idx == 0 else "")
-        ax.set_xlabel("x [m]" if row_idx == len(row_configs)-1 else "")
-        ax.set_ylabel(ylabel if i == 0 else "")
+        ax.set_xlabel("x [m]" if row_idx == len(rows)-1 else "")
+        ax.set_ylabel(ylabel if col_idx == 0 else "")
 
-    # Add colorbar for the right panel
+    # Colorbar
     cax = axes[row_idx, 1].inset_axes([0.75, 0.1, 0.03, 0.8],
-                                       transform=axes[row_idx, 1].transAxes, clip_on=False)
+                                      transform=axes[row_idx, 1].transAxes, clip_on=False)
     cbar = plt.colorbar(im, cax=cax, orientation="vertical", label=config["label"])
-
-    if config.get("white_text", False):
-        cbar.ax.yaxis.set_tick_params(color="white")
-        plt.setp(cbar.ax.yaxis.get_ticklabels(), color="white")
-        cbar.ax.yaxis.label.set_color("white")
-        cbar.outline.set_edgecolor("white")
+    cbar.ax.yaxis.set_tick_params(color="white")
+    plt.setp(cbar.ax.yaxis.get_ticklabels(), color="white")
+    cbar.ax.yaxis.label.set_color("white")
+    cbar.outline.set_edgecolor("white")
 #---
 
 #+++ Save
 letterize(axes.flatten(), x=0.05, y=0.9, fontsize=9)
-print("Saving figure...")
-fig.savefig(f"../figures/{simname_base}_eps_comparison_buffer{buffer}m_dz{resolution}.pdf", dpi=300, bbox_inches="tight", pad_inches=0)
+fig.savefig(f"../figures/{simname_base}_eps_comparison_buffer{buffer}m_dz{resolution}.pdf",
+            dpi=300, bbox_inches="tight", pad_inches=0)
 print("Done!")
 #---

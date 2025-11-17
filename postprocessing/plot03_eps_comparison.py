@@ -58,27 +58,11 @@ for L_value, L_key in [(L_rough, "rough"), (L_smooth, "smooth")]:
 print("Data loaded!")
 #---
 
-#+++ Create figure and plot
-fig = plt.figure(figsize=(11, 10))
+#+++ Create figure and subplots
+fig, axes = plt.subplots(ncols=2, nrows=4, figsize=(10, 9), gridspec_kw=dict(hspace=-0.05, wspace=0.05), sharex=True, sharey="row")
+#---
 
-# Create GridSpec with 6 rows: rows 0-1 for first pair, row 2 for spacing,
-# rows 3-4 for second pair, row 5 for spacing, but we'll use height_ratios
-# to control spacing more precisely
-gs = GridSpec(5, 2, figure=fig, wspace=0.05,
-              height_ratios=[1, 1, 0.05, 1, 1],
-              hspace=0)
-
-# Create axes manually with GridSpec, sharing x-axis across columns
-axes = np.zeros((4, 2), dtype=object)
-for j in range(axes.shape[1]):
-    for i in range(axes.shape[0]):
-        if i >= 2:
-            I = i + 1
-        else:
-            I = i
-        axes[i, j] = fig.add_subplot(gs[I, j])
-
-# Row configurations
+#+++ Plot variables
 integration_bound = "⁵" if buffer == 5 else "¹⁰"
 rows = [
     dict(var=f"∫{integration_bound}εₖdy_normalized", label=f"∫ε̄ₖdy / W [m²/s³]",
@@ -112,18 +96,23 @@ for row_idx, config in enumerate(rows):
             im = ds[config["var"]].plot.imshow(**kwargs)
             ylabel = "y [m]"
             ax.set_yticks(yticks)
-            ax.set_aspect("auto")
+            ax.set_aspect(1)
         else:
             kwargs["y"] = "z_aac"
             im = ds[config["var"]].plot(**kwargs)
             ylabel = "z [m]"
-            ax.set_aspect(10)
+            ax.set_aspect(12)
 
         # Set common x-limits for all plots
         ax.set_xlim(x_min, x_max)
         ax.set_title(f"$L/W = {L_str}$" if row_idx == 0 else "")
         ax.set_xlabel("x [m]" if row_idx == len(rows)-1 else "")
         ax.set_ylabel(ylabel if col_idx == 0 else "")
+
+        # if col_idx > 0:
+        #     ax.set_yticklabels([])
+        # if row_idx == 0 or row_idx == 2:
+        #     ax.set_xticklabels([])
 
     # Colorbar
     cax = axes[row_idx, 1].inset_axes([0.75, 0.1, 0.03, 0.8],

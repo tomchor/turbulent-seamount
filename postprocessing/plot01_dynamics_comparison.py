@@ -5,21 +5,25 @@ from matplotlib.colors import LogNorm
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.colors import LightSource
 from matplotlib.gridspec import GridSpec
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+import pynanigans as pn
+from cmocean import cm
 from src.aux00_utils import open_simulation
 from src.aux02_plotting import letterize
 
 # Set figure layout
 plt.rcParams["figure.constrained_layout.use"] = True
 
-#+++ Define simulation paths
+#+++ Define simulation paths and parameters
 simdata_path = "../simulations/data/"
+postproc_path = "../postprocessing/data/"
 simname_base = "balanus"
 
 # Parameters for the comparison
 Ro_b = 0.1
 Fr_b = 1  # Can be changed to compare different Fr_b values
 buffer = 5
-resolution = 1
+resolution = 2
 
 # File paths for L=0 and L=0.8 simulations
 simname_L0 = f"{simname_base}_Ro_b{Ro_b}_Fr_b{Fr_b}_L0_FWHM500_dz{resolution}"
@@ -33,7 +37,8 @@ print(f"  L=0:   {fpath_L0}")
 print(f"  L=0.8: {fpath_L08}")
 #---
 
-#+++ Load both datasets
+#+++ Load all datasets
+# Load xyzi datasets
 dataset_opts = dict(use_advective_periods=True,
                     unique_times=True,
                     squeeze=True,
@@ -44,40 +49,37 @@ dataset_opts = dict(use_advective_periods=True,
 xyzi_L0 = open_simulation(fpath_L0, **dataset_opts)
 xyzi_L08 = open_simulation(fpath_L08, **dataset_opts)
 
+# Load additional dataset for Ro plots
+avgd_opts = dict(unique_times=False,
+                 load=False,
+                 get_grid=False,
+                 open_dataset_kwargs=dict(chunks="auto"))
+
+aaad_L0 = open_simulation(postproc_path + f"aaad.{simname_base}_Ro_b{Ro_b}_Fr_b{Fr_b}_L0_FWHM500_dz{resolution}.nc", **avgd_opts).sel(buffer=buffer)
+ds_L0 = xr.merge([xyzi_L0, aaad_L0])
+
+aaad_L08 = open_simulation(postproc_path + f"aaad.{simname_base}_Ro_b{Ro_b}_Fr_b{Fr_b}_L0.8_FWHM500_dz{resolution}.nc", **avgd_opts).sel(buffer=buffer)
+ds_L08 = xr.merge([xyzi_L08, aaad_L08])
+
 # Get metadata and parameters
 params_L0 = {k: v for k, v in xyzi_L0.attrs.items()}
 params_L08 = {k: v for k, v in xyzi_L08.attrs.items()}
 
-# Extract grid coordinates and trim domain
+# Extract grid coordinates
 H = params_L0["H"]
 FWHM = params_L0["FWHM"]
 
-# Trim domain similar to the Julia script
-xyzi_L0 = xyzi_L0.sel(z_aac=slice(5, 1.2*H), x_caa=slice(None, 6*FWHM))
-xyzi_L08 = xyzi_L08.sel(z_aac=slice(5, 1.2*H), x_caa=slice(None, 6*FWHM))
-
-x_range = (xyzi_L0.x_caa.min().values, xyzi_L0.x_caa.max().values)
-y_range = (xyzi_L0.y_aca.min().values, xyzi_L0.y_aca.max().values)
-z_range = (xyzi_L0.z_aac.min().values, xyzi_L0.z_aac.max().values)
-
-# Use the last time step
-times = xyzi_L0.time.values
-n_final = len(times) - 1
+ds_L0 = ds_L0.sel(time=np.inf, method="nearest")
+ds_L08 = ds_L08.sel(time=np.inf, method="nearest")
 #---
 
-#+++ Extract the two variables at the final time step
+#+++ Extract variables for plotting
 if buffer == 5:
     integration_bound = "⁵"
 elif buffer == 10:
     integration_bound = "¹⁰"
 else:
     raise ValueError(f"Buffer {buffer} wasn't calculated.")
-
-eps_k_L0 = xyzi_L0[f"∫{integration_bound}εₖdy"].isel(time=n_final)
-eps_p_L0 = xyzi_L0[f"∫{integration_bound}εₚdy"].isel(time=n_final)
-
-eps_k_L08 = xyzi_L08[f"∫{integration_bound}εₖdy"].isel(time=n_final)
-eps_p_L08 = xyzi_L08[f"∫{integration_bound}εₚdy"].isel(time=n_final)
 
 # Extract bottom_height for 3D plots (doesn"t have time dimension)
 extent = 1.3 * FWHM
@@ -134,35 +136,6 @@ ax_3d_2.view_init(elev=25, azim=135)
 ax_3d_2.set_box_aspect((1, 1, 0.3))
 #---
 
-#+++ Load additional datasets for PV and Ro plots
-import pynanigans as pn
-from cmocean import cm
-
-postproc_path = "../postprocessing/data/"
-
-# Load datasets for both L values
-avgd_opts = dict(unique_times=False,
-                 load=False,
-                 get_grid=False,
-                 open_dataset_kwargs=dict(chunks="auto"))
-
-xyzd_L0 = open_simulation(postproc_path + f"xyzd.{simname_base}_Ro_b{Ro_b}_Fr_b{Fr_b}_L0_FWHM500_dz{resolution}.nc", **avgd_opts)
-aaad_L0 = open_simulation(postproc_path + f"aaad.{simname_base}_Ro_b{Ro_b}_Fr_b{Fr_b}_L0_FWHM500_dz{resolution}.nc", **avgd_opts).sel(buffer=10)
-ds_L0 = xr.merge([xyzi_L0, xyzd_L0, aaad_L0])
-
-xyzd_L08 = open_simulation(postproc_path + f"xyzd.{simname_base}_Ro_b{Ro_b}_Fr_b{Fr_b}_L0.8_FWHM500_dz{resolution}.nc", **avgd_opts)
-aaad_L08 = open_simulation(postproc_path + f"aaad.{simname_base}_Ro_b{Ro_b}_Fr_b{Fr_b}_L0.8_FWHM500_dz{resolution}.nc", **avgd_opts).sel(buffer=10)
-ds_L08 = xr.merge([xyzi_L08, xyzd_L08, aaad_L08])
-
-# Restrict domain and select time
-t_slice = 20
-x_slice = slice(-1.5*FWHM, np.inf)
-z_slice = slice(0, H * 2 - ds_L0.h_sponge)  # Lz = 2*H from Lz_ratio
-
-ds_L0 = ds_L0.sel(z_aac=z_slice, x_caa=x_slice).sel(time=t_slice, method="nearest")
-ds_L08 = ds_L08.sel(z_aac=z_slice, x_caa=x_slice).sel(time=t_slice, method="nearest")
-#---
-
 #+++ Plot PV and Ro in rows 1 and 2
 datasets_2d = [(ds_L0, "0"), (ds_L08, "0.8")]
 yticks = [-500, 0, 500]
@@ -195,7 +168,6 @@ for i, (ds, L_str) in enumerate(datasets_2d):
     ax.set_title("")
 
 # Add colorbar for PV
-from mpl_toolkits.axes_grid1 import make_axes_locatable
 cax = axes[row_idx, 1].inset_axes([0.75, 0.1, 0.03, 0.8],
                                    transform=axes[row_idx, 1].transAxes, clip_on=False)
 cbar = plt.colorbar(im, cax=cax, orientation="vertical", label="Potential vorticity")

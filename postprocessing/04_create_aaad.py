@@ -39,7 +39,7 @@ for j, config in enumerate(runs):
     xyza = xr.open_dataset(f"data/xyza.{simname}.nc", chunks="auto")
     xyzd = xr.open_dataset(f"data/xyzd.{simname}.nc", chunks="auto")
 
-    xyza = xr.merge([xyza, xyzd])
+    xyza = xr.merge([xyza, xyzd], compat="no_conflicts")
     #---
 
     #+++ Normalize Unicode variable names

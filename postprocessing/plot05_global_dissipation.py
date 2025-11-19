@@ -47,6 +47,7 @@ seamounts["total_mixing_quadratic"] = seamounts.total_mixing_quadratic * ρ
 seamounts.total_mixing_quadratic.attrs = dict(units="W", longer_name="Buoyancy mixing")
 #---
 
+#+++ Plot dissipation maps
 #+++ Create figure with projections
 fig = plt.figure(figsize=(10, 7))
 gs = fig.add_gridspec(2, 2, width_ratios=[3, 1], hspace=0)
@@ -112,6 +113,84 @@ ax_plot_dissip.grid(True)
 ax_plot_dissip.legend(loc="upper right", borderaxespad=0, framealpha=0.9, edgecolor="black", fancybox=False)
 #---
 
+#+++ Save figure
+letterize(fig.axes[:3], x=0.05, y=0.92, fontsize=12, bbox=dict(boxstyle="square", facecolor="white", alpha=0.9))
+fig.savefig("../figures/global_dissipation.pdf", dpi=300, bbox_inches="tight", pad_inches=0)
+#---
+#---
+
+#+++ Plot mixing maps
+#+++ Create figure with projections
+fig = plt.figure(figsize=(10, 7))
+gs = fig.add_gridspec(2, 2, width_ratios=[3, 1], hspace=0)
+
+# Create left subplots with projection for heatmaps (2 rows)
+ax_map_mixing_smooth = fig.add_subplot(gs[0, 0], projection=ccrs.PlateCarree())
+ax_map_mixing_rough = fig.add_subplot(gs[1, 0], projection=ccrs.PlateCarree())
+
+# Create right subplot for line plot (spans 2 rows)
+ax_plot_mixing = fig.add_subplot(gs[0:2, 1])
+#---
+
+#+++ Plot heatmaps on the left column (2 rows)
+fixed_options = dict(x="longitude", y="latitude", edgecolors="face", s=1, transform=ccrs.PlateCarree(), rasterized=True)
+
+# Row 1: Buoyancy mixing for smooth seamounts
+gl1 = ax_map_mixing_smooth.gridlines(draw_labels=True, dms=False, x_inline=False, y_inline=False)
+gl1.top_labels = False
+gl1.right_labels = False
+gl1.bottom_labels = False
+
+vmin_mixing = 1e3
+vmax_mixing = 1e7
+cmap_mixing = "GnBu"
+im_mixing_smooth = seamounts.plot.scatter(ax=ax_map_mixing_smooth, hue="total_mixing_linear", cmap=cmap_mixing, **fixed_options, norm=LogNorm(), vmin=vmin_mixing, vmax=vmax_mixing, add_colorbar=False)
+cbar_mixing_smooth = plt.colorbar(im_mixing_smooth, ax=ax_map_mixing_smooth, orientation="vertical", pad=0.02, location="left", shrink=0.5)
+cbar_mixing_smooth.set_label(r"Buoyancy mixing [W]")
+ax_map_mixing_smooth.add_feature(cfeature.LAND, color="black", zorder=0)
+ax_map_mixing_smooth.add_feature(cfeature.COASTLINE, color="gray", linewidth=0.5, zorder=1)
+ax_map_mixing_smooth.set_ylim(-top_lat, top_lat)
+ax_map_mixing_smooth.set_title("Buoyancy mixing (linear)")
+
+# Row 2: Buoyancy mixing for rough seamounts
+gl2 = ax_map_mixing_rough.gridlines(draw_labels=True, dms=False, x_inline=False, y_inline=False)
+gl2.top_labels = False
+gl2.right_labels = False
+
+im_mixing_rough = seamounts.plot.scatter(ax=ax_map_mixing_rough, hue="total_mixing_quadratic", cmap=cmap_mixing, **fixed_options, norm=LogNorm(), vmin=vmin_mixing, vmax=vmax_mixing, add_colorbar=False)
+cbar_mixing_rough = plt.colorbar(im_mixing_rough, ax=ax_map_mixing_rough, orientation="vertical", pad=0.02, location="left", shrink=0.5)
+cbar_mixing_rough.set_label(r"Buoyancy mixing [W]")
+ax_map_mixing_rough.add_feature(cfeature.LAND, color="black", zorder=0)
+ax_map_mixing_rough.add_feature(cfeature.COASTLINE, color="gray", linewidth=0.5, zorder=1)
+ax_map_mixing_rough.set_ylim(-top_lat, top_lat)
+ax_map_mixing_rough.set_title("Buoyancy mixing (quadratic)")
+#---
+
+#+++ Plot integrated line plot on the right column (spanning 2 rows)
+# Bin seamounts data by latitude and longitude with 1 degree resolution
+lat_bins = np.arange(-top_lat, top_lat + 1, 1)
+
+# Create binned statistics for various quantities
+print("Binning data")
+binned_seamounts = seamounts.groupby_bins("latitude", lat_bins).sum()
+
+# Right plot: KE dissipation line plot
+binned_seamounts.total_mixing_linear.plot(ax=ax_plot_mixing, y="latitude_bins", color="blue", linestyle="--", label="Smooth")
+binned_seamounts.total_mixing_quadratic.plot(ax=ax_plot_mixing, y="latitude_bins", color="red", linestyle="--", label="Rough")
+ax_plot_mixing.set_ylabel("Latitude (degrees)")
+ax_plot_mixing.set_xlabel("Buoyancy mixing [W]")
+ax_plot_mixing.set_ylim(-top_lat, top_lat)
+ax_plot_mixing.set_title("Buoyancy mixing\nper degree of latitude")
+ax_plot_mixing.grid(True)
+ax_plot_mixing.legend(loc="upper right", borderaxespad=0, framealpha=0.9, edgecolor="black", fancybox=False)
+#---
+
+#+++ Save figure
+letterize(fig.axes[:3], x=0.05, y=0.92, fontsize=12, bbox=dict(boxstyle="square", facecolor="white", alpha=0.9))
+fig.savefig("../figures/global_mixing.pdf", dpi=300, bbox_inches="tight", pad_inches=0)
+#---
+#---
+
 #+++ Calculate difference
 global_dissip_ratio = seamounts.total_dissip_smooth.sum("index") / seamounts.total_dissip_rough.sum("index")
 global_mixing_ratio = seamounts.total_mixing_linear.sum("index") / seamounts.total_mixing_quadratic.sum("index")
@@ -125,9 +204,4 @@ print(f"South dissipation ratio: {south_dissip_ratio:.2f}")
 
 print(f"Global mixing ratio: {global_mixing_ratio:.2f}")
 print(f"South mixing ratio: {south_mixing_ratio:.2f}")
-#---
-
-#+++ Save figure
-letterize(fig.axes[:3], x=0.05, y=0.92, fontsize=12, bbox=dict(boxstyle="square", facecolor="white", alpha=0.9))
-fig.savefig("../figures/global_dissipation.pdf", dpi=300, bbox_inches="tight", pad_inches=0)
 #---

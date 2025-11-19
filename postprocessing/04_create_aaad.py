@@ -39,7 +39,15 @@ for j, config in enumerate(runs):
     xyza = xr.open_dataset(f"data/xyza.{simname}.nc", chunks="auto")
     xyzd = xr.open_dataset(f"data/xyzd.{simname}.nc", chunks="auto")
 
+    # Only retain variables that are used elsewhere in this script
+    used_vars = {"ε̄ₚ", "ε̄ₖ", "ε̄ₛ", "SPR", "⟨Ek′⟩ₜ", "⟨w′b′⟩ₜ", "R̄o", "U∞∬⟨Ek′⟩ₜdydz", "damping_rate",
+                 "distance_condition_5meters", "distance_condition_10meters", "peripheral_nodes_ccc",
+                 "Δx_caa", "Δy_aca", "Δz_aac"}
+    xyza = xyza[[v for v in xyza.data_vars if v in used_vars]]
+    xyzd = xyzd[[v for v in xyzd.data_vars if v in used_vars]]
+
     xyza = xr.merge([xyza, xyzd], compat="no_conflicts")
+    print("Done loading datasets")
     #---
 
     #+++ Normalize Unicode variable names
@@ -56,7 +64,7 @@ for j, config in enumerate(runs):
     aaad.attrs = xyza.attrs
 
     # Volume integrations with both 5m and 10m buffers
-    for var in ["ε̄ₚ", "ε̄ₖ", "SPR", "⟨Ek′⟩ₜ", "⟨w′b′⟩ₜ"]:
+    for var in ["ε̄ₚ", "ε̄ₖ", "ε̄ₛ", "SPR", "⟨Ek′⟩ₜ", "⟨w′b′⟩ₜ"]:
         # 5-meter buffer integration
         int_buf_5m = f"∭⁵{var}dV"
         masked_dV_5m = xyza.ΔxΔyΔz.where(xyza.distance_condition_5meters)
@@ -71,7 +79,7 @@ for j, config in enumerate(runs):
     #---
 
     #+++ yz integrals of selected variables using buffer masks
-    for var in ["ε̄ₚ", "ε̄ₖ", "SPR", "⟨Ek′⟩ₜ", "⟨w′b′⟩ₜ"]:
+    for var in ["ε̄ₚ", "ε̄ₖ", "ε̄ₛ", "SPR", "⟨Ek′⟩ₜ", "⟨w′b′⟩ₜ"]:
         # 5-meter buffer yz integral
         int_yz_5m = f"∬⁵{var}dydz"
         masked_dydz_5m = xyza.ΔyΔz.where(xyza.distance_condition_5meters)
@@ -97,7 +105,7 @@ for j, config in enumerate(runs):
     #+++ Calculate masked vertical averages of turbulent quantities
     print("Computing masked vertical averages and integrals...")
     # Create vertical average datasets with both 5m and 10m buffers
-    for var in ["ε̄ₚ", "ε̄ₖ", "R̄o", "SPR", "⟨Ek′⟩ₜ", "⟨w′b′⟩ₜ"]:
+    for var in ["ε̄ₚ", "ε̄ₖ", "ε̄ₛ", "R̄o", "SPR", "⟨Ek′⟩ₜ", "⟨w′b′⟩ₜ"]:
         # 5-meter buffer vertical average
         masked_dz_5m = xyza.Δz_aac.where(xyza.distance_condition_5meters)
         vert_avg_name_5m = f"⟨{var}⟩ᶻ⁵"  # vertical average with 5m buffer

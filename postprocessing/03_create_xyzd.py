@@ -67,7 +67,9 @@ for j, config in enumerate(runs):
 
     #+++ Calculate flux of turbulent kinetic energy out of the domain
     xyzd["ΔyΔz"] = xyzi["Δy_aca"] * xyzi["Δz_aac"]
-    xyzd["U∞∬⟨Ek′⟩ₜdydz"] = xyzd.attrs["U∞"] * integrate(xyzd["⟨Ek′⟩ₜ"], dV=xyzd.ΔyΔz, dims=["y", "z"])
+    xyzd["U∞∬⟨Ek′⟩ₜdydz"] = xyzd.attrs["U∞"] * integrate(xyzd["⟨Ek′⟩ₜ"], dV=xyzd.ΔyΔz, dims=["y", "z"]) # Advective flux of TKE out of the domain
+
+    xyzd["ε̄ₛ"] = xyzi.damping_rate * xyzd["⟨Ek′⟩ₜ"] # Dissipation rate of TKE due to damping (proxy for propagation upwards)
     #---
 
     #+++ Drop variables that are not needed and save xyzd

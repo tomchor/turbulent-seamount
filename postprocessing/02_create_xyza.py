@@ -81,9 +81,8 @@ for j, config in enumerate(runs):
     t_slice_exclusive = slice(xyzi.T_adv_spinup + 0.01, np.inf) # For time-averaged outputs, we want to exclude t=T_adv_spinup
     x_slice = slice(None, xyzi.x_faa[-2] - 2*xyzi.Δx_faa.values.max()) # Cut off last two points
     y_slice = slice(None)
-    z_slice = slice(None, xyzi.z_aaf[-1] - xyzi.h_sponge) # Cut off top sponge
 
-    xyzi = xyzi.sel(time=t_slice_inclusive, x_caa=x_slice, x_faa=x_slice, y_aca=y_slice, y_afa=y_slice, z_aac=z_slice, z_aaf=z_slice)
+    xyzi = xyzi.sel(time=t_slice_inclusive, x_caa=x_slice, x_faa=x_slice, y_aca=y_slice, y_afa=y_slice)
     #---
     #---
 

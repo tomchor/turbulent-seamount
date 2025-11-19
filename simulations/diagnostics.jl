@@ -47,11 +47,12 @@ ScratchedField(n::Number) = ScratchedField(n * CenterField(grid))
 CellCenter = (Center, Center, Center) # Output everything on cell centers to make life easier
 u, v, w = model.velocities
 b = model.tracers.b
+p = sum(model.pressures)
 
 outputs_vels = Dict{Any, Any}(:u => (@at CellCenter u),
                               :v => (@at CellCenter v),
                               :w => (@at CellCenter w),)
-outputs_state_vars = merge(outputs_vels, Dict{Any, Any}(:b => b))
+outputs_state_vars = merge(outputs_vels, Dict{Any, Any}(:b => b, :p => p))
 #---
 
 #+++ CREATE SNAPSHOT OUTPUTS

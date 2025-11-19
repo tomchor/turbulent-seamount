@@ -314,12 +314,12 @@ end
 let
     h_sponge = 0.2 * params.Lz
     sponge_damping_rate = max(√params.N²∞, params.α * params.U∞ / h_sponge) / 10
-
     global params = merge(params, Base.@locals)
 end
 
 mask_top = PiecewiseLinearMask{:z}(center=params.Lz, width=params.h_sponge)
 w_sponge = Relaxation(rate=params.sponge_damping_rate, mask=mask_top, target=0)
+v_sponge = Relaxation(rate=params.sponge_damping_rate, mask=mask_top, target=0)
 u_sponge = Relaxation(rate=params.sponge_damping_rate, mask=mask_top, target=params.U∞)
 b_sponge = Relaxation(rate=params.sponge_damping_rate, mask=mask_top, target=b∞)
 #---
@@ -334,7 +334,7 @@ model = NonhydrostaticModel(grid = grid, timestepper = :RungeKutta3,
                             tracers = :b,
                             closure = closure,
                             boundary_conditions = bcs,
-                            forcing = (; u=u_sponge, v=Fᵥ, w=w_sponge, b=b_sponge),
+                            forcing = (; u=u_sponge, v=(v_sponge, Fᵥ), w=w_sponge, b=b_sponge),
                             hydrostatic_pressure_anomaly = CenterField(grid),
                             #pressure_solver = ConjugateGradientPoissonSolver(grid, preconditioner = fft_poisson_solver(grid.underlying_grid), maxiter = 100),
                             )

@@ -81,9 +81,9 @@ surface!(ax2, x_range, y_range, xyzi_2.bottom_height; colormap, colorrange)
 εₖ_2 = xyzi_2[variable][Ti=n_final]
 
 # Create heatmaps with log scale and inferno colormap
-hm1 = heatmap!(ax1_heat, x_range, z_range, εₖ_1, 
+hm1 = heatmap!(ax1_heat, x_range, z_range, εₖ_1,
                colormap = :inferno, colorscale = log10, colorrange = (1e-7, 1e-4))
-hm2 = heatmap!(ax2_heat, x_range, z_range, εₖ_2, 
+hm2 = heatmap!(ax2_heat, x_range, z_range, εₖ_2,
                colormap = :inferno, colorscale = log10, colorrange = (1e-7, 1e-4))
 
 # Add colorbars

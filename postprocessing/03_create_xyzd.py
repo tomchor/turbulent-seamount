@@ -55,7 +55,7 @@ for j, config in enumerate(runs):
     xyzi = adjust_times(xyzi, round_times=True)
     xyzi = xyzi.reindex_like(xyza)
 
-    xyzd = xyza[["b̄", "⟨wb⟩ₜ", "ūᵢ", "⟨uⱼuᵢ⟩ₜ", "∂ⱼūᵢ", "distance_condition_5meters", "distance_condition_10meters"]]
+    xyzd = xyza[["b̄", "⟨wb⟩ₜ", "ūᵢ", "⟨uⱼuᵢ⟩ₜ", "∂ⱼūᵢ", "distance_condition_5meters", "distance_condition_10meters", "damping_rate"]]
     #---
 
     #+++ Get turbulent variables

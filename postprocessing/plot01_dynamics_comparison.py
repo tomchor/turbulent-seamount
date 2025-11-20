@@ -71,7 +71,7 @@ for i, L_val in enumerate(L_values):
     ax_3d[i].set_xlabel("x [m]")
     ax_3d[i].set_ylabel("y [m]")
     ax_3d[i].set_zlabel("z [m]")
-    ax_3d[i].set_title(f"L/W = {ds.L}")
+    ax_3d[i].set_title(f"L/W = {ds.L.item()}")
     ax_3d[i].view_init(elev=25, azim=135)
     ax_3d[i].set_box_aspect((1, 1, 0.3))
 #---
@@ -130,7 +130,7 @@ for row_idx, config in enumerate(rows):
 #---
 
 #+++ Finalize
-fig.suptitle(f"Ro$_b$ = {datasets['0'].Ro_b}, Fr$_b$ = {datasets['0'].Fr_b}",
+fig.suptitle(f"Ro$_b$ = {datasets['0'].Ro_b.item()}, Fr$_b$ = {datasets['0'].Fr_b.item()}",
              fontsize=14, y=0.995)
 letterize(fig.axes[:6], x=0.05, y=0.9, fontsize=12,
           bbox=dict(boxstyle="square", facecolor="white", alpha=0.8))

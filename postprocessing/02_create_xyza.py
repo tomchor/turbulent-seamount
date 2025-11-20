@@ -24,7 +24,7 @@ if basename(__file__) != "00_run_postproc.py":
     simname_base = "balanus"
 
     Rossby_numbers = cycler(Ro_b = [0.1])
-    Froude_numbers = cycler(Fr_b = [1])
+    Froude_numbers = cycler(Fr_b = [0.8])
     L              = cycler(L = [0])
 
     resolutions    = cycler(dz = [8])

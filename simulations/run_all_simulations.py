@@ -4,8 +4,8 @@ from simulation_runner import run_simulation_batch
 #+++ Define run options
 # Define physical parameters
 Rossby_numbers = cycler(Ro_b = [0.1])
-Froude_numbers = cycler(Fr_b = [1])
 L              = cycler(L = [0, 0.05, 0.1, 0.2, 0.4, 0.8])
+Froude_numbers = cycler(Fr_b = [0.8])
 FWHM           = cycler(FWHM = [500])
 
 # Define numerical parameters

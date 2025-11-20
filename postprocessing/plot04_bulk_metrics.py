@@ -12,7 +12,7 @@ plt.rcParams["figure.constrained_layout.use"] = True
 simname_bases = ["balanus", "labanus"]
 
 Rossby_numbers = cycler(Ro_b = [0.1])
-Froude_numbers = cycler(Fr_b = [1])
+Froude_numbers = cycler(Fr_b = [0.8])
 L              = cycler(L = [0, 0.05, 0.1, 0.2, 0.4, 0.8])
 FWHM           = cycler(FWHM = [500, 500, 500, 500, 500, 500])
 

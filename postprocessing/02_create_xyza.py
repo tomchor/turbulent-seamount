@@ -19,7 +19,7 @@ configure_dask_for_performance(memory_fraction=0.3)
 print("Starting xyza dataset creation script")
 
 #+++ Define directory and simulation name
-if basename(__file__) != "00_run_postproc.py":
+if not basename(__file__).startswith("00_postproc_"):
     simdata_path = "../simulations/data/"
     simname_base = "balanus"
 

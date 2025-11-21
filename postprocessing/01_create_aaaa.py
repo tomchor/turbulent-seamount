@@ -14,7 +14,7 @@ xr.set_options(display_width=140, display_max_rows=30)
 print("Starting aaaa dataset creation script")
 
 #+++ Define directory and simulation name
-if not basename(__file__).startswith("00_run_post"):
+if not basename(__file__).startswith("00_postproc_"):
     simdata_path = "../simulations/data/"
     simname_base = "balanus"
 

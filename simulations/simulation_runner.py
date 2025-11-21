@@ -10,7 +10,7 @@ sys.path.append("..")
 from postprocessing.src.aux00_utils import aggregate_parameters
 
 #+++ Get submission options
-def get_submission_options(scheduler, job_size):
+def get_submission_options(scheduler, job_size, gpu_type=None):
     """
     Get PBS/SLURM submission options based on job size.
 
@@ -20,6 +20,8 @@ def get_submission_options(scheduler, job_size):
         Either "pbs" or "slurm"
     job_size : str
         One of "very_small", "small", or "big"
+    gpu_type : str, optional
+        GPU type to use (overrides default for job_size). Only used for PBS scheduler.
 
     Returns:
     --------
@@ -29,7 +31,9 @@ def get_submission_options(scheduler, job_size):
 
     if job_size == "very_small":
         if scheduler == "pbs":
-            options = ["select=1:ncpus=1:ngpus=1:gpu_type=v100:mem=50GB"]
+            default_gpu_type = "v100"
+            gpu_type_override = gpu_type if gpu_type is not None else default_gpu_type
+            options = [f"select=1:ncpus=1:ngpus=1:gpu_type={gpu_type_override}:mem=50GB"]
         elif scheduler == "slurm":
             options = ["--ntasks=1",
                        "--constraint=gpu",
@@ -39,7 +43,9 @@ def get_submission_options(scheduler, job_size):
 
     elif job_size == "small":
         if scheduler == "pbs":
-            options = ["select=1:ncpus=1:ngpus=1:gpu_type=cc80:mem=200GB"]
+            default_gpu_type = "cc80"
+            gpu_type_override = gpu_type if gpu_type is not None else default_gpu_type
+            options = [f"select=1:ncpus=1:ngpus=1:gpu_type={gpu_type_override}:mem=200GB"]
         elif scheduler == "slurm":
             options = ["--ntasks=1",
                        "--constraint=gpu",
@@ -49,7 +55,9 @@ def get_submission_options(scheduler, job_size):
 
     elif job_size == "big":
         if scheduler == "pbs":
-            options = ["select=1:ncpus=1:ngpus=1:gpu_type=h100:mem=200GB",
+            default_gpu_type = "h100"
+            gpu_type_override = gpu_type if gpu_type is not None else default_gpu_type
+            options = [f"select=1:ncpus=1:ngpus=1:gpu_type={gpu_type_override}:mem=200GB",
                        "job_priority=regular"]
         elif scheduler == "slurm":
             options = ["--ntasks=1",
@@ -141,7 +149,8 @@ def determine_job_size(modifiers):
 #+++ Run simulation batch
 def run_simulation_batch(runs, simname_base, julia_script, scheduler="pbs",
                          remove_checkpoints=False, only_one_job=False,
-                         dry_run=False, verbose=1, aux_filename="aux_submission_script.sh"):
+                         dry_run=False, verbose=1, aux_filename="aux_submission_script.sh",
+                         gpu_type=None):
     """
     Run a batch of simulations with the given parameters.
 
@@ -165,6 +174,8 @@ def run_simulation_batch(runs, simname_base, julia_script, scheduler="pbs",
         Verbosity level (0, 1, or 2)
     aux_filename : str
         Name for temporary submission script file
+    gpu_type : str, optional
+        GPU type to use (overrides default for job_size). Only used for PBS scheduler.
     """
 
     # Load template
@@ -185,7 +196,7 @@ def run_simulation_batch(runs, simname_base, julia_script, scheduler="pbs",
 
         # Determine job size and get submission options
         job_size = determine_job_size(modifiers)
-        options_string = get_submission_options(scheduler, job_size)
+        options_string = get_submission_options(scheduler, job_size, gpu_type=gpu_type)
         cmd1 = get_submission_command(scheduler, job_size, aux_filename, only_one_job)
 
         # Create submission script

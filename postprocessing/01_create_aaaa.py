@@ -50,9 +50,9 @@ for j, config in enumerate(runs):
     aaai = aaai.sel(time=t_slice_inclusive)
 
     aaai["Ĥ"] = aaai.bottom_height.max()
-    aaai = aaai.drop(["peripheral_nodes_ccc", "peripheral_nodes_ccf", "peripheral_nodes_cfc", "peripheral_nodes_fcc",
-                      "x_caa", "x_faa", "y_aca", "y_afa", "z_aac", "z_aaf",
-                      "Δx_caa", "Δx_faa", "Δy_aca", "Δy_afa", "Δz_aac", "Δz_aaf", "bottom_height"])
+    aaai = aaai.drop_vars(["peripheral_nodes_ccc", "peripheral_nodes_ccf", "peripheral_nodes_cfc", "peripheral_nodes_fcc",
+                           "x_caa", "x_faa", "y_aca", "y_afa", "z_aac", "z_aaf",
+                           "Δx_caa", "Δx_faa", "Δy_aca", "Δy_afa", "Δz_aac", "Δz_aaf", "bottom_height"])
     #---
 
     #+++ Time-average aaai
@@ -64,6 +64,7 @@ for j, config in enumerate(runs):
     aaaa = gather_attributes_as_variables(aaaa)
     with ProgressBar(minimum=5, dt=5):
         print(f"Saving results to {outname}...")
+        aaaa = aaaa.drop_encoding()
         aaaa.to_netcdf(outname)
         print("Done!\n")
     aaaa.close()

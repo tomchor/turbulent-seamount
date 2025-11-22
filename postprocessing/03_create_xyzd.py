@@ -64,19 +64,11 @@ for j, config in enumerate(runs):
     xyzd = get_shear_production_rates(xyzd)
     #---
 
-    #+++ Calculate flux of turbulent kinetic energy out of the domain
-    xyzd["ΔyΔz"] = xyzi["Δy_aca"] * xyzi["Δz_aac"]
-    xyzd["U∞∬⟨Ek′⟩ₜdydz"] = xyzd.attrs["U∞"] * integrate(xyzd["⟨Ek′⟩ₜ"], dV=xyzd.ΔyΔz, dims=["y", "z"]) # Advective flux of TKE out of the domain
-
-    xyzd["ΔxΔy"] = xyzi["Δx_caa"] * xyzi["Δy_aca"]
-    xyzd["∬⟨wp⟩ₜdxdy"] = integrate(xyza["⟨wp⟩ₜ"], dV=xyzd.ΔxΔy, dims=["x", "y"])
-
-
+    #+++ Calculate dissipation rate
     xyzd["ε̄ₛ"] = xyzi.damping_rate * xyzd["⟨Ek′⟩ₜ"] # Dissipation rate of TKE due to damping (proxy for propagation upwards)
     #---
 
     #+++ Drop variables that are not needed and save xyzd
-    xyzd = xyzd.drop(["⟨wb⟩ₜ"])
     outname = f"data/xyzd.{simname}.nc"
     xyzd = gather_attributes_as_variables(xyzd)
     with ProgressBar(minimum=5, dt=5):

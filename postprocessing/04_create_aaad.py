@@ -39,9 +39,9 @@ for j, config in enumerate(runs):
     xyzd = xr.open_dataset(f"data/xyzd.{simname}.nc", chunks="auto")
 
     # Only retain variables that are used elsewhere in this script
-    used_vars = {"ε̄ₚ", "ε̄ₖ", "ε̄ₛ", "SPR", "⟨Ek′⟩ₜ", "⟨w′b′⟩ₜ", "R̄o", "U∞∬⟨Ek′⟩ₜdydz", "damping_rate",
+    used_vars = {"ε̄ₚ", "ε̄ₖ", "ε̄ₛ", "SPR", "⟨Ek′⟩ₜ", "⟨w′b′⟩ₜ", "R̄o", "damping_rate",
                  "distance_condition_5meters", "distance_condition_10meters", "peripheral_nodes_ccc",
-                 "Δx_caa", "Δy_aca", "Δz_aac"}
+                 "Δx_caa", "Δy_aca", "Δz_aac", "⟨wp⟩ₜ"}
     xyza = xyza[[v for v in xyza.data_vars if v in used_vars]]
     xyzd = xyzd[[v for v in xyzd.data_vars if v in used_vars]]
 
@@ -124,7 +124,8 @@ for j, config in enumerate(runs):
     #---
 
     #+++ Create aaad dataset
-    aaad["U∞∬⟨Ek′⟩ₜdxdz"] = xyza["U∞∬⟨Ek′⟩ₜdydz"]
+    aaad["U∞∬⟨Ek′⟩ₜdydz"] = xyza.attrs["U∞"] * integrate(xyza["⟨Ek′⟩ₜ"], dV=xyza.ΔyΔz, dims=["y", "z"]) # Advective flux of TKE out of the domain
+    aaad["∬⟨wp⟩ₜdxdy"]    = integrate(xyza["⟨wp⟩ₜ"], dV=xyza.ΔxΔy, dims=["x", "y"])
     aaad["⟨ε̄ₖ⟩ᵋ"]         = aaad["∭ᵋε̄ₖdV"] / aaad["∭ᵋ1dV"]
     aaad["Loᵋ"]           = 2*π * np.sqrt(aaad["⟨ε̄ₖ⟩ᵋ"] / aaad.N2_inf**(3/2))
     aaad["Δz̃"]            = aaad.Δz_min / aaad["Loᵋ"]

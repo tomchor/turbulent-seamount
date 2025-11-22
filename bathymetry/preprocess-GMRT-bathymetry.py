@@ -160,9 +160,6 @@ ringed_periodic_elevation = ds.detrended_elevation.where(ds.distance_from_peak <
 ds["periodic_elevation"] = interpolate_2d_scipy(ringed_periodic_elevation)
 
 ds = ds.drop_vars(["detrended_elevation", "distance_from_peak"])
-
-# Coarsen to reduce points by half in x and y directions
-ds = ds.coarsen(x=2, y=2).mean()
 #---
 
 #+++ Extend the dataset in x and y directions using native xarray functions

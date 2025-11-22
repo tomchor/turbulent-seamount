@@ -24,10 +24,9 @@ if not basename(__file__).startswith("00_postproc_"):
     Froude_numbers = cycler(Fr_b = [0.8])
     L              = cycler(L = [0])
 
-    resolutions    = cycler(dz = [8])
-    FWHM           = cycler(FWHM = [500])
+    resolutions    = cycler(dz = [2])
 
-    paramspace = Rossby_numbers * Froude_numbers * (L + FWHM)
+    paramspace = Rossby_numbers * Froude_numbers * L
     configs    = resolutions
 
     runs = paramspace * configs
@@ -55,7 +54,7 @@ for j, config in enumerate(runs):
     xyzi = adjust_times(xyzi, round_times=True)
     xyzi = xyzi.reindex_like(xyza)
 
-    xyzd = xyza[["b̄", "⟨wb⟩ₜ", "ūᵢ", "⟨uⱼuᵢ⟩ₜ", "∂ⱼūᵢ", "distance_condition_5meters", "distance_condition_10meters", "damping_rate"]]
+    xyzd = xyza[["b̄", "⟨wb⟩ₜ", "ūᵢ", "⟨uⱼuᵢ⟩ₜ", "∂ⱼūᵢ", "p̄", "distance_condition_5meters", "distance_condition_10meters", "damping_rate"]]
     #---
 
     #+++ Get turbulent variables
@@ -70,6 +69,11 @@ for j, config in enumerate(runs):
     xyzd["U∞∬⟨Ek′⟩ₜdydz"] = xyzd.attrs["U∞"] * integrate(xyzd["⟨Ek′⟩ₜ"], dV=xyzd.ΔyΔz, dims=["y", "z"]) # Advective flux of TKE out of the domain
 
     xyzd["ε̄ₛ"] = xyzi.damping_rate * xyzd["⟨Ek′⟩ₜ"] # Dissipation rate of TKE due to damping (proxy for propagation upwards)
+
+    no_sponge_top = xyza.Lz - xyza.h_sponge
+    wp_top = (xyza["ūᵢ"].sel(i=3) * xyza.p).pnsel(z=no_sponge_top, method="ffill")
+    xyzd["ΔxΔy"] = xyzi["Δx_caa"] * xyzi["Δy_aca"]
+    xyzd["∬⟨wp⟩ₜdxdy"] = integrate(wp_top, dV=xyzd.ΔxΔy, dims=["x", "y"])
     #---
 
     #+++ Drop variables that are not needed and save xyzd

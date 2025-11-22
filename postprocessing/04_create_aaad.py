@@ -22,10 +22,9 @@ if not basename(__file__).startswith("00_postproc_"):
     Froude_numbers = cycler(Fr_b = [0.8])
     L              = cycler(L = [0])
 
-    resolutions    = cycler(dz = [4])
-    FWHM           = cycler(FWHM = [500])
+    resolutions    = cycler(dz = [2])
 
-    paramspace = Rossby_numbers * Froude_numbers * (L + FWHM)
+    paramspace = Rossby_numbers * Froude_numbers * L
     configs    = resolutions
 
     runs = paramspace * configs

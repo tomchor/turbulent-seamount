@@ -14,9 +14,12 @@ simdata_path = "../simulations/data/"
 postproc_path = "../postprocessing/data/"
 simname_base = "balanus"
 Ro_b = 0.1
-Fr_b = 1
-resolution = 1
+Fr_b = 0.8
+FWHM = 1000
+Lx = 9000
+Ly = 4000
 buffer = 5
+resolution = 2
 #---
 
 #+++ Load datasets
@@ -30,7 +33,7 @@ L_values = ["0", "0.8"]
 datasets = {}
 
 for L_val in L_values:
-    simname = f"{simname_base}_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_val}_FWHM500_dz{resolution}"
+    simname = f"{simname_base}_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_val}_FWHM{FWHM}_Lx{Lx}_Ly{Ly}_dz{resolution}"
 
     xyzi = open_simulation(f"{simdata_path}xyzi.{simname}.nc", **dataset_opts)
     aaad = open_simulation(f"{postproc_path}aaad.{simname}.nc", **avgd_opts).sel(buffer=buffer)
@@ -40,8 +43,8 @@ for L_val in L_values:
 
 # Extract parameters
 H = datasets["0"].H
-FWHM = datasets["0"].FWHM
-extent = 1.3 * FWHM
+FWHM_actual = datasets["0"].FWHM
+extent = 1.3 * FWHM_actual
 #---
 
 #+++ Create figure
@@ -77,8 +80,6 @@ for i, L_val in enumerate(L_values):
 #---
 
 #+++ Plot 2D fields
-yticks = [-1000, -500, 0, 500, 1000]
-
 # Row configurations
 rows = [
     dict(var="PV", label="Potential vorticity", cmap="RdBu_r",
@@ -114,7 +115,6 @@ for row_idx, config in enumerate(rows):
 
         ax.set_xlabel(config["xlabel"])
         ax.set_ylabel("y [m]" if col_idx == 0 else "")
-        ax.set_yticks(yticks)
         ax.set_aspect("equal")
         ax.set_title("")
 
@@ -130,13 +130,14 @@ for row_idx, config in enumerate(rows):
 #---
 
 #+++ Finalize
-delta = H.item() / FWHM.item()
+delta = H.item() / FWHM_actual.item()
 fig.suptitle(f"Ro$_b$ = {datasets['0'].Ro_b.item()}, Fr$_b$ = {datasets['0'].Fr_b.item()}, $\delta$ = {delta:.1f}",
              fontsize=14, y=0.995)
 letterize(fig.axes[:6], x=0.05, y=0.9, fontsize=12,
           bbox=dict(boxstyle="square", facecolor="white", alpha=0.8))
 
-output_path = f"../figures/{simname_base}_dynamics_comparison_L0_vs_L08_dz{resolution}_buffer{buffer}.pdf"
+output_path = f"../figures/{simname_base}_flat_dynamics_comparison_L0_vs_L08_dz{resolution}_buffer{buffer}.pdf"
 fig.savefig(output_path, dpi=300, bbox_inches="tight")
 print(f"Saved plot to {output_path}")
 #---
+

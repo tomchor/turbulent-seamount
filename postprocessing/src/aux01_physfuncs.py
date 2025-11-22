@@ -164,6 +164,7 @@ def temporal_average(ds, rename_dict=None, normalize_unicode=True):
                        "uⱼuᵢ"    : "⟨uⱼuᵢ⟩ₜ",
                        "uᵢuᵢ"    : "⟨uᵢuᵢ⟩ₜ",
                        "wb"      : "⟨wb⟩ₜ",
+                       "wp"      : "⟨wp⟩ₜ",
                        "∂ⱼuᵢ"    : "∂ⱼūᵢ",
                        "εₖ"      : "ε̄ₖ",
                        "εₚ"      : "ε̄ₚ",

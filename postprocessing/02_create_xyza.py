@@ -90,11 +90,19 @@ for j, config in enumerate(runs):
     xyzi = condense_velocities(xyzi, indices=indices)
     xyzi = condense_velocity_gradient_tensor(xyzi, indices=indices)
     xyzi = condense_reynolds_stress_tensor(xyzi, indices=indices)
-    print("Computing temporal average...")
+    #---
 
+    #+++ Get wp at top of domain
+    pre_sponge_top = xyzi.Lz - xyzi.h_sponge
+    top_sel = dict(z_aac=pre_sponge_top, method="ffill")
+    xyzi["wp"] = (xyzi["uᵢ"].sel(i=3).sel(**top_sel) * xyzi.p.sel(**top_sel))
+    #---
+
+    #+++ Time-average xyzi
     # Drop some variables that are not needed
     xyzi = xyzi.drop_vars(["ω_x", "κ", "Ri", "peripheral_nodes_ccf", "peripheral_nodes_cfc", "peripheral_nodes_fcc"])
 
+    print("Computing temporal average...")
     xyza = temporal_average(xyzi)
     print("✓ Completed xyzi processing")
     #---

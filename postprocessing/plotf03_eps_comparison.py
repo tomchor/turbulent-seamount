@@ -12,10 +12,13 @@ simdata_path = "../simulations/data/"
 postproc_path = "data/"
 Ro_b = 0.1
 Fr_b = 0.8
+FWHM = 1000
+Lx = 9000
+Ly = 4000
 L_rough = 0
 L_smooth = 0.8
-buffer = 5
-resolution = 1
+buffer = 10
+resolution = 2
 t_slice = 20
 #---
 
@@ -30,7 +33,7 @@ variables_xy = ["∫ε̄ₖdz", "∫ε̄ₚdz"]
 
 datasets = {}
 for L_value, L_key in [(L_rough, "rough"), (L_smooth, "smooth")]:
-    simulation_name = f"{simname_base}_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_value}_dz{resolution}"
+    simulation_name = f"{simname_base}_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_value}_FWHM{FWHM}_Lx{Lx}_Ly{Ly}_dz{resolution}"
 
     xyza_dataset = open_simulation(f"{postproc_path}xyza.{simulation_name}.nc", **averaged_options)
     xyza_dataset = condense(xyza_dataset, ["∫⁵εₖdy", "∫¹⁰εₖdy"], "∫εₖdy", dimname="buffer", indices=[5, 10])
@@ -101,7 +104,7 @@ for row_idx, config in enumerate(rows):
             kwargs["y"] = "z_aac"
             im = ds[config["var"]].plot(**kwargs)
             ylabel = "z [m]"
-            ax.set_aspect(12)
+            ax.set_aspect(24)
 
         # Set common x-limits for all plots
         ax.set_xlim(x_min, x_max)
@@ -126,7 +129,8 @@ for row_idx, config in enumerate(rows):
 
 #+++ Save
 letterize(axes.flatten(), x=0.05, y=0.9, fontsize=9)
-fig.savefig(f"../figures/{simname_base}_eps_comparison_buffer{buffer}m_dz{resolution}.pdf",
+fig.savefig(f"../figures/{simname_base}_flat_eps_comparison_buffer{buffer}m_dz{resolution}.pdf",
             dpi=300, bbox_inches="tight", pad_inches=0)
 print("Done!")
 #---
+

@@ -9,15 +9,18 @@ from src.aux00_utils import merge_datasets, condense
 plt.rcParams["figure.constrained_layout.use"] = True
 
 #+++ Define simulation parameters
-simname_bases = ["balanus", "labanus"]
+simname_bases = ["balanus"]
 
 Rossby_numbers = cycler(Ro_b = [0.1])
 Froude_numbers = cycler(Fr_b = [0.8])
 L              = cycler(L = [0, 0.05, 0.1, 0.2, 0.4, 0.8])
+FWHM           = cycler(FWHM = [1000])
+Lx             = cycler(Lx = [9000])
+Ly             = cycler(Ly = [4000])
 
-resolutions    = cycler(dz = [1])
+resolutions    = cycler(dz = [2])
 
-paramspace = Rossby_numbers * Froude_numbers * L
+paramspace = Rossby_numbers * Froude_numbers * L * FWHM * Lx * Ly
 configs    = resolutions
 
 runs = paramspace * configs
@@ -40,7 +43,10 @@ for simname_base in simname_bases:
                           combine_by_coords_kwargs=dict(compat="override", combine_attrs="drop_conflicts", coords="minimal"))
     aaad = aaad.reindex(Ro_b = list(reversed(aaad.Ro_b)))
 
-    aaaa = xr.merge([aaaa, aaad], compat="override")
+    xyzd = merge_datasets(runs, base_name=f"xyzd.{simname_base}", verbose=True, add_min_spacings=False, keep_vars=["∬⟨wp⟩ₜdxdy"],
+                          combine_by_coords_kwargs=dict(compat="override", combine_attrs="drop_conflicts", coords="minimal"))
+
+    aaaa = xr.merge([aaaa, aaad, xyzd], compat="override")
 
     # Condense buffer variables
     for var in ["ε̄ₚ", "ε̄ₖ"]:
@@ -62,7 +68,7 @@ for simname_base in simname_bases:
     aaaa["𝒦⁵"] = (aaaa["∭ᵇε̄ₚdV"] / aaaa["N²∞"]) / (aaaa["U∞"] * aaaa.FWHM**2 * aaaa.H**2)
 
     # Add metadata
-    aaaa["ℰₖ"].attrs = dict(long_name=r"KE dissipation rate $\mathcal{E}_k$")
+    aaaa["ℰₖ"].attrs = dict(long_name=r"TKE dissipation rate $\mathcal{E}_k$")
     aaaa["ℰₚ"].attrs = dict(long_name=r"Buoyancy dissipation rate $\mathcal{E}_p$")
     # aaaa["ℰₛ"].attrs = dict(long_name=r"Sponge dissipation rate $\mathcal{E}_s$")
     aaaa["ℬ"].attrs = dict(long_name=r"Turbulent buoyancy flux $\mathcal{B}$")
@@ -83,21 +89,20 @@ print("\nData processing complete!")
 fig, ax = plt.subplots(figsize=(7, 5))
 
 # Variables to plot
-variables = ["ℰₖ", "ℰₚ", "𝒲"]
+variables = ["ℰₖ", "ℰₚ", "𝒮", "𝒯", "𝒲"]
 colors = ["blue", "red", "green", "orange", "purple", "brown", "cyan"]
 
 # Marker styles for each simulation
 markers = {"balanus": "o", "labanus": "x"}
 marker_sizes = {"balanus": 6, "labanus": 8}
 
-# Plot each variable for both simulations
+# Plot each variable
 for var_name, color in zip(variables, colors):
     for i, (simname, aaaa) in enumerate(datasets.items()):
         variable_da = aaaa[var_name]
         label = variable_da.attrs["long_name"] if i == 0 else None  # Only label once per variable
-        alpha = 0.5 if simname == "labanus" else 1.0
         variable_da.plot.scatter(ax=ax, x="L", label=label, color=color,
-                                 marker=markers[simname], s=marker_sizes[simname]**2, alpha=alpha)
+                                 marker=markers[simname], s=marker_sizes[simname]**2, alpha=1.0)
 
 # Create custom legend with both variables and markers
 from matplotlib.lines import Line2D
@@ -108,8 +113,7 @@ var_legend = ax.legend(fontsize=11, loc="upper right", framealpha=0.4)
 
 # Add marker legend
 marker_handles = [
-    Line2D([0], [0], marker="o", color="gray", linestyle="None", markersize=6, label="Original Balanus"),
-    Line2D([0], [0], marker="x", color="gray", linestyle="None", markersize=8, label="90° rotated Balanus")
+    Line2D([0], [0], marker="o", color="gray", linestyle="None", markersize=6, label="Flat Balanus"),
 ]
 marker_legend = ax.legend(handles=marker_handles, fontsize=11, loc="lower left", framealpha=0.4)
 
@@ -125,10 +129,12 @@ Fr_b_val = datasets["balanus"].Fr_b.item()
 delta_val = datasets["balanus"].H.item() / datasets["balanus"].FWHM.item()
 ax.set_title(f"$Ro_b$={Ro_b_val}, $Fr_b$={Fr_b_val}, $\delta$ = {delta_val:.1f}", fontsize=14)
 ax.grid(True, which="both", alpha=0.3)
+
 #+++ Save figure
 dz_val = datasets["balanus"].dz.item()
 buffer_val = datasets["balanus"].buffer.item()
-figure_name = f"../figures/bulk_metrics_comparison_dz{dz_val}_buffer{buffer_val}.pdf"
+figure_name = f"../figures/bulk_metrics_flat_comparison_dz{dz_val}_buffer{buffer_val}.pdf"
 plt.savefig(figure_name, dpi=300, bbox_inches="tight")
 print(f"Figure saved to: {figure_name}")
 #---
+

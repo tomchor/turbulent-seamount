@@ -15,7 +15,7 @@ Rossby_numbers = cycler(Ro_b = [0.1])
 Froude_numbers = cycler(Fr_b = [0.8])
 L              = cycler(L = [0, 0.05, 0.1, 0.2, 0.4, 0.8])
 
-resolutions    = cycler(dz = [1])
+resolutions    = cycler(dz = [2])
 
 paramspace = Rossby_numbers * Froude_numbers * L
 configs    = resolutions

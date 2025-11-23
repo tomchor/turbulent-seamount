@@ -14,8 +14,8 @@ Ro_b = 0.1
 Fr_b = 0.8
 L_rough = 0
 L_smooth = 0.8
-buffer = 5
-resolution = 1
+buffer = 10
+resolution = 2
 t_slice = 20
 #---
 

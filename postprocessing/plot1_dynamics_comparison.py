@@ -15,8 +15,8 @@ postproc_path = "../postprocessing/data/"
 simname_base = "balanus"
 Ro_b = 0.1
 Fr_b = 1
-resolution = 1
 buffer = 5
+resolution = 2
 #---
 
 #+++ Load datasets

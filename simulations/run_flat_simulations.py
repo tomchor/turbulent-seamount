@@ -30,6 +30,6 @@ run_simulation_batch(
     dry_run = False,
     verbose = 1,
     aux_filename = "aux_submission_script.sh",
-    gpu_type = "a100_80gb"  # Set to desired GPU type (e.g., "a100_80gb", "cc80", "h100") to override defaults
+    gpu_type = "a100_80gb" # Set to desired GPU type (e.g., "a100_80gb", "cc80", "h100") to override defaults
 )
 #---

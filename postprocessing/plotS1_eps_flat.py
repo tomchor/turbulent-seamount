@@ -67,6 +67,10 @@ for L_value, L_key in [(L_rough, "reg_L0"), (L_smooth, "reg_L08")]:
     for variable_name in variables_xy:
         dataset[f"{variable_name}_normalized"] = dataset[variable_name] / seamount_height
 
+    # Normalize x and y coordinates by FWHM
+    dataset["x_caa_normalized"] = dataset.x_caa / full_width_half_maximum
+    dataset["y_aca_normalized"] = dataset.y_aca / full_width_half_maximum
+
     datasets[L_key] = dataset
 
 # Load flat balanus datasets
@@ -98,13 +102,17 @@ for L_value, L_key in [(L_rough, "flat_L0"), (L_smooth, "flat_L08")]:
     for variable_name in variables_xy:
         dataset[f"{variable_name}_normalized"] = dataset[variable_name] / seamount_height
 
+    # Normalize x and y coordinates by FWHM
+    dataset["x_caa_normalized"] = dataset.x_caa / full_width_half_maximum
+    dataset["y_aca_normalized"] = dataset.y_aca / full_width_half_maximum
+
     datasets[L_key] = dataset
 
 print("Data loaded!")
 #---
 
 #+++ Create figure and subplots
-fig, axes = plt.subplots(ncols=2, nrows=2, figsize=(10, 9), gridspec_kw=dict(hspace=0.15, wspace=0.05), sharex=True, sharey="row")
+fig, axes = plt.subplots(ncols=2, nrows=2, figsize=(9, 5), gridspec_kw=dict(hspace=0.15, wspace=0.05), sharex=True, sharey="row")
 #---
 
 #+++ Plot variables
@@ -112,7 +120,7 @@ fig, axes = plt.subplots(ncols=2, nrows=2, figsize=(10, 9), gridspec_kw=dict(hsp
 # Row 1: Flat balanus (L=0 left, L=0.8 right)
 # All panels show xy view of epsilon_k (∫ε̄ₖdz)
 
-plot_config = dict(var="∫ε̄ₖdz_normalized", label="∫ε̄ₖdz / H [m²/s³]", norm=LogNorm(vmin=2e-10, vmax=1e-7))
+plot_config = dict(var="∫ε̄ₖdz_normalized", label="∫ε̄ₖdz / H [m²/s³]", norm=LogNorm(vmin=1e-10, vmax=1e-7))
 
 # Dataset keys: (row_idx, col_idx) -> dataset_key
 dataset_map = {
@@ -122,40 +130,49 @@ dataset_map = {
     (1, 1): "flat_L08", # Flat balanus, L=0.8
 }
 
-# Determine common x-limits and y-limits from all datasets
-x_min = min([ds.x_caa.min().values for ds in datasets.values()])
-x_max = max([ds.x_caa.max().values for ds in datasets.values()])
-y_min = min([ds.y_aca.min().values for ds in datasets.values()])
-y_max = max([ds.y_aca.max().values for ds in datasets.values()])
+# Determine common normalized x-limits and y-limits from all datasets
+x_min = min([ds.x_caa_normalized.min().values for ds in datasets.values()])
+x_max = max([ds.x_caa_normalized.max().values for ds in datasets.values()])
+y_min = min([ds.y_aca_normalized.min().values for ds in datasets.values()])
+y_max = max([ds.y_aca_normalized.max().values for ds in datasets.values()])
 
 print("Plotting...")
+# Store delta values for each row
+delta_values = {}
+
 for row_idx in range(2):
     for col_idx in range(2):
         ax = axes[row_idx, col_idx]
         ds_key = dataset_map[(row_idx, col_idx)]
         ds = datasets[ds_key]
 
-        # Plot xy view
+        # Calculate and store delta (H/W) from dataset
+        delta = ds.H.item() / ds.FWHM.item()
+        if col_idx == 0:
+            delta_values[row_idx] = delta
+
+        # Create a temporary dataset with normalized coordinates for plotting
+        ds_plot = ds.assign_coords(x_caa=ds.x_caa_normalized, y_aca=ds.y_aca_normalized)
+
+        # Plot xy view using normalized coordinates
         kwargs = dict(ax=ax, x="x_caa", cmap="inferno", norm=plot_config["norm"],
                       add_colorbar=False, rasterized=True)
-        im = ds[plot_config["var"]].plot.imshow(**kwargs)
+        im = ds_plot[plot_config["var"]].plot.imshow(**kwargs)
 
         ax.set_aspect(1)
         ax.set_xlim(x_min, x_max)
         ax.set_ylim(y_min, y_max)
-        
-        # Titles: L values in top row
+
+        # Titles: L values for columns in top row
         if row_idx == 0:
             L_str = str(L_rough) if col_idx == 0 else str(L_smooth)
             ax.set_title(f"$L/W = {L_str}$")
-        
+        else:
+            ax.set_title("")
+
         # Labels
-        ax.set_xlabel("x [m]" if row_idx == 1 else "")
-        ax.set_ylabel("y [m]" if col_idx == 0 else "")
-        if col_idx > 0:
-            ax.set_yticklabels([])
-        if row_idx == 0:
-            ax.set_xticklabels([])
+        ax.set_xlabel("$x/W$" if row_idx == 1 else "")
+        ax.set_ylabel("$y/W$" if col_idx == 0 else "")
 
     # Colorbar for each row
     cax = axes[row_idx, 1].inset_axes([0.75, 0.1, 0.03, 0.8],
@@ -169,7 +186,7 @@ for row_idx in range(2):
 
 #+++ Save
 letterize(axes.flatten(), x=0.05, y=0.9, fontsize=9)
-fig.savefig(f"../figures/{simname_base}_eps_k_comparison_buffer{buffer}m_dz{resolution}.pdf",
+fig.savefig(f"../figures/{simname_base}_eps_flat_comparison_buffer{buffer}m_dz{resolution}.pdf",
             dpi=300, bbox_inches="tight", pad_inches=0)
 print("Done!")
 #---

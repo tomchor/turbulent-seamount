@@ -11,7 +11,7 @@ plt.rcParams["figure.constrained_layout.use"] = True
 #+++ Define simulation parameters
 # Regular balanus parameters (from plot04_bulk_metrics.py)
 Rossby_numbers = cycler(Ro_b = [0.1])
-Froude_numbers = cycler(Fr_b = [0.8])
+Froude_numbers = cycler(Fr_b = [1])
 L              = cycler(L = [0, 0.05, 0.1, 0.2, 0.4, 0.8])
 resolutions    = cycler(dz = [2])
 
@@ -58,7 +58,9 @@ aaaa["γ"] = aaaa["∭ᵇε̄ₚdV"] / (aaaa["∭ᵇε̄ₚdV"] + aaaa["∭ᵇε
 aaaa["RoFr"] = aaaa.Ro_b * aaaa.Fr_b
 
 # Normalized dissipation rates
-dtKE_scaling = aaaa.attrs["U∞"]**3 * aaaa.FWHM**2 # Assume ε̄ₖ scales as U^3 / H
+eps_scale = aaaa.attrs["U∞"]**3 / aaaa.H
+int_scale = aaaa.FWHM**2 * aaaa.H
+dtKE_scaling = eps_scale * int_scale
 aaaa["ℰₖ"] = aaaa["∭ᵇε̄ₖdV"] / dtKE_scaling
 aaaa["ℰₚ"] = aaaa["∭ᵇε̄ₚdV"] / dtKE_scaling
 aaaa["𝒲"] = aaaa["∬⟨wp⟩ₜdxdy"] / dtKE_scaling / 1e3 # divide by 1e3 to convert pressure from kinetic to dynamic
@@ -156,7 +158,7 @@ marker_handles = [
     Line2D([0], [0], marker=markers["balanus_reg"], color="gray", linestyle="None", markersize=6, label=f"$\delta = {delta_reg:.1f}$"),
     Line2D([0], [0], marker=markers["balanus_flat"], color="gray", linestyle="None", markersize=6, label=f"$\delta = {delta_flat:.1f}$"),
 ]
-marker_legend = ax.legend(handles=marker_handles, fontsize=11, loc="lower left", framealpha=0.4)
+marker_legend = ax.legend(handles=marker_handles, fontsize=11, loc="upper center", framealpha=0.4)
 
 # Add back the variable legend
 ax.add_artist(var_legend)

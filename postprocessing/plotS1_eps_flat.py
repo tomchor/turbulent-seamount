@@ -13,7 +13,7 @@ postproc_path = "data/"
 
 # Regular balanus parameters (from run_all_simulations.py)
 Ro_b = 0.1
-Fr_b = 0.8
+Fr_b = 1
 
 # Flat balanus parameters (from plotS1_eps_flat.py)
 FWHM_flat = 1000
@@ -22,9 +22,9 @@ Ly_flat = 4000
 
 L_rough = 0
 L_smooth = 0.8
-buffer = 10
+buffer = 5
 resolution = 2
-t_slice = 20
+t_slice = np.inf
 #---
 
 #+++ Load datasets
@@ -120,7 +120,7 @@ fig, axes = plt.subplots(ncols=2, nrows=2, figsize=(9, 5), gridspec_kw=dict(hspa
 # Row 1: Flat balanus (L=0 left, L=0.8 right)
 # All panels show xy view of epsilon_k (∫ε̄ₖdz)
 
-plot_config = dict(var="∫ε̄ₖdz_normalized", label="∫ε̄ₖdz / H [m²/s³]", norm=LogNorm(vmin=1e-10, vmax=1e-7))
+plot_config = dict(var="∫ε̄ₖdz_normalized", label="∫ε̄ₖdz / H [m²/s³]", norm=LogNorm(vmin=5e-10, vmax=1e-7))
 
 # Dataset keys: (row_idx, col_idx) -> dataset_key
 dataset_map = {
@@ -182,6 +182,10 @@ for row_idx in range(2):
     plt.setp(cbar.ax.yaxis.get_ticklabels(), color="white")
     cbar.ax.yaxis.label.set_color("white")
     cbar.outline.set_edgecolor("white")
+#---
+
+#+++ Add suptitle
+fig.suptitle(f"$Ro_b = {Ro_b}$, $Fr_b = {Fr_b}$", fontsize=14, y=0.98)
 #---
 
 #+++ Save

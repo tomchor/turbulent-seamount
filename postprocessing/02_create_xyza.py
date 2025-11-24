@@ -9,12 +9,11 @@ from src.aux00_utils import (open_simulation, adjust_times, aggregate_parameters
                              condense_velocities, condense_velocity_gradient_tensor, condense_reynolds_stress_tensor,
                              configure_dask_for_performance)
 from src.aux01_physfuncs import temporal_average
-from colorama import Fore, Back, Style
+from colorama import Fore, Style
 from dask.diagnostics import ProgressBar
-xr.set_options(display_width=140, display_max_rows=30)
 
 # Configure dask for optimal performance
-configure_dask_for_performance(memory_fraction=0.3)
+configure_dask_for_performance(memory_fraction=0.4)
 
 print("Starting xyza dataset creation script")
 
@@ -99,8 +98,8 @@ for j, config in enumerate(runs):
     #---
 
     #+++ Time-average xyzi
-    # Drop some variables that are not needed
-    xyzi = xyzi.drop_vars(["ω_x", "κ", "Ri", "peripheral_nodes_ccf", "peripheral_nodes_cfc", "peripheral_nodes_fcc"])
+    # Drop some variables whose time-average is not needed
+    xyzi = xyzi.drop_vars(["ω_x", "κ", "Ri", "p", "peripheral_nodes_ccf", "peripheral_nodes_cfc", "peripheral_nodes_fcc"])
 
     print("Computing temporal average...")
     xyza = temporal_average(xyzi)

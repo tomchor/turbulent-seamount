@@ -68,7 +68,7 @@ for j, config in enumerate(runs):
     xyzd["ε̄ₛ"] = xyzi.damping_rate * xyzd["⟨Ek′⟩ₜ"] # Dissipation rate of TKE due to damping (proxy for propagation upwards)
     #---
 
-    #+++ Drop variables that are not needed and save xyzd
+    #+++ Save xyzd
     outname = f"data/xyzd.{simname}.nc"
     xyzd = gather_attributes_as_variables(xyzd)
     with ProgressBar(minimum=5, dt=5):

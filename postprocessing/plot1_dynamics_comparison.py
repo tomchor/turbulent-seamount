@@ -16,7 +16,7 @@ simname_base = "balanus"
 Ro_b = 0.1
 Fr_b = 1
 buffer = 5
-resolution = 2
+resolution = 1
 #---
 
 #+++ Load datasets
@@ -30,7 +30,7 @@ L_values = ["0", "0.8"]
 datasets = {}
 
 for L_val in L_values:
-    simname = f"{simname_base}_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_val}_FWHM500_dz{resolution}"
+    simname = f"{simname_base}_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_val}_dz{resolution}"
 
     xyzi = open_simulation(f"{simdata_path}xyzi.{simname}.nc", **dataset_opts)
     aaad = open_simulation(f"{postproc_path}aaad.{simname}.nc", **avgd_opts).sel(buffer=buffer)

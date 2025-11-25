@@ -14,8 +14,8 @@ Ro_b = 0.1
 Fr_b = 0.8
 L_rough = 0
 L_smooth = 0.8
-buffer = 10
-resolution = 2
+buffer = 5
+resolution = 1
 t_slice = 20
 #---
 
@@ -69,10 +69,10 @@ fig, axes = plt.subplots(ncols=2, nrows=4, figsize=(10, 9), gridspec_kw=dict(hsp
 
 #+++ Plot variables
 rows = [
-    dict(var="∫εₖdy_normalized", label="∫εₖdy / W [m²/s³]", norm=LogNorm(vmin=2e-10, vmax=1e-7), plot_type="xz"),
-    dict(var="∫ε̄ₖdz_normalized", label="∫ε̄ₖdz / H [m²/s³]", norm=LogNorm(vmin=2e-10, vmax=1e-7), plot_type="xy"),
-    dict(var="∫εₚdy_normalized", label="∫εₚdy / W [m²/s³]", norm=LogNorm(vmin=1e-11, vmax=2e-9), plot_type="xz"),
-    dict(var="∫ε̄ₚdz_normalized", label="∫ε̄ₚdz / H [m²/s³]", norm=LogNorm(vmin=1e-11, vmax=2e-9), plot_type="xy"),
+    dict(var="∫εₖdy_normalized", label="∫εₖdy / W [m²/s³]", norm=LogNorm(vmin=5e-10, vmax=5e-7), plot_type="xz"),
+    dict(var="∫ε̄ₖdz_normalized", label="∫ε̄ₖdz / H [m²/s³]", norm=LogNorm(vmin=5e-10, vmax=5e-7), plot_type="xy"),
+    dict(var="∫εₚdy_normalized", label="∫εₚdy / W [m²/s³]", norm=LogNorm(vmin=1e-11, vmax=5e-9), plot_type="xz"),
+    dict(var="∫ε̄ₚdz_normalized", label="∫ε̄ₚdz / H [m²/s³]", norm=LogNorm(vmin=1e-11, vmax=5e-9), plot_type="xy"),
 ]
 
 yticks = [-500, 0, 500]
@@ -96,7 +96,7 @@ for row_idx, config in enumerate(rows):
             im = ds[config["var"]].plot.imshow(**kwargs)
             ylabel = "y [m]"
             ax.set_yticks(yticks)
-            ax.set_aspect(1)
+            ax.set_aspect("auto")
         else:
             kwargs["y"] = "z_aac"
             im = ds[config["var"]].plot(**kwargs)

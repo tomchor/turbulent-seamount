@@ -14,11 +14,10 @@ simname_bases = ["balanus", "labanus"]
 Rossby_numbers = cycler(Ro_b = [0.1])
 Froude_numbers = cycler(Fr_b = [1])
 L              = cycler(L = [0, 0.05, 0.1, 0.2, 0.4, 0.8])
-FWHM           = cycler(FWHM = [500, 500, 500, 500, 500, 500])
 
 resolutions    = cycler(dz = [1])
 
-paramspace = Rossby_numbers * Froude_numbers * (L + FWHM)
+paramspace = Rossby_numbers * Froude_numbers * L
 configs    = resolutions
 
 runs = paramspace * configs
@@ -37,7 +36,7 @@ for simname_base in simname_bases:
     aaaa = aaaa.reindex(Ro_b = list(reversed(aaaa.Ro_b)))
 
     # Load aaad datasets to get additional variables
-    aaad = merge_datasets(runs, base_name=f"aaad.{simname_base}", verbose=True, add_min_spacings=False, keep_vars=["∭⟨w′b′⟩ₜdV", "∭SPRdV", "U∞∬⟨Ek′⟩ₜdxdz"],
+    aaad = merge_datasets(runs, base_name=f"aaad.{simname_base}", verbose=True, add_min_spacings=False, keep_vars=["∭⟨w′b′⟩ₜdV", "∭SPRdV", "U∞∬⟨Ek′⟩ₜdydz", "∬⟨wp⟩ₜdxdy"],
                           combine_by_coords_kwargs=dict(compat="override", combine_attrs="drop_conflicts", coords="minimal"))
     aaad = aaad.reindex(Ro_b = list(reversed(aaad.Ro_b)))
 
@@ -55,19 +54,21 @@ for simname_base in simname_bases:
     dtKE_scaling = aaaa.attrs["U∞"]**3 * aaaa.FWHM**2 # Assume ε̄ₖ scales as U^3 / H
     aaaa["ℰₖ"] = aaaa["∭ᵇε̄ₖdV"] / dtKE_scaling
     aaaa["ℰₚ"] = aaaa["∭ᵇε̄ₚdV"] / dtKE_scaling
-    aaaa["ℰₛ"] = aaaa["∭ε̄ₛdV"] / dtKE_scaling
+    # aaaa["ℰₛ"] = aaaa["∭ε̄ₛdV"] / dtKE_scaling
     aaaa["ℬ"] = -aaaa["∭⟨w′b′⟩ₜdV"] / dtKE_scaling
     aaaa["𝒮"] = aaaa["∭SPRdV"] / dtKE_scaling
-    aaaa["𝒯"] = aaaa["U∞∬⟨Ek′⟩ₜdxdz"] / dtKE_scaling
+    aaaa["𝒯"] = aaaa["U∞∬⟨Ek′⟩ₜdydz"] / dtKE_scaling
+    aaaa["𝒲"] = aaaa["∬⟨wp⟩ₜdxdy"] / dtKE_scaling / 1e3 # divide by 1e3 to convert pressure from kinetic to dynamic
     aaaa["𝒦⁵"] = (aaaa["∭ᵇε̄ₚdV"] / aaaa["N²∞"]) / (aaaa["U∞"] * aaaa.FWHM**2 * aaaa.H**2)
 
     # Add metadata
-    aaaa["ℰₖ"].attrs = dict(long_name=r"TKE dissipation rate $\mathcal{E}_k$")
+    aaaa["ℰₖ"].attrs = dict(long_name=r"KE dissipation rate $\mathcal{E}_k$")
     aaaa["ℰₚ"].attrs = dict(long_name=r"Buoyancy dissipation rate $\mathcal{E}_p$")
-    aaaa["ℰₛ"].attrs = dict(long_name=r"Sponge dissipation rate $\mathcal{E}_s$")
+    # aaaa["ℰₛ"].attrs = dict(long_name=r"Sponge dissipation rate $\mathcal{E}_s$")
     aaaa["ℬ"].attrs = dict(long_name=r"Turbulent buoyancy flux $\mathcal{B}$")
     aaaa["𝒮"].attrs = dict(long_name=r"Shear production rate $\mathcal{S}$")
     aaaa["𝒯"].attrs = dict(long_name=r"TKE advection out $\mathcal{T}$")
+    aaaa["𝒲"].attrs = dict(long_name=r"Wave flux $\mathcal{W}$")
     aaaa["𝒦⁵"].attrs = dict(long_name=r"Buoyancy diffusivity $\mathcal{K}$")
 
     # Select and store processed data
@@ -82,8 +83,8 @@ print("\nData processing complete!")
 fig, ax = plt.subplots(figsize=(7, 5))
 
 # Variables to plot
-variables = ["ℰₖ", "ℰₚ", "ℬ", "𝒮", "𝒯"]
-colors = ["blue", "red", "green", "orange", "purple"]
+variables = ["ℰₖ", "ℰₚ", "𝒲"]
+colors = ["blue", "red", "green", "orange", "purple", "brown", "cyan"]
 
 # Marker styles for each simulation
 markers = {"balanus": "o", "labanus": "x"}
@@ -119,14 +120,17 @@ ax.add_artist(var_legend)
 ax.set_yscale("log")
 ax.set_xlabel("L/W", fontsize=12)
 ax.set_ylabel("Value / ($U_\infty^3 L^2$)", fontsize=12)
-Ro_b_val = datasets["balanus"].Ro_b.item()
-Fr_b_val = datasets["balanus"].Fr_b.item()
-ax.set_title(f"Turbulent metrics vs smoothing scale ($Ro_b$={Ro_b_val}, $Fr_b$={Fr_b_val})", fontsize=14)
-ax.grid(True, which="both", alpha=0.3)
 
+dataset = datasets[list(datasets.keys())[0]]
+
+Ro_b_val = dataset.Ro_b.item()
+Fr_b_val = dataset.Fr_b.item()
+delta_val = dataset.H.item() / dataset.FWHM.item()
+ax.set_title(f"$Ro_b$={Ro_b_val}, $Fr_b$={Fr_b_val}, $\delta$ = {delta_val:.1f}", fontsize=14)
+ax.grid(True, which="both", alpha=0.3)
 #+++ Save figure
-dz_val = datasets["balanus"].dz.item()
-buffer_val = datasets["balanus"].buffer.item()
+dz_val = dataset.dz.item()
+buffer_val = dataset.buffer.item()
 figure_name = f"../figures/bulk_metrics_comparison_dz{dz_val}_buffer{buffer_val}.pdf"
 plt.savefig(figure_name, dpi=300, bbox_inches="tight")
 print(f"Figure saved to: {figure_name}")

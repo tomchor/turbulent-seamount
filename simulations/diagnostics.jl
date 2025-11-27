@@ -47,11 +47,12 @@ ScratchedField(n::Number) = ScratchedField(n * CenterField(grid))
 CellCenter = (Center, Center, Center) # Output everything on cell centers to make life easier
 u, v, w = model.velocities
 b = model.tracers.b
+p = sum(model.pressures)
 
 outputs_vels = Dict{Any, Any}(:u => (@at CellCenter u),
                               :v => (@at CellCenter v),
                               :w => (@at CellCenter w),)
-outputs_state_vars = merge(outputs_vels, Dict{Any, Any}(:b => b))
+outputs_state_vars = merge(outputs_vels, Dict{Any, Any}(:b => b, :p => p))
 #---
 
 #+++ CREATE SNAPSHOT OUTPUTS
@@ -64,38 +65,26 @@ outputs_state_vars = merge(outputs_vels, Dict{Any, Any}(:b => b))
 if model.closure isa Nothing
     εₖ = @at CellCenter CenterField(grid)
     εₚ = @at CellCenter CenterField(grid)
-
     κ = CenterField(grid)
 
 else
     εₖ = @at CellCenter KineticEnergyDissipationRate(model)
     εₚ = @at CellCenter TracerVarianceDissipationRate(model, :b)/(2params.N2_inf)
-
     κ = diffusivity(model, Val(:b))
 end
 
 
 using Oceananigans.Fields: FunctionField
-mask_top_u = Oceananigans.Fields.FunctionField{Face, Center, Center}(mask_top, grid) |> Field
-mask_top_v = Oceananigans.Fields.FunctionField{Center, Face, Center}(mask_top, grid) |> Field
-mask_top_w = Oceananigans.Fields.FunctionField{Center, Center, Face}(mask_top, grid) |> Field
-
 const σ = params.sponge_damping_rate
-const U∞ = params.U∞
-u_sponge_field = -σ * (u - U∞) * mask_top_u
-v_sponge_field = -σ * v * mask_top_v
-w_sponge_field = -σ * w * mask_top_w
-
-εₛ_u = @at CellCenter u * u_sponge_field |> Field
-εₛ_aux = @at CellCenter (εₛ_u + v * v_sponge_field) |> Field
-εₛ = @at CellCenter (εₛ_aux + w * w_sponge_field) |> Field
+sponge_mask = Oceananigans.Fields.FunctionField{Center, Center, Center}(mask_top, grid)
+damping_rate = σ * sponge_mask |> Field
 
 Ri = @at CellCenter RichardsonNumber(model, u, v, w, b)
 Ro = @at CellCenter RossbyNumber(model)
 PV = @at CellCenter ErtelPotentialVorticity(model, u, v, w, b, model.coriolis)
 PV_z = @at CellCenter DirectionalErtelPotentialVorticity(model, (0, 0, 1))
 
-outputs_dissip = Dict(pairs((; εₖ, εₚ, κ, εₛ)))
+outputs_dissip = Dict(pairs((; εₖ, εₚ, κ)))
 outputs_misc = Dict(pairs((; ω_x, Ri, Ro, PV, PV_z)))
 #---
 
@@ -129,15 +118,13 @@ outputs_grads = Dict{Symbol, Any}(:∂u∂x => (@at CellCenter ∂x(u)),
 dc5  = DistanceCondition(from_bottom=5meters , from_top=params.h_sponge, from_east=2minimum_xspacing(grid))
 dc10 = DistanceCondition(from_bottom=10meters, from_top=params.h_sponge, from_east=2minimum_xspacing(grid))
 
-outputs_vol_integrals = Dict{Symbol, Any}(:∭εₛdV   => Integral(εₛ),
-                                          :∭⁵εₖdV  => Integral(εₖ; condition = dc5),
+outputs_vol_integrals = Dict{Symbol, Any}(:∭⁵εₖdV  => Integral(εₖ; condition = dc5),
                                           :∭⁵εₚdV  => Integral(εₚ; condition = dc5),
                                           :∭¹⁰εₖdV => Integral(εₖ; condition = dc10),
                                           :∭¹⁰εₚdV => Integral(εₚ; condition = dc10),
                                           )
 
-outputs_x_integrals = Dict{Symbol, Any}(:∫εₛdy   => Integral(εₛ; dims=2),
-                                        :∫⁵εₖdy   => Integral(εₖ; condition = dc5, dims=2),
+outputs_x_integrals = Dict{Symbol, Any}(:∫⁵εₖdy   => Integral(εₖ; condition = dc5, dims=2),
                                         :∫⁵εₚdy   => Integral(εₚ; condition = dc5, dims=2),
                                         :∫¹⁰εₖdy  => Integral(εₖ; condition = dc10, dims=2),
                                         :∫¹⁰εₚdy  => Integral(εₚ; condition = dc10, dims=2),
@@ -193,7 +180,8 @@ function construct_outputs(simulation;
                                                                            verbose = debug,
                                                                            kwargs...
                                                                            )
-        write_to_ds(ow.filepath, "altitude", interior(compute!(Field(altitude))), coords = ("x_caa", "y_aca", "z_aac"))
+        write_to_ds(ow.filepath, "damping_rate", interior(damping_rate), coords = ("x_caa", "y_aca", "z_aac"))
+        write_to_ds(ow.filepath, "altitude", interior(Field(altitude)), coords = ("x_caa", "y_aca", "z_aac"))
         write_to_ds(ow.filepath, "distance_condition_5meters",  interior(dcf5),  coords = ("x_caa", "y_aca", "z_aac"))
         write_to_ds(ow.filepath, "distance_condition_10meters", interior(dcf10), coords = ("x_caa", "y_aca", "z_aac"))
     end
@@ -255,7 +243,8 @@ function construct_outputs(simulation;
                                                                            verbose = true,
                                                                            kwargs...
                                                                            )
-        write_to_ds(ow.filepath, "altitude", interior(compute!(Field(altitude))), coords = ("x_caa", "y_aca", "z_aac"))
+        write_to_ds(ow.filepath, "damping_rate", interior(damping_rate), coords = ("x_caa", "y_aca", "z_aac"))
+        write_to_ds(ow.filepath, "altitude", interior(Field(altitude)), coords = ("x_caa", "y_aca", "z_aac"))
         write_to_ds(ow.filepath, "distance_condition_5meters",  interior(dcf5),  coords = ("x_caa", "y_aca", "z_aac"))
         write_to_ds(ow.filepath, "distance_condition_10meters", interior(dcf10), coords = ("x_caa", "y_aca", "z_aac"))
     end

@@ -296,7 +296,7 @@ def check_simulation_completion(simnames, slice_name="xyza", path="./simulations
             with open_simulation(fname, use_advective_periods = True, get_grid = False, verbose=verbose, squeeze=False) as ds:
                 ds = adjust_times(ds, round_times=True)
                 times.append(ds.time.values)
-                print(simname, ds.time.values)
+                print(simname, ds.time.values[-1])
         except (OSError, IOError) as e:
             print(f"{Fore.RED}Warning: Error opening file {fname}: {e}{Style.RESET_ALL}")
             missing_files.append(fname)

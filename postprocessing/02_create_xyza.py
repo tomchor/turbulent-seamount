@@ -9,28 +9,26 @@ from src.aux00_utils import (open_simulation, adjust_times, aggregate_parameters
                              condense_velocities, condense_velocity_gradient_tensor, condense_reynolds_stress_tensor,
                              configure_dask_for_performance)
 from src.aux01_physfuncs import temporal_average
-from colorama import Fore, Back, Style
+from colorama import Fore, Style
 from dask.diagnostics import ProgressBar
-xr.set_options(display_width=140, display_max_rows=30)
 
 # Configure dask for optimal performance
-configure_dask_for_performance(memory_fraction=0.3)
+configure_dask_for_performance(memory_fraction=0.4)
 
 print("Starting xyza dataset creation script")
 
 #+++ Define directory and simulation name
-if basename(__file__) != "00_run_postproc.py":
+if not basename(__file__).startswith("00_postproc_"):
     simdata_path = "../simulations/data/"
     simname_base = "balanus"
 
     Rossby_numbers = cycler(Ro_b = [0.1])
-    Froude_numbers = cycler(Fr_b = [1])
+    Froude_numbers = cycler(Fr_b = [0.8])
     L              = cycler(L = [0])
 
-    resolutions    = cycler(dz = [8])
-    FWHM           = cycler(FWHM = [500])
+    resolutions    = cycler(dz = [2])
 
-    paramspace = Rossby_numbers * Froude_numbers * (L + FWHM)
+    paramspace = Rossby_numbers * Froude_numbers * L
     configs    = resolutions
 
     runs = paramspace * configs
@@ -81,9 +79,8 @@ for j, config in enumerate(runs):
     t_slice_exclusive = slice(xyzi.T_adv_spinup + 0.01, np.inf) # For time-averaged outputs, we want to exclude t=T_adv_spinup
     x_slice = slice(None, xyzi.x_faa[-2] - 2*xyzi.Δx_faa.values.max()) # Cut off last two points
     y_slice = slice(None)
-    z_slice = slice(None, xyzi.z_aaf[-1] - xyzi.h_sponge) # Cut off top sponge
 
-    xyzi = xyzi.sel(time=t_slice_inclusive, x_caa=x_slice, x_faa=x_slice, y_aca=y_slice, y_afa=y_slice, z_aac=z_slice, z_aaf=z_slice)
+    xyzi = xyzi.sel(time=t_slice_inclusive, x_caa=x_slice, x_faa=x_slice, y_aca=y_slice, y_afa=y_slice)
     #---
     #---
 
@@ -92,11 +89,19 @@ for j, config in enumerate(runs):
     xyzi = condense_velocities(xyzi, indices=indices)
     xyzi = condense_velocity_gradient_tensor(xyzi, indices=indices)
     xyzi = condense_reynolds_stress_tensor(xyzi, indices=indices)
+    #---
+
+    #+++ Get wp at top of domain
+    pre_sponge_top = xyzi.Lz - xyzi.h_sponge
+    top_sel = dict(z_aac=pre_sponge_top, method="ffill")
+    xyzi["wp"] = (xyzi["uᵢ"].sel(i=3).sel(**top_sel) * xyzi.p.sel(**top_sel))
+    #---
+
+    #+++ Time-average xyzi
+    # Drop some variables whose time-average is not needed
+    xyzi = xyzi.drop_vars(["ω_x", "κ", "Ri", "p", "peripheral_nodes_ccf", "peripheral_nodes_cfc", "peripheral_nodes_fcc"])
+
     print("Computing temporal average...")
-
-    # Drop some variables that are not needed
-    xyzi = xyzi.drop_vars(["ω_x", "κ", "Ri", "peripheral_nodes_ccf", "peripheral_nodes_cfc", "peripheral_nodes_fcc"])
-
     xyza = temporal_average(xyzi)
     print("✓ Completed xyzi processing")
     #---

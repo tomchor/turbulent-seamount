@@ -14,18 +14,17 @@ xr.set_options(display_width=140, display_max_rows=30)
 print("Starting turbulent quantities script")
 
 #+++ Define directory and simulation name
-if basename(__file__) != "00_run_postproc.py":
+if not basename(__file__).startswith("00_postproc_"):
     path = "../simulations/data/"
     simname_base = "balanus"
 
     Rossby_numbers = cycler(Ro_b = [0.1])
-    Froude_numbers = cycler(Fr_b = [1])
+    Froude_numbers = cycler(Fr_b = [0.8])
     L              = cycler(L = [0])
 
-    resolutions    = cycler(dz = [4])
-    FWHM           = cycler(FWHM = [500])
+    resolutions    = cycler(dz = [2])
 
-    paramspace = Rossby_numbers * Froude_numbers * (L + FWHM)
+    paramspace = Rossby_numbers * Froude_numbers * L
     configs    = resolutions
 
     runs = paramspace * configs
@@ -39,7 +38,15 @@ for j, config in enumerate(runs):
     xyza = xr.open_dataset(f"data/xyza.{simname}.nc", chunks="auto")
     xyzd = xr.open_dataset(f"data/xyzd.{simname}.nc", chunks="auto")
 
-    xyza = xr.merge([xyza, xyzd])
+    # Only retain variables that are used elsewhere in this script
+    used_vars = {"ε̄ₚ", "ε̄ₖ", "ε̄ₛ", "SPR", "⟨Ek′⟩ₜ", "⟨w′b′⟩ₜ", "R̄o", "damping_rate",
+                 "distance_condition_5meters", "distance_condition_10meters", "peripheral_nodes_ccc",
+                 "Δx_caa", "Δy_aca", "Δz_aac", "⟨wp⟩ₜ"}
+    xyza = xyza[[v for v in xyza.data_vars if v in used_vars]]
+    xyzd = xyzd[[v for v in xyzd.data_vars if v in used_vars]]
+
+    xyza = xr.merge([xyza, xyzd], compat="no_conflicts")
+    print("Done loading datasets")
     #---
 
     #+++ Normalize Unicode variable names
@@ -56,7 +63,7 @@ for j, config in enumerate(runs):
     aaad.attrs = xyza.attrs
 
     # Volume integrations with both 5m and 10m buffers
-    for var in ["ε̄ₚ", "ε̄ₖ", "SPR", "⟨Ek′⟩ₜ", "⟨w′b′⟩ₜ"]:
+    for var in ["ε̄ₚ", "ε̄ₖ", "ε̄ₛ", "SPR", "⟨Ek′⟩ₜ", "⟨w′b′⟩ₜ"]:
         # 5-meter buffer integration
         int_buf_5m = f"∭⁵{var}dV"
         masked_dV_5m = xyza.ΔxΔyΔz.where(xyza.distance_condition_5meters)
@@ -71,7 +78,7 @@ for j, config in enumerate(runs):
     #---
 
     #+++ yz integrals of selected variables using buffer masks
-    for var in ["ε̄ₚ", "ε̄ₖ", "SPR", "⟨Ek′⟩ₜ", "⟨w′b′⟩ₜ"]:
+    for var in ["ε̄ₚ", "ε̄ₖ", "ε̄ₛ", "SPR", "⟨Ek′⟩ₜ", "⟨w′b′⟩ₜ"]:
         # 5-meter buffer yz integral
         int_yz_5m = f"∬⁵{var}dydz"
         masked_dydz_5m = xyza.ΔyΔz.where(xyza.distance_condition_5meters)
@@ -95,24 +102,30 @@ for j, config in enumerate(runs):
     #---
 
     #+++ Calculate masked vertical averages of turbulent quantities
-    print("Computing masked vertical averages...")
+    print("Computing masked vertical averages and integrals...")
     # Create vertical average datasets with both 5m and 10m buffers
-    for var in ["ε̄ₚ", "ε̄ₖ", "R̄o", "SPR", "⟨Ek′⟩ₜ", "⟨w′b′⟩ₜ"]:
+    for var in ["ε̄ₚ", "ε̄ₖ", "ε̄ₛ", "R̄o", "SPR", "⟨Ek′⟩ₜ", "⟨w′b′⟩ₜ"]:
         # 5-meter buffer vertical average
         masked_dz_5m = xyza.Δz_aac.where(xyza.distance_condition_5meters)
         vert_avg_name_5m = f"⟨{var}⟩ᶻ⁵"  # vertical average with 5m buffer
-        aaad[vert_avg_name_5m] = (xyza[var] * masked_dz_5m).sum("z_aac") / masked_dz_5m.sum("z_aac")
+        vert_int_name_5m = f"∫⁵{var}dz"  # vertical integral with 5m buffer
+        aaad[vert_int_name_5m] = integrate(xyza[var], dV=masked_dz_5m, dims=("z",))
+        aaad[vert_avg_name_5m] = aaad[vert_int_name_5m] / masked_dz_5m.sum("z_aac")
 
         # 10-meter buffer vertical average
         masked_dz_10m = xyza.Δz_aac.where(xyza.distance_condition_10meters)
         vert_avg_name_10m = f"⟨{var}⟩ᶻ¹⁰"  # vertical average with 10m buffer
-        aaad[vert_avg_name_10m] = (xyza[var] * masked_dz_10m).sum("z_aac") / masked_dz_10m.sum("z_aac")
+        vert_int_name_10m = f"∫¹⁰{var}dz"  # vertical integral with 10m buffer
+        aaad[vert_int_name_10m] = integrate(xyza[var], dV=masked_dz_10m, dims=("z",))
+        aaad[vert_avg_name_10m] = aaad[vert_int_name_10m] / masked_dz_10m.sum("z_aac")
 
+        aaad = condense(aaad, [vert_int_name_5m, vert_int_name_10m], f"∫{var}dz", dimname="buffer", indices=[5, 10])
         aaad = condense(aaad, [vert_avg_name_5m, vert_avg_name_10m], f"⟨{var}⟩ᶻ", dimname="buffer", indices=[5, 10])
     #---
 
     #+++ Create aaad dataset
-    aaad["U∞∬⟨Ek′⟩ₜdxdz"] = xyza["U∞∬⟨Ek′⟩ₜdydz"]
+    aaad["U∞∬⟨Ek′⟩ₜdydz"] = xyza.attrs["U∞"] * integrate(xyza["⟨Ek′⟩ₜ"], dV=xyza.ΔyΔz, dims=["y", "z"]) # Advective flux of TKE out of the domain
+    aaad["∬⟨wp⟩ₜdxdy"]    = integrate(xyza["⟨wp⟩ₜ"], dV=xyza.ΔxΔy, dims=["x", "y"])
     aaad["⟨ε̄ₖ⟩ᵋ"]         = aaad["∭ᵋε̄ₖdV"] / aaad["∭ᵋ1dV"]
     aaad["Loᵋ"]           = 2*π * np.sqrt(aaad["⟨ε̄ₖ⟩ᵋ"] / aaad.N2_inf**(3/2))
     aaad["Δz̃"]            = aaad.Δz_min / aaad["Loᵋ"]

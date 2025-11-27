@@ -1,8 +1,8 @@
 #!/bin/bash -l
 #PBS -A UMCP0028
-#PBS -N postproc
-#PBS -o logs/postproc.log
-#PBS -e logs/postproc.log
+#PBS -N postproc_flat
+#PBS -o logs/postproc_flat.log
+#PBS -e logs/postproc_flat.log
 #PBS -l walltime=24:00:00
 #PBS -q casper
 #PBS -l select=1:ncpus=18:mem=1400GB:ngpus=0
@@ -19,6 +19,6 @@ module li
 
 #/glade/u/apps/ch/opt/usr/bin/dumpenv # Dumps environment (for debugging with CISL support)
 
-time ~/miniconda3/envs/py310/bin/python 00_run_postproc.py 2>&1 | tee logs/postproc.out
+time ~/miniconda3/envs/py313/bin/python 00_postproc_flat.py 2>&1 | tee logs/postproc_flat.out
 
-qstat -f $PBS_JOBID >> logs/postproc.out
+qstat -f $PBS_JOBID >> logs/postproc_flat.out

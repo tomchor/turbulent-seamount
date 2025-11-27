@@ -69,14 +69,23 @@ aaaa = aaaa.sel(dz=0, buffer=buffer, method="nearest")
 # Create plots for each variable
 colors = ["red", "blue", "purple", "orange"]  # Generate different colors for each L value
 
+# Store scatter plot handles for shared legend
+scatter_handles = []
+scatter_labels = []
+
 for i, var_name in zip(axes.keys(), variables):
     data = aaaa[var_name]
     ax = axes[i]
     for j, L_val in enumerate(aaaa.L.values):
         subset = aaaa.sel(L=L_val)
-        ax.scatter(x=subset.Slope_Bu, y=subset[var_name], color=colors[j], label=f"L/W = {L_val}")
+        easy_label = "(rough)" if L_val == 0 else "(smooth)"
+        scatter = ax.scatter(x=subset.Slope_Bu, y=subset[var_name], color=colors[j])
 
-    ax.set_yscale("log")
+        # Only save handles and labels once (from first axis)
+        if i == "a":
+            scatter_handles.append(scatter)
+            scatter_labels.append(f"L/W = {L_val} {easy_label}")
+
     ax.set_xscale("log")
     ax.grid(True)
     ax.set_xlabel("Slope Burger number")
@@ -100,19 +109,27 @@ axes["a"].plot(Sb_ref, dissip_linear_ref, ls="--", lw=5, color="blue", alpha=0.3
 axes["a"].plot(Sb_ref, dissip_piecewise_ref, ls="--", lw=5, color="red", alpha=0.3, label=r"$\max(\sim S_b, 2 \times 10^{-2})$")
 
 axes["b"].set_title("Normalized buoyancy mixing")
-axes["b"].set_yticklabels([])
 axes["b"].plot(Sb_ref, mixing_linear_ref, ls="--", lw=5, color="gray", alpha=0.5, label="$\sim S_b$")
 axes["b"].plot(Sb_ref, mixing_quadratic_ref, ls=":", lw=5, color="gray", alpha=0.5, label="$\sim S_b^2$")
 
 axes["c"].set_title("Bulk mixing efficiency")
-axes["c"].plot(Sb_ref, efficiency_ref, ls="--", lw=5, color="gray", alpha=0.5, label="$\sim S_b$")
+# axes["c"].plot(Sb_ref, efficiency_ref, ls="--", lw=5, color="gray", alpha=0.5, label="$\sim S_b$")
 
 for ax in (axes["a"], axes["b"]):
+    ax.set_yscale("log")
     ax.set_ylim(1e-5, 1)
-axes["c"].set_ylim(5e-3, 1)
+axes["c"].set_ylim(0, 1)
 
-for ax in axes.values():
-    ax.legend(loc="lower right", borderaxespad=0, framealpha=0.7, edgecolor="black", fancybox=False)
+axes["b"].set_yticklabels([])
+
+# Add legends for line plots only (in each panel)
+axes["a"].legend(loc="lower right", borderaxespad=0, framealpha=0.7, edgecolor="black", fancybox=False)
+axes["b"].legend(loc="lower right", borderaxespad=0, framealpha=0.7, edgecolor="black", fancybox=False)
+
+# Add shared legend for scatter plots at bottom right of figure
+fig.legend(scatter_handles, scatter_labels, loc="lower right",
+           bbox_to_anchor=(0.92, 0.35), framealpha=0.7,
+           edgecolor="black", fancybox=False)
 
 letterize(axes.values(), x=0.05, y=0.92, fontsize=11, bbox=dict(boxstyle="square", facecolor="white", alpha=0.4))
 #---

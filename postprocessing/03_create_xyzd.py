@@ -16,18 +16,17 @@ xr.set_options(display_width=140, display_max_rows=30)
 print("Starting xyzd dataset creation script")
 
 #+++ Define directory and simulation name
-if basename(__file__) != "00_run_postproc.py":
+if not basename(__file__).startswith("00_postproc_"):
     simdata_path = "../simulations/data/"
     simname_base = "balanus"
 
     Rossby_numbers = cycler(Ro_b = [0.1])
-    Froude_numbers = cycler(Fr_b = [1])
+    Froude_numbers = cycler(Fr_b = [0.8])
     L              = cycler(L = [0])
 
-    resolutions    = cycler(dz = [8])
-    FWHM           = cycler(FWHM = [500])
+    resolutions    = cycler(dz = [2])
 
-    paramspace = Rossby_numbers * Froude_numbers * (L + FWHM)
+    paramspace = Rossby_numbers * Froude_numbers * L
     configs    = resolutions
 
     runs = paramspace * configs
@@ -55,7 +54,7 @@ for j, config in enumerate(runs):
     xyzi = adjust_times(xyzi, round_times=True)
     xyzi = xyzi.reindex_like(xyza)
 
-    xyzd = xyza[["b̄", "⟨wb⟩ₜ", "ūᵢ", "⟨uⱼuᵢ⟩ₜ", "∂ⱼūᵢ", "distance_condition_5meters", "distance_condition_10meters"]]
+    xyzd = xyza[["b̄", "⟨wb⟩ₜ", "ūᵢ", "⟨uⱼuᵢ⟩ₜ", "∂ⱼūᵢ", "⟨wp⟩ₜ", "distance_condition_5meters", "distance_condition_10meters", "damping_rate"]]
     #---
 
     #+++ Get turbulent variables
@@ -65,13 +64,11 @@ for j, config in enumerate(runs):
     xyzd = get_shear_production_rates(xyzd)
     #---
 
-    #+++ Calculate flux of turbulent kinetic energy out of the domain
-    xyzd["ΔyΔz"] = xyzi["Δy_aca"] * xyzi["Δz_aac"]
-    xyzd["U∞∬⟨Ek′⟩ₜdydz"] = xyzd.attrs["U∞"] * integrate(xyzd["⟨Ek′⟩ₜ"], dV=xyzd.ΔyΔz, dims=["y", "z"])
+    #+++ Calculate dissipation rate
+    xyzd["ε̄ₛ"] = xyzi.damping_rate * xyzd["⟨Ek′⟩ₜ"] # Dissipation rate of TKE due to damping (proxy for propagation upwards)
     #---
 
-    #+++ Drop variables that are not needed and save xyzd
-    xyzd = xyzd.drop(["⟨wb⟩ₜ"])
+    #+++ Save xyzd
     outname = f"data/xyzd.{simname}.nc"
     xyzd = gather_attributes_as_variables(xyzd)
     with ProgressBar(minimum=5, dt=5):

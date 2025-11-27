@@ -160,9 +160,11 @@ def temporal_average(ds, rename_dict=None, normalize_unicode=True):
     if rename_dict is None:
         rename_dict = {"uᵢ"      : "ūᵢ",
                        "b"       : "b̄",
+                       "p"       : "p̄",
                        "uⱼuᵢ"    : "⟨uⱼuᵢ⟩ₜ",
                        "uᵢuᵢ"    : "⟨uᵢuᵢ⟩ₜ",
                        "wb"      : "⟨wb⟩ₜ",
+                       "wp"      : "⟨wp⟩ₜ",
                        "∂ⱼuᵢ"    : "∂ⱼūᵢ",
                        "εₖ"      : "ε̄ₖ",
                        "εₚ"      : "ε̄ₚ",

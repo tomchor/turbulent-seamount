@@ -14,16 +14,14 @@ xr.set_options(display_width=140, display_max_rows=30)
 print("Starting aaaa dataset creation script")
 
 #+++ Define directory and simulation name
-if not basename(__file__).startswith("00_run_post"):
+if not basename(__file__).startswith("00_postproc_"):
     simdata_path = "../simulations/data/"
     simname_base = "balanus"
 
     Rossby_numbers = cycler(Ro_b = [0.1])
-    Froude_numbers = cycler(Fr_b = [1])
-    L              = cycler(L = [0, 0.05, 0.1, 0.2, 0.4, 0.8,
-                                 0.8, 0.8])
-    FWHM           = cycler(FWHM = [500, 500, 500, 500, 500, 500,
-                                    200, 100])
+    Froude_numbers = cycler(Fr_b = [0.8])
+    L              = cycler(L = [0, 0.05, 0.1, 0.2, 0.4, 0.8])
+    FWHM           = cycler(FWHM = [500, 500, 500, 500, 500, 500])
 
     resolutions    = cycler(dz = [4])
 
@@ -52,9 +50,9 @@ for j, config in enumerate(runs):
     aaai = aaai.sel(time=t_slice_inclusive)
 
     aaai["Ĥ"] = aaai.bottom_height.max()
-    aaai = aaai.drop(["peripheral_nodes_ccc", "peripheral_nodes_ccf", "peripheral_nodes_cfc", "peripheral_nodes_fcc",
-                      "x_caa", "x_faa", "y_aca", "y_afa", "z_aac", "z_aaf",
-                      "Δx_caa", "Δx_faa", "Δy_aca", "Δy_afa", "Δz_aac", "Δz_aaf", "bottom_height"])
+    aaai = aaai.drop_vars(["peripheral_nodes_ccc", "peripheral_nodes_ccf", "peripheral_nodes_cfc", "peripheral_nodes_fcc",
+                           "x_caa", "x_faa", "y_aca", "y_afa", "z_aac", "z_aaf",
+                           "Δx_caa", "Δx_faa", "Δy_aca", "Δy_afa", "Δz_aac", "Δz_aaf", "bottom_height"])
     #---
 
     #+++ Time-average aaai
@@ -66,6 +64,7 @@ for j, config in enumerate(runs):
     aaaa = gather_attributes_as_variables(aaaa)
     with ProgressBar(minimum=5, dt=5):
         print(f"Saving results to {outname}...")
+        aaaa = aaaa.drop_encoding()
         aaaa.to_netcdf(outname)
         print("Done!\n")
     aaaa.close()

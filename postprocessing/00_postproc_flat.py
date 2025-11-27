@@ -13,11 +13,13 @@ simname_base = "balanus"
 Rossby_numbers = cycler(Ro_b = [0.1])
 Froude_numbers = cycler(Fr_b = [1])
 L              = cycler(L = [0, 0.05, 0.1, 0.2, 0.4, 0.8])
-FWHM           = cycler(FWHM = [500, 500, 500, 500, 500, 500])
+FWHM           = cycler(FWHM = [1000])
+Lx             = cycler(Lx = [9000])
+Ly             = cycler(Ly = [4000])
 
-resolutions    = cycler(dz = [4, 2, 1])
+resolutions    = cycler(dz = [2])
 
-paramspace = Rossby_numbers * Froude_numbers * (L + FWHM)
+paramspace = Rossby_numbers * Froude_numbers * L * FWHM * Lx * Ly
 configs    = resolutions
 
 runs = paramspace * configs
@@ -28,7 +30,7 @@ for config in configs:
     config_suffix = aggregate_parameters(config, sep="_", prefix="")
     simnames = [ simname_base + "_" + aggregate_parameters(params, sep="_", prefix="") + "_" + config_suffix for params in paramspace ]
     print(simnames)
-    check_simulation_completion(simnames, slice_name="xyzi", path=simdata_path, verbose=False)
+    check_simulation_completion(simnames, slice_name="xyzi", path="../simulations/data/", verbose=False)
     print()
 
 print(Back.LIGHTWHITE_EX + Fore.BLUE + "\nStarting 01 post-processing of results using `configs`", Style.RESET_ALL, configs)

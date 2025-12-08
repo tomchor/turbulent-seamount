@@ -88,8 +88,8 @@ for i, var_name in zip(axes.keys(), variables):
 
     ax.set_xscale("log")
     ax.grid(True)
-    ax.set_xlabel("Slope Burger number")
-    ax.set_ylabel(var_name)
+    ax.set_xlabel("Slope Burger number", fontsize=12)
+    ax.set_ylabel(var_name, fontsize=13)
 #---
 
 #+++ Add reference lines
@@ -104,15 +104,15 @@ mixing_quadratic_ref = 2e-2 * Sb_ref**2
 
 efficiency_ref = 0.5 * Sb_ref
 
-axes["a"].set_title("Normalized dissipation")
+axes["a"].set_title("Normalized dissipation", fontsize=13)
 axes["a"].plot(Sb_ref, dissip_linear_ref, ls="--", lw=5, color="blue", alpha=0.3, label="$\sim S_b$")
 axes["a"].plot(Sb_ref, dissip_piecewise_ref, ls="--", lw=5, color="red", alpha=0.3, label=r"$\max(\sim S_b, 2 \times 10^{-2})$")
 
-axes["b"].set_title("Normalized buoyancy mixing")
+axes["b"].set_title("Normalized buoyancy mixing", fontsize=13)
 axes["b"].plot(Sb_ref, mixing_linear_ref, ls="--", lw=5, color="gray", alpha=0.5, label="$\sim S_b$")
 axes["b"].plot(Sb_ref, mixing_quadratic_ref, ls=":", lw=5, color="gray", alpha=0.5, label="$\sim S_b^2$")
 
-axes["c"].set_title("Bulk mixing efficiency")
+axes["c"].set_title("Bulk mixing efficiency", fontsize=13)
 # axes["c"].plot(Sb_ref, efficiency_ref, ls="--", lw=5, color="gray", alpha=0.5, label="$\sim S_b$")
 
 for ax in (axes["a"], axes["b"]):
@@ -131,7 +131,7 @@ fig.legend(scatter_handles, scatter_labels, loc="lower right",
            bbox_to_anchor=(0.92, 0.35), framealpha=0.7,
            edgecolor="black", fancybox=False)
 
-letterize(axes.values(), x=0.05, y=0.92, fontsize=11, bbox=dict(boxstyle="square", facecolor="white", alpha=0.4))
+letterize(axes.values(), x=0.05, y=0.92, fontsize=12, bbox=dict(boxstyle="square", facecolor="white", alpha=0.4))
 #---
 
 

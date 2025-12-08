@@ -71,9 +71,9 @@ fig_width_inches = 14
 fig_height_inches = 12
 fig = plt.figure(figsize=(fig_width_inches, fig_height_inches))
 
-xpanel_size_inches = 5
+xpanel_size_inches = 4.5
 ypanel_size_inches = xpanel_size_inches * datasets["0"].Ly.item() / datasets["0"].Lx.item()
-zpanel_size_inches = ypanel_size_inches * 5 * datasets["0"].Lz.item() / datasets["0"].Lx.item()
+zpanel_size_inches = ypanel_size_inches * 12 * datasets["0"].Lz.item() / datasets["0"].Lx.item()
 
 # Plot area positions: [left, bottom, width, height] in INCHES
 # These define the actual plot area size, excluding tick labels, axis labels, and titles
@@ -92,8 +92,8 @@ plot_area_positions_inches = {
     "ro_1": [6.3, 3.84, xpanel_size_inches, ypanel_size_inches],  # Right Ro plot area
     
     # Row 3: ∫εₖdy plots
-    "eps_0": [2.1, 0.84, xpanel_size_inches, zpanel_size_inches],  # Left ∫εₖdy plot area
-    "eps_1": [6.7, 0.84, xpanel_size_inches, zpanel_size_inches],  # Right ∫εₖdy plot area
+    "eps_0": [1.4, 1.84, xpanel_size_inches, zpanel_size_inches],  # Left ∫εₖdy plot area
+    "eps_1": [6.3, 1.84, xpanel_size_inches, zpanel_size_inches],  # Right ∫εₖdy plot area
 }
 
 # Convert inches to figure coordinates (0-1)
@@ -257,7 +257,7 @@ for row_idx in range(3):
 delta = H.item() / FWHM.item()
 fig.suptitle(f"Ro$_b$ = {datasets['0'].Ro_b.item()}, Fr$_b$ = {datasets['0'].Fr_b.item()}, S$_b$ = {datasets['0'].Slope_Bu.item()}, $\delta$ = {delta:.1f}",
              fontsize=14, y=0.995)
-letterize(fig.axes[:8], x=0.05, y=0.9, fontsize=12,
+letterize(fig.axes[:8], x=0.05, y=0.75, fontsize=12,
           bbox=dict(boxstyle="square", facecolor="white", alpha=0.8))
 
 output_path = f"../figures/{simname_base}_dynamics_comparison_L0_vs_L08_dz{resolution}_buffer{buffer}.pdf"

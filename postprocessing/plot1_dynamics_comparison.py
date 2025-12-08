@@ -68,7 +68,7 @@ bathymetry_extent = 1.3 * FWHM
 
 #+++ Create figure with manual plot area positioning
 fig_width_inches = 14
-fig_height_inches = 12
+fig_height_inches = 19
 fig = plt.figure(figsize=(fig_width_inches, fig_height_inches))
 
 xpanel_size_inches = 4.5
@@ -80,20 +80,20 @@ zpanel_size_inches = ypanel_size_inches * 12 * datasets["0"].Lz.item() / dataset
 # You can adjust these values to control the size and position of each plot area
 plot_area_positions_inches = {
     # Row 0: 3D bathymetry plots
-    "3d_0": [1.0, 7.8, 5.6, 3.84],  # Left 3D plot area [left, bottom, width, height] in inches
-    "3d_1": [5.9, 7.8, 5.6, 3.84],  # Right 3D plot area
+    "3d_0": [0, fig_height_inches - 3.5, 5.6, 3.84],  # Left 3D plot area [left, bottom, width, height] in inches
+    "3d_1": [5.8, fig_height_inches - 3.5, 5.6, 3.84],  # Right 3D plot area
     
     # Row 1: PV plots
-    "pv_0": [1.4, 6.24, xpanel_size_inches, ypanel_size_inches],  # Left PV plot area
-    "pv_1": [6.3, 6.24, xpanel_size_inches, ypanel_size_inches],  # Right PV plot area
+    "pv_0": [1.4, fig_height_inches - 5.5, xpanel_size_inches, ypanel_size_inches],  # Left PV plot area
+    "pv_1": [6.3, fig_height_inches - 5.5, xpanel_size_inches, ypanel_size_inches],  # Right PV plot area
     
     # Row 2: Ro plots
-    "ro_0": [1.4, 3.84, xpanel_size_inches, ypanel_size_inches],  # Left Ro plot area
-    "ro_1": [6.3, 3.84, xpanel_size_inches, ypanel_size_inches],  # Right Ro plot area
+    "ro_0": [1.4, fig_height_inches - 7.5, xpanel_size_inches, ypanel_size_inches],  # Left Ro plot area
+    "ro_1": [6.3, fig_height_inches - 7.5, xpanel_size_inches, ypanel_size_inches],  # Right Ro plot area
     
     # Row 3: ∫εₖdy plots
-    "eps_0": [1.4, 1.84, xpanel_size_inches, zpanel_size_inches],  # Left ∫εₖdy plot area
-    "eps_1": [6.3, 1.84, xpanel_size_inches, zpanel_size_inches],  # Right ∫εₖdy plot area
+    "eps_0": [1.4, fig_height_inches - 9, xpanel_size_inches, zpanel_size_inches],  # Left ∫εₖdy plot area
+    "eps_1": [6.3, fig_height_inches - 9, xpanel_size_inches, zpanel_size_inches],  # Right ∫εₖdy plot area
 }
 
 # Convert inches to figure coordinates (0-1)
@@ -140,7 +140,6 @@ for i, L_val in enumerate(L_values):
     ax_3d[i].set_xlabel("x [m]")
     ax_3d[i].set_ylabel("y [m]")
     ax_3d[i].set_zlabel("z [m]")
-    ax_3d[i].set_title(f"L/W = {ds.L.item()}")
     ax_3d[i].view_init(elev=25, azim=135)
     ax_3d[i].set_box_aspect((1, 1, 0.3))
 #---
@@ -256,7 +255,7 @@ for row_idx in range(3):
 #+++ Finalize
 delta = H.item() / FWHM.item()
 fig.suptitle(f"Ro$_b$ = {datasets['0'].Ro_b.item()}, Fr$_b$ = {datasets['0'].Fr_b.item()}, S$_b$ = {datasets['0'].Slope_Bu.item()}, $\delta$ = {delta:.1f}",
-             fontsize=14, y=0.995)
+             fontsize=14, y=0.995, x=0.5, ha="center")
 letterize(fig.axes[:8], x=0.05, y=0.75, fontsize=12,
           bbox=dict(boxstyle="square", facecolor="white", alpha=0.8))
 

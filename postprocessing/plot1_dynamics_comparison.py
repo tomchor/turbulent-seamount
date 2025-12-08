@@ -27,7 +27,8 @@ avgd_opts = dict(unique_times=False, load=False, get_grid=False,
 # Load data for both L values
 L_values = ["0", "0.8"]
 datasets = {}
-dissipation_datasets = {}
+dissipation_xz_datasets = {}
+dissipation_xy_datasets = {}
 
 for L_val in L_values:
     simname = f"{simname_base}_Ro_b{Ro_b}_Fr_b{Fr_b}_L{L_val}_dz{resolution}"
@@ -38,15 +39,15 @@ for L_val in L_values:
     ds = xr.merge([xyzi, aaad], join="outer").sel(time=np.inf, method="nearest")
     datasets[L_val] = ds
 
-    # Load dissipation data for ∫εₖdy
-    xyza_dataset = open_simulation(f"{postproc_path}xyza.{simname}.nc", **avgd_opts)
-    xyza_dataset = condense(xyza_dataset, ["∫⁵εₖdy", "∫¹⁰εₖdy"], "∫εₖdy", dimname="buffer", indices=[5, 10])
+    # Load dissipation data for ∫εₖdy (xz view)
+    xyza = open_simulation(f"{postproc_path}xyza.{simname}.nc", **avgd_opts)
+    xyza = condense(xyza, ["∫⁵εₖdy", "∫¹⁰εₖdy"], "∫εₖdy", dimname="buffer", indices=[5, 10])
 
-    dissipation_ds = xyza_dataset[["∫εₖdy"]].sel(buffer=buffer)
+    dissipation_ds = xyza[["∫εₖdy"]].sel(buffer=buffer)
 
     # Domain restriction
     full_width_half_maximum = dissipation_ds.FWHM
-    dissipation_ds = dissipation_ds.sel(z_aac=slice(buffer, 1.3*dissipation_ds.H), x_caa=slice(-1.5*full_width_half_maximum, np.inf))
+    dissipation_ds = dissipation_ds.sel(z_aac=slice(buffer, 1.3*dissipation_ds.H))
 
     # Time selection
     if "time" in dissipation_ds.dims:
@@ -58,12 +59,29 @@ for L_val in L_values:
     # Normalize integrated dissipation
     dissipation_ds["∫εₖdy_normalized"] = dissipation_ds["∫εₖdy"] / full_width_half_maximum
 
-    dissipation_datasets[L_val] = dissipation_ds
+    dissipation_xz_datasets[L_val] = dissipation_ds
+
+    # Load dissipation data for ∫ε̄ₖdz (xy view)
+    aaad_dissipation = open_simulation(f"{postproc_path}aaad.{simname}.nc", **avgd_opts)
+    dissipation_xy_ds = aaad_dissipation[["∫ε̄ₖdz"]].sel(buffer=buffer)
+
+    # Time selection
+    if "time" in dissipation_xy_ds.dims:
+        epsilon_variables = [variable_name for variable_name in dissipation_xy_ds.data_vars if "∫" in variable_name]
+        dataset_epsilon = dissipation_xy_ds[epsilon_variables].isel(time=-1)
+        dataset_other = dissipation_xy_ds.drop_vars(epsilon_variables).sel(time=20, method="nearest")
+        dissipation_xy_ds = xr.merge([dataset_epsilon, dataset_other])
+
+    # Normalize integrated dissipation by H
+    dissipation_xy_ds["∫ε̄ₖdz_normalized"] = dissipation_xy_ds["∫ε̄ₖdz"] / dissipation_xy_ds.H
+
+    dissipation_xy_datasets[L_val] = dissipation_xy_ds
 
 # Extract parameters
 H = datasets["0"].H
 FWHM = datasets["0"].FWHM
 bathymetry_extent = 1.3 * FWHM
+xlims = (xyza.x_faa.min().values, xyza.x_faa.max().values)
 #---
 
 #+++ Create figure with manual plot area positioning
@@ -73,14 +91,14 @@ fig = plt.figure(figsize=(fig_width_inches, fig_height_inches))
 
 xpanel_size_inches = 4.5
 ypanel_size_inches = xpanel_size_inches * datasets["0"].Ly.item() / datasets["0"].Lx.item()
-zpanel_size_inches = ypanel_size_inches * 12 * datasets["0"].Lz.item() / datasets["0"].Lx.item()
+zpanel_size_inches = ypanel_size_inches * 14 * datasets["0"].Lz.item() / datasets["0"].Lx.item()
 
 # Plot area positions: [left, bottom, width, height] in INCHES
 # These define the actual plot area size, excluding tick labels, axis labels, and titles
 # You can adjust these values to control the size and position of each plot area
 plot_area_positions_inches = {
     # Row 0: 3D bathymetry plots
-    "3d_0": [0, fig_height_inches - 3.5, 5.6, 3.84],  # Left 3D plot area [left, bottom, width, height] in inches
+    "3d_0": [0.4, fig_height_inches - 3.5, 5.6, 3.84],  # Left 3D plot area [left, bottom, width, height] in inches
     "3d_1": [5.8, fig_height_inches - 3.5, 5.6, 3.84],  # Right 3D plot area
     
     # Row 1: PV plots
@@ -92,8 +110,12 @@ plot_area_positions_inches = {
     "ro_1": [6.3, fig_height_inches - 7.5, xpanel_size_inches, ypanel_size_inches],  # Right Ro plot area
     
     # Row 3: ∫εₖdy plots
-    "eps_0": [1.4, fig_height_inches - 9, xpanel_size_inches, zpanel_size_inches],  # Left ∫εₖdy plot area
-    "eps_1": [6.3, fig_height_inches - 9, xpanel_size_inches, zpanel_size_inches],  # Right ∫εₖdy plot area
+    "eps_0": [1.4, fig_height_inches - 9.4, xpanel_size_inches, zpanel_size_inches],  # Left ∫εₖdy plot area
+    "eps_1": [6.3, fig_height_inches - 9.4, xpanel_size_inches, zpanel_size_inches],  # Right ∫εₖdy plot area
+    
+    # Row 4: ∫ε̄ₖdz plots
+    "epsdz_0": [1.4, fig_height_inches - 11.9, xpanel_size_inches, ypanel_size_inches],  # Left ∫ε̄ₖdz plot area
+    "epsdz_1": [6.3, fig_height_inches - 11.9, xpanel_size_inches, ypanel_size_inches],  # Right ∫ε̄ₖdz plot area
 }
 
 # Convert inches to figure coordinates (0-1)
@@ -114,14 +136,16 @@ ax_3d = [
     fig.add_axes([0.53, 0.70, 0.42, 0.25], projection="3d")
 ]
 
-# 2D axes for PV, Ro, and ∫εₖdy
+# 2D axes for PV, Ro, ∫εₖdy, and ∫ε̄ₖdz
 axes = np.array([
     [fig.add_axes([0.05, 0.50, 0.42, 0.18]),
      fig.add_axes([0.53, 0.50, 0.42, 0.18])],
     [fig.add_axes([0.05, 0.30, 0.42, 0.18]),
      fig.add_axes([0.53, 0.30, 0.42, 0.18])],
     [fig.add_axes([0.05, 0.05, 0.42, 0.23]),
-     fig.add_axes([0.53, 0.05, 0.42, 0.23])]
+     fig.add_axes([0.53, 0.05, 0.42, 0.23])],
+    [fig.add_axes([0.05, 0.05, 0.42, 0.18]),
+     fig.add_axes([0.53, 0.05, 0.42, 0.18])]
 ])
 #---
 
@@ -148,8 +172,12 @@ for i, L_val in enumerate(L_values):
 yticks = [-1000, -500, 0, 500, 1000]
 
 # Determine common x-limits from both dissipation datasets
-dissipation_x_min = min(dissipation_datasets["0"].x_caa.min().values, dissipation_datasets["0.8"].x_caa.min().values)
-dissipation_x_max = max(dissipation_datasets["0"].x_caa.max().values, dissipation_datasets["0.8"].x_caa.max().values)
+dissipation_xz_x_min = min(dissipation_xz_datasets["0"].x_caa.min().values, dissipation_xz_datasets["0.8"].x_caa.min().values)
+dissipation_xz_x_max = max(dissipation_xz_datasets["0"].x_caa.max().values, dissipation_xz_datasets["0.8"].x_caa.max().values)
+
+# Determine common x-limits for xy dissipation plots
+dissipation_xy_x_min = min(dissipation_xy_datasets["0"].x_caa.min().values, dissipation_xy_datasets["0.8"].x_caa.min().values)
+dissipation_xy_x_max = max(dissipation_xy_datasets["0"].x_caa.max().values, dissipation_xy_datasets["0.8"].x_caa.max().values)
 
 # Row configurations
 rows = [
@@ -169,9 +197,14 @@ rows = [
          get_data=lambda ds: ds["∫εₖdy_normalized"],
          vmin=None, vmax=None,
          norm=LogNorm(vmin=5e-10, vmax=5e-7),
+         xlabel="x [m]", remove_xticks=True,
+         data_source="dissipation_xz_datasets", plot_type="xz", aspect=None, yticks=None, ylabel="z [m]", white_colorbar=True),
+    dict(var="∫ε̄ₖdz_normalized", label="∫ε̄ₖdz / H [m²/s³]", cmap="inferno",
+         get_data=lambda ds: ds["∫ε̄ₖdz_normalized"],
+         vmin=None, vmax=None,
+         norm=LogNorm(vmin=5e-10, vmax=5e-7),
          xlabel="x [m]", remove_xticks=False,
-         data_source="dissipation_datasets", plot_type="xz", aspect=None, yticks=None, ylabel="z [m]",
-         xlim=(dissipation_x_min, dissipation_x_max), white_colorbar=True)
+         data_source="dissipation_xy_datasets", plot_type="xy", aspect=None, yticks=yticks, ylabel="y [m]", white_colorbar=True)
 ]
 
 print("Plotting 2D fields...")
@@ -180,8 +213,10 @@ for row_idx, config in enumerate(rows):
         # Select data source
         if config["data_source"] == "datasets":
             ds = datasets[L_val]
-        else:
-            ds = dissipation_datasets[L_val]
+        elif config["data_source"] == "dissipation_xz_datasets":
+            ds = dissipation_xz_datasets[L_val]
+        else:  # dissipation_xy_datasets
+            ds = dissipation_xy_datasets[L_val]
         
         ax = axes[row_idx, col_idx]
 
@@ -198,8 +233,12 @@ for row_idx, config in enumerate(rows):
                           norm=config["norm"], add_colorbar=False, rasterized=True)
             im = ds[config["var"]].plot(**kwargs)
 
-        # Add bathymetry mask for PV plot
-        if row_idx == 0:
+        # Add bathymetry mask for PV and ∫ε̄ₖdz plots
+        if row_idx == 0:  # PV plot
+            bathy_mask = datasets[L_val].peripheral_nodes_ccc.pnsel(z=H/3, method="nearest")
+            bathy_mask.plot.imshow(ax=ax, cmap="Greys", vmin=0, vmax=1, origin="lower",
+                                   alpha=0.25, zorder=2, add_colorbar=False)
+        elif row_idx == 3:  # ∫ε̄ₖdz plot
             bathy_mask = datasets[L_val].peripheral_nodes_ccc.pnsel(z=H/3, method="nearest")
             bathy_mask.plot.imshow(ax=ax, cmap="Greys", vmin=0, vmax=1, origin="lower",
                                    alpha=0.25, zorder=2, add_colorbar=False)
@@ -211,12 +250,8 @@ for row_idx, config in enumerate(rows):
         
         if config["yticks"] is not None:
             ax.set_yticks(config["yticks"])
-        
-        if config["aspect"] is not None:
-            ax.set_aspect(config["aspect"])
-        
-        if config.get("xlim") is not None:
-            ax.set_xlim(config["xlim"][0], config["xlim"][1])
+                
+        ax.set_xlim(xlims[0], xlims[1])
 
         if config["remove_xticks"]:
             ax.set_xticklabels([])
@@ -241,22 +276,24 @@ for row_idx, config in enumerate(rows):
 for i in range(2):
     ax_3d[i].set_position(plot_area_positions[f"3d_{i}"])
 
-for row_idx in range(3):
+for row_idx in range(4):
     for col_idx in range(2):
         if row_idx == 0:
             key = f"pv_{col_idx}"
         elif row_idx == 1:
             key = f"ro_{col_idx}"
-        else:
+        elif row_idx == 2:
             key = f"eps_{col_idx}"
+        else:  # row_idx == 3
+            key = f"epsdz_{col_idx}"
         axes[row_idx, col_idx].set_position(plot_area_positions[key])
 #---
 
 #+++ Finalize
 delta = H.item() / FWHM.item()
 fig.suptitle(f"Ro$_b$ = {datasets['0'].Ro_b.item()}, Fr$_b$ = {datasets['0'].Fr_b.item()}, S$_b$ = {datasets['0'].Slope_Bu.item()}, $\delta$ = {delta:.1f}",
-             fontsize=14, y=0.995, x=0.5, ha="center")
-letterize(fig.axes[:8], x=0.05, y=0.75, fontsize=12,
+             fontsize=14, y=0.995, x=0.43)
+letterize(fig.axes[:10], x=0.05, y=0.75, fontsize=12,
           bbox=dict(boxstyle="square", facecolor="white", alpha=0.8))
 
 output_path = f"../figures/{simname_base}_dynamics_comparison_L0_vs_L08_dz{resolution}_buffer{buffer}.pdf"

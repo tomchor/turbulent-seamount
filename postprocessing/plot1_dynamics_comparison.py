@@ -50,20 +50,22 @@ for L_val in L_values:
 
     # Time selection for dissipation variables
     if "time" in xyza_ds.dims:
+        epsilon_vars = [v for v in xyza_ds.data_vars if "∫" in v]
         xyza_ds = xr.merge([
-            xyza_ds[["∫ε̄ₖdy"]].isel(time=-1),
-            xyza_ds.drop_vars("∫εₖdy").sel(time=20, method="nearest")
+            xyza_ds[epsilon_vars].isel(time=-1),
+            xyza_ds.drop_vars(epsilon_vars).sel(time=20, method="nearest")
         ])
     if "time" in aaad_ds.dims:
+        epsilon_vars = [v for v in aaad_ds.data_vars if "∫" in v]
         aaad_ds = xr.merge([
-            aaad_ds[["∫ε̄ₖdz"]].isel(time=-1),
-            aaad_ds.drop_vars("∫ε̄ₖdz").sel(time=20, method="nearest")
+            aaad_ds[epsilon_vars].isel(time=-1),
+            aaad_ds.drop_vars(epsilon_vars).sel(time=20, method="nearest")
         ])
 
     # Normalize dissipation variables
     xyza_ds["∫ε̄ₖdy_normalized"] = xyza_ds["∫ε̄ₖdy"] / xyza_ds.FWHM
-    xyza_ds["∫ε̄ₚdy_normalized"] = xyza_ds["∫ε̄ₚdy"] / xyza_ds.FWHM
     aaad_ds["∫ε̄ₖdz_normalized"] = aaad_ds["∫ε̄ₖdz"] / aaad_ds.H
+    xyza_ds["∫ε̄ₚdy_normalized"] = xyza_ds["∫ε̄ₚdy"] / xyza_ds.FWHM
     aaad_ds["∫ε̄ₚdz_normalized"] = aaad_ds["∫ε̄ₚdz"] / aaad_ds.H
 
     # Merge everything
@@ -82,7 +84,7 @@ xlims = (-ds.runway_length_fraction_FWHM * ds.FWHM, ds.x_caa.max().values)
 
 #+++ Create figure with manual plot area positioning
 fig_width_inches = 14
-fig_height_inches = 19
+fig_height_inches = 23
 fig = plt.figure(figsize=(fig_width_inches, fig_height_inches))
 
 xpanel_size_inches = 4.5
@@ -94,24 +96,32 @@ zpanel_size_inches = ypanel_size_inches * 14 * datasets["0"].Lz.item() / dataset
 # You can adjust these values to control the size and position of each plot area
 plot_area_positions_inches = {
     # Row 0: 3D bathymetry plots
-    "3d_0": [0.4, fig_height_inches - 3.5, 5.6, 3.84],  # Left 3D plot area [left, bottom, width, height] in inches
-    "3d_1": [5.8, fig_height_inches - 3.5, 5.6, 3.84],  # Right 3D plot area
-    
+    "3d_0": [0.4, fig_height_inches - 3.3, 5.6, 3.84],  # Left 3D plot area [left, bottom, width, height] in inches
+    "3d_1": [5.8, fig_height_inches - 3.3, 5.6, 3.84],  # Right 3D plot area
+
     # Row 1: PV plots
-    "pv_0": [1.4, fig_height_inches - 5.5, xpanel_size_inches, ypanel_size_inches],  # Left PV plot area
-    "pv_1": [6.3, fig_height_inches - 5.5, xpanel_size_inches, ypanel_size_inches],  # Right PV plot area
-    
+    "pv_0": [1.4, fig_height_inches - 5.0,                                xpanel_size_inches, ypanel_size_inches],  # Left PV plot area
+    "pv_1": [6.3, fig_height_inches - 5.0,                                xpanel_size_inches, ypanel_size_inches],  # Right PV plot area
+
     # Row 2: Ro plots
-    "ro_0": [1.4, fig_height_inches - 7.5, xpanel_size_inches, ypanel_size_inches],  # Left Ro plot area
-    "ro_1": [6.3, fig_height_inches - 7.5, xpanel_size_inches, ypanel_size_inches],  # Right Ro plot area
-    
+    "ro_0": [1.4, fig_height_inches - 7.0,                                xpanel_size_inches, ypanel_size_inches],  # Left Ro plot area
+    "ro_1": [6.3, fig_height_inches - 7.0,                                xpanel_size_inches, ypanel_size_inches],  # Right Ro plot area
+
     # Row 3: ∫εₖdy plots
-    "eps_0": [1.4, fig_height_inches - 9.4, xpanel_size_inches, zpanel_size_inches],  # Left ∫εₖdy plot area
-    "eps_1": [6.3, fig_height_inches - 9.4, xpanel_size_inches, zpanel_size_inches],  # Right ∫εₖdy plot area
-    
+    "eps_0": [1.4, fig_height_inches - 8.8,                               xpanel_size_inches, zpanel_size_inches],  # Left ∫εₖdy plot area
+    "eps_1": [6.3, fig_height_inches - 8.8,                               xpanel_size_inches, zpanel_size_inches],  # Right ∫εₖdy plot area
+
     # Row 4: ∫ε̄ₖdz plots
-    "epsdz_0": [1.4, fig_height_inches - 11.4, xpanel_size_inches, ypanel_size_inches],  # Left ∫ε̄ₖdz plot area
-    "epsdz_1": [6.3, fig_height_inches - 11.4, xpanel_size_inches, ypanel_size_inches],  # Right ∫ε̄ₖdz plot area
+    "epsdz_0": [1.4, fig_height_inches - 8.8 - 1.65*zpanel_size_inches,   xpanel_size_inches, ypanel_size_inches],  # Left ∫ε̄ₖdz plot area
+    "epsdz_1": [6.3, fig_height_inches - 8.8 - 1.65*zpanel_size_inches,   xpanel_size_inches, ypanel_size_inches],  # Right ∫ε̄ₖdz plot area
+
+    # Row 5: ∫ε̄ₚdy plots
+    "epspdy_0": [1.4, fig_height_inches - 12.7,                           xpanel_size_inches, zpanel_size_inches],  # Left ∫ε̄ₚdy plot area
+    "epspdy_1": [6.3, fig_height_inches - 12.7,                           xpanel_size_inches, zpanel_size_inches],  # Right ∫ε̄ₚdy plot area
+
+    # Row 6: ∫ε̄ₚdz plots
+    "epspdz_0": [1.4, fig_height_inches - 12.7 - 1.65*zpanel_size_inches, xpanel_size_inches, ypanel_size_inches],  # Left ∫ε̄ₚdz plot area
+    "epspdz_1": [6.3, fig_height_inches - 12.7 - 1.65*zpanel_size_inches, xpanel_size_inches, ypanel_size_inches],  # Right ∫ε̄ₚdz plot area
 }
 
 # Convert inches to figure coordinates (0-1)
@@ -132,12 +142,16 @@ ax_3d = [
     fig.add_axes([0.53, 0.70, 0.42, 0.25], projection="3d")
 ]
 
-# 2D axes for PV, Ro, ∫εₖdy, and ∫ε̄ₖdz
+# 2D axes for PV, Ro, ∫εₖdy, ∫ε̄ₖdz, ∫ε̄ₚdy, and ∫ε̄ₚdz
 axes = np.array([
     [fig.add_axes([0.05, 0.50, 0.42, 0.18]),
      fig.add_axes([0.53, 0.50, 0.42, 0.18])],
     [fig.add_axes([0.05, 0.30, 0.42, 0.18]),
      fig.add_axes([0.53, 0.30, 0.42, 0.18])],
+    [fig.add_axes([0.05, 0.05, 0.42, 0.23]),
+     fig.add_axes([0.53, 0.05, 0.42, 0.23])],
+    [fig.add_axes([0.05, 0.05, 0.42, 0.18]),
+     fig.add_axes([0.53, 0.05, 0.42, 0.18])],
     [fig.add_axes([0.05, 0.05, 0.42, 0.23]),
      fig.add_axes([0.53, 0.05, 0.42, 0.23])],
     [fig.add_axes([0.05, 0.05, 0.42, 0.18]),
@@ -192,14 +206,26 @@ rows = [
          vmin=None, vmax=None,
          norm=LogNorm(vmin=5e-10, vmax=5e-7),
          xlabel="x [m]", remove_xticks=False,
-         plot_type="xz", aspect=None, yticks=yticks, ylabel="y [m]", white_colorbar=True)
+         plot_type="xy", aspect=None, yticks=yticks, ylabel="y [m]", white_colorbar=True),
+    dict(var="∫ε̄ₚdy_normalized", label="∫ε̄ₚdy / W [m²/s³]", cmap="inferno",
+         get_data=lambda ds: ds["∫ε̄ₚdy_normalized"],
+         vmin=None, vmax=None,
+         norm=LogNorm(vmin=1e-11, vmax=5e-9),
+         xlabel="x [m]", remove_xticks=True,
+         plot_type="xz", aspect=None, yticks=None, ylabel="z [m]", white_colorbar=True),
+    dict(var="∫ε̄ₚdz_normalized", label="∫ε̄ₚdz / H [m²/s³]", cmap="inferno",
+         get_data=lambda ds: ds["∫ε̄ₚdz_normalized"],
+         vmin=None, vmax=None,
+         norm=LogNorm(vmin=1e-11, vmax=5e-9),
+         xlabel="x [m]", remove_xticks=False,
+         plot_type="xy", aspect=None, yticks=yticks, ylabel="y [m]", white_colorbar=True)
 ]
 
 print("Plotting 2D fields...")
 for row_idx, config in enumerate(rows):
     for col_idx, L_val in enumerate(L_values):
         ds = datasets[L_val]
-        
+
         ax = axes[row_idx, col_idx]
 
         # Get data
@@ -207,11 +233,11 @@ for row_idx, config in enumerate(rows):
             data = ds[config["var"]]
             vmin = config["vmin"](ds) if config["vmin"] is not None else None
             vmax = config["vmax"](ds) if config["vmax"] is not None else None
-            
+
             im = data.plot.imshow(ax=ax, x="x_caa", cmap=config["cmap"],
                                   vmin=vmin, vmax=vmax, add_colorbar=False, rasterized=True)
-        else:
-            kwargs = dict(ax=ax, x="x_caa", cmap=config["cmap"],
+        else:  # xz plot
+            kwargs = dict(ax=ax, x="x_caa", y="z_aac", cmap=config["cmap"],
                           norm=config["norm"], add_colorbar=False, rasterized=True)
             im = ds[config["var"]].plot(**kwargs)
 
@@ -225,10 +251,10 @@ for row_idx, config in enumerate(rows):
         ax.set_xlabel(config["xlabel"])
         ax.set_ylabel(config["ylabel"] if col_idx == 0 else "")
         ax.set_title("")
-        
+
         if config["yticks"] is not None:
             ax.set_yticks(config["yticks"])
-                
+
         ax.set_xlim(xlims[0], xlims[1])
 
         if config["remove_xticks"]:
@@ -240,7 +266,7 @@ for row_idx, config in enumerate(rows):
     cax = axes[row_idx, 1].inset_axes([0.75, 0.1, 0.03, 0.8],
                                       transform=axes[row_idx, 1].transAxes, clip_on=False)
     cbar = plt.colorbar(im, cax=cax, orientation="vertical", label=config["label"])
-    
+
     # White colorbar for dissipation plots
     if config.get("white_colorbar", False):
         cbar.ax.yaxis.set_tick_params(color="white")
@@ -254,7 +280,7 @@ for row_idx, config in enumerate(rows):
 for i in range(2):
     ax_3d[i].set_position(plot_area_positions[f"3d_{i}"])
 
-for row_idx in range(4):
+for row_idx in range(6):
     for col_idx in range(2):
         if row_idx == 0:
             key = f"pv_{col_idx}"
@@ -262,16 +288,20 @@ for row_idx in range(4):
             key = f"ro_{col_idx}"
         elif row_idx == 2:
             key = f"eps_{col_idx}"
-        else:  # row_idx == 3
+        elif row_idx == 3:
             key = f"epsdz_{col_idx}"
+        elif row_idx == 4:
+            key = f"epspdy_{col_idx}"
+        else:  # row_idx == 5
+            key = f"epspdz_{col_idx}"
         axes[row_idx, col_idx].set_position(plot_area_positions[key])
 #---
 
 #+++ Finalize
 delta = H.item() / FWHM.item()
-fig.suptitle(f"Ro$_b$ = {datasets['0'].Ro_b.item()}, Fr$_b$ = {datasets['0'].Fr_b.item()}, S$_b$ = {datasets['0'].Slope_Bu.item()}, $\delta$ = {delta:.1f}",
-             fontsize=14, y=0.995, x=0.43)
-letterize(fig.axes[:10], x=0.05, y=0.75, fontsize=12,
+fig.suptitle(f"Ro$_b$ = {datasets['0'].Ro_b.item()}, Fr$_b$ = {datasets['0'].Fr_b.item()}, S$_b$ = {datasets['0'].Slope_Bu.item()}",
+             fontsize=14, y=0.9999, x=0.45)
+letterize(fig.axes[:14], x=0.05, y=0.75, fontsize=12,
           bbox=dict(boxstyle="square", facecolor="white", alpha=0.8))
 
 output_path = f"../figures/{simname_base}_dynamics_comparison_L0_vs_L08_dz{resolution}_buffer{buffer}.pdf"

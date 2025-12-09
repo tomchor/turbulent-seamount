@@ -96,32 +96,32 @@ zpanel_size_inches = ypanel_size_inches * 14 * datasets["0"].Lz.item() / dataset
 # You can adjust these values to control the size and position of each plot area
 plot_area_positions_inches = {
     # Row 0: 3D bathymetry plots
-    "3d_0": [0.4, fig_height_inches - 3.3, 5.6, 3.84],  # Left 3D plot area [left, bottom, width, height] in inches
-    "3d_1": [5.8, fig_height_inches - 3.3, 5.6, 3.84],  # Right 3D plot area
+    "3d_0": [0.4, fig_height_inches - 3.2, 5.6, 3.84],  # Left 3D plot area [left, bottom, width, height] in inches
+    "3d_1": [5.8, fig_height_inches - 3.2, 5.6, 3.84],  # Right 3D plot area
 
     # Row 1: PV plots
-    "pv_0": [1.4, fig_height_inches - 5.0,                                xpanel_size_inches, ypanel_size_inches],  # Left PV plot area
-    "pv_1": [6.3, fig_height_inches - 5.0,                                xpanel_size_inches, ypanel_size_inches],  # Right PV plot area
+    "pv_0": [1.4, fig_height_inches - 4.9,                                xpanel_size_inches, ypanel_size_inches],  # Left PV plot area
+    "pv_1": [6.3, fig_height_inches - 4.9,                                xpanel_size_inches, ypanel_size_inches],  # Right PV plot area
 
     # Row 2: Ro plots
-    "ro_0": [1.4, fig_height_inches - 7.0,                                xpanel_size_inches, ypanel_size_inches],  # Left Ro plot area
-    "ro_1": [6.3, fig_height_inches - 7.0,                                xpanel_size_inches, ypanel_size_inches],  # Right Ro plot area
+    "ro_0": [1.4, fig_height_inches - 6.9,                                xpanel_size_inches, ypanel_size_inches],  # Left Ro plot area
+    "ro_1": [6.3, fig_height_inches - 6.9,                                xpanel_size_inches, ypanel_size_inches],  # Right Ro plot area
 
     # Row 3: ∫εₖdy plots
-    "eps_0": [1.4, fig_height_inches - 8.8,                               xpanel_size_inches, zpanel_size_inches],  # Left ∫εₖdy plot area
-    "eps_1": [6.3, fig_height_inches - 8.8,                               xpanel_size_inches, zpanel_size_inches],  # Right ∫εₖdy plot area
+    "eps_0": [1.4, fig_height_inches - 8.5,                               xpanel_size_inches, zpanel_size_inches],  # Left ∫εₖdy plot area
+    "eps_1": [6.3, fig_height_inches - 8.5,                               xpanel_size_inches, zpanel_size_inches],  # Right ∫εₖdy plot area
 
     # Row 4: ∫ε̄ₖdz plots
-    "epsdz_0": [1.4, fig_height_inches - 8.8 - 1.65*zpanel_size_inches,   xpanel_size_inches, ypanel_size_inches],  # Left ∫ε̄ₖdz plot area
-    "epsdz_1": [6.3, fig_height_inches - 8.8 - 1.65*zpanel_size_inches,   xpanel_size_inches, ypanel_size_inches],  # Right ∫ε̄ₖdz plot area
+    "epsdz_0": [1.4, fig_height_inches - 8.5 - 1.65*zpanel_size_inches,   xpanel_size_inches, ypanel_size_inches],  # Left ∫ε̄ₖdz plot area
+    "epsdz_1": [6.3, fig_height_inches - 8.5 - 1.65*zpanel_size_inches,   xpanel_size_inches, ypanel_size_inches],  # Right ∫ε̄ₖdz plot area
 
     # Row 5: ∫ε̄ₚdy plots
-    "epspdy_0": [1.4, fig_height_inches - 12.7,                           xpanel_size_inches, zpanel_size_inches],  # Left ∫ε̄ₚdy plot area
-    "epspdy_1": [6.3, fig_height_inches - 12.7,                           xpanel_size_inches, zpanel_size_inches],  # Right ∫ε̄ₚdy plot area
+    "epspdy_0": [1.4, fig_height_inches - 12.2,                           xpanel_size_inches, zpanel_size_inches],  # Left ∫ε̄ₚdy plot area
+    "epspdy_1": [6.3, fig_height_inches - 12.2,                           xpanel_size_inches, zpanel_size_inches],  # Right ∫ε̄ₚdy plot area
 
     # Row 6: ∫ε̄ₚdz plots
-    "epspdz_0": [1.4, fig_height_inches - 12.7 - 1.65*zpanel_size_inches, xpanel_size_inches, ypanel_size_inches],  # Left ∫ε̄ₚdz plot area
-    "epspdz_1": [6.3, fig_height_inches - 12.7 - 1.65*zpanel_size_inches, xpanel_size_inches, ypanel_size_inches],  # Right ∫ε̄ₚdz plot area
+    "epspdz_0": [1.4, fig_height_inches - 12.2 - 1.65*zpanel_size_inches, xpanel_size_inches, ypanel_size_inches],  # Left ∫ε̄ₚdz plot area
+    "epspdz_1": [6.3, fig_height_inches - 12.2 - 1.65*zpanel_size_inches, xpanel_size_inches, ypanel_size_inches],  # Right ∫ε̄ₚdz plot area
 }
 
 # Convert inches to figure coordinates (0-1)
@@ -129,10 +129,10 @@ plot_area_positions = {}
 for key, pos_inches in plot_area_positions_inches.items():
     left_inches, bottom_inches, width_inches, height_inches = pos_inches
     plot_area_positions[key] = [
-        left_inches / fig_width_inches,           # left in figure coordinates
-        bottom_inches / fig_height_inches,        # bottom in figure coordinates
-        width_inches / fig_width_inches,          # width in figure coordinates
-        height_inches / fig_height_inches         # height in figure coordinates
+        left_inches / fig_width_inches,    # left in figure coordinates
+        bottom_inches / fig_height_inches, # bottom in figure coordinates
+        width_inches / fig_width_inches,   # width in figure coordinates
+        height_inches / fig_height_inches  # height in figure coordinates
     ]
 
 # Create axes with extra space for labels (will be adjusted after plotting)
@@ -179,7 +179,7 @@ for i, L_val in enumerate(L_values):
 #---
 
 #+++ Plot 2D fields
-yticks = [-1000, -500, 0, 500, 1000]
+yticks = [-500, 0, 500,]
 
 # Row configurations
 rows = [
@@ -187,37 +187,37 @@ rows = [
          get_data=lambda ds: ds["PV"].pnsel(z=H/3, method="nearest"),
          vmin=lambda ds: -1.5 * ds.N2_inf * abs(ds.f_0),
          vmax=lambda ds: 1.5 * ds.N2_inf * abs(ds.f_0),
-         xlabel="", remove_xticks=True,
+         xlabel="", remove_xticks=True, remove_xlabel=True,
          plot_type="xy", aspect=None, yticks=yticks, ylabel="y [m]"),
     dict(var="⟨R̄o⟩ᶻ", label="⟨Ro⟩ᶻ", cmap="RdBu_r",
          get_data=lambda ds: ds["⟨R̄o⟩ᶻ"],
          vmin=lambda ds: -0.4,
          vmax=lambda ds: 0.4,
-         xlabel="x [m]", remove_xticks=False,
+         xlabel="x [m]", remove_xticks=False, remove_xlabel=True,
          plot_type="xy", aspect=None, yticks=yticks, ylabel="y [m]"),
     dict(var="∫ε̄ₖdy_normalized", label="∫ε̄ₖdy / W [m²/s³]", cmap="inferno",
          get_data=lambda ds: ds["∫ε̄ₖdy_normalized"],
          vmin=None, vmax=None,
          norm=LogNorm(vmin=5e-10, vmax=5e-7),
-         xlabel="x [m]", remove_xticks=True,
+         xlabel="x [m]", remove_xticks=True, remove_xlabel=True,
          plot_type="xz", aspect=None, yticks=None, ylabel="z [m]", white_colorbar=True),
     dict(var="∫ε̄ₖdz_normalized", label="∫ε̄ₖdz / H [m²/s³]", cmap="inferno",
          get_data=lambda ds: ds["∫ε̄ₖdz_normalized"],
          vmin=None, vmax=None,
          norm=LogNorm(vmin=5e-10, vmax=5e-7),
-         xlabel="x [m]", remove_xticks=False,
+         xlabel="x [m]", remove_xticks=False, remove_xlabel=True,
          plot_type="xy", aspect=None, yticks=yticks, ylabel="y [m]", white_colorbar=True),
     dict(var="∫ε̄ₚdy_normalized", label="∫ε̄ₚdy / W [m²/s³]", cmap="inferno",
          get_data=lambda ds: ds["∫ε̄ₚdy_normalized"],
          vmin=None, vmax=None,
          norm=LogNorm(vmin=1e-11, vmax=5e-9),
-         xlabel="x [m]", remove_xticks=True,
+         xlabel="x [m]", remove_xticks=True, remove_xlabel=True,
          plot_type="xz", aspect=None, yticks=None, ylabel="z [m]", white_colorbar=True),
     dict(var="∫ε̄ₚdz_normalized", label="∫ε̄ₚdz / H [m²/s³]", cmap="inferno",
          get_data=lambda ds: ds["∫ε̄ₚdz_normalized"],
          vmin=None, vmax=None,
          norm=LogNorm(vmin=1e-11, vmax=5e-9),
-         xlabel="x [m]", remove_xticks=False,
+         xlabel="x [m]", remove_xticks=False, remove_xlabel=False,
          plot_type="xy", aspect=None, yticks=yticks, ylabel="y [m]", white_colorbar=True)
 ]
 
@@ -248,7 +248,10 @@ for row_idx, config in enumerate(rows):
                                    alpha=0.25, zorder=2, add_colorbar=False)
 
         # Set labels and formatting
-        ax.set_xlabel(config["xlabel"])
+        if not config.get("remove_xlabel", False):
+            ax.set_xlabel(config["xlabel"])
+        else:
+            ax.set_xlabel("")
         ax.set_ylabel(config["ylabel"] if col_idx == 0 else "")
         ax.set_title("")
 
@@ -300,9 +303,8 @@ for row_idx in range(6):
 #+++ Finalize
 delta = H.item() / FWHM.item()
 fig.suptitle(f"Ro$_b$ = {datasets['0'].Ro_b.item()}, Fr$_b$ = {datasets['0'].Fr_b.item()}, S$_b$ = {datasets['0'].Slope_Bu.item()}",
-             fontsize=14, y=0.9999, x=0.45)
-letterize(fig.axes[:14], x=0.05, y=0.75, fontsize=12,
-          bbox=dict(boxstyle="square", facecolor="white", alpha=0.8))
+             fontsize=14, y=1, x=0.45)
+letterize(fig.axes[:14], x=0.05, y=0.72, fontsize=12, bbox=dict(boxstyle="square", facecolor="white", alpha=0.8))
 
 output_path = f"../figures/{simname_base}_dynamics_comparison_L0_vs_L08_dz{resolution}_buffer{buffer}.pdf"
 fig.savefig(output_path, dpi=300, bbox_inches="tight")

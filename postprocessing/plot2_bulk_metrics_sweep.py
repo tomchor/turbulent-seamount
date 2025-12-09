@@ -58,7 +58,7 @@ cd
 """
 
 # Create the figure and axes using subplot_mosaic
-fig, axes = plt.subplot_mosaic(mosaic, figsize=(10, 8))
+fig, axes = plt.subplot_mosaic(mosaic, figsize=(11, 8))
 
 # Variables to plot (first 3 use buffer=5m, last 2 don"t have buffer dimension)
 variables = ["ℰₖ", "ℰₚ", "γ"]
@@ -126,7 +126,7 @@ axes["a"].legend(loc="lower right", borderaxespad=0, framealpha=0.7, edgecolor="
 axes["b"].legend(loc="lower right", borderaxespad=0, framealpha=0.7, edgecolor="black", fancybox=False)
 
 # Add shared legend for scatter plots at bottom right of figure
-fig.legend(scatter_handles, scatter_labels, loc="lower right", bbox_to_anchor=(0.28, 0.28), framealpha=0.7, edgecolor="black", fancybox=False)
+fig.legend(scatter_handles, scatter_labels, loc="lower right", bbox_to_anchor=(0.3, 0.28), framealpha=0.7, edgecolor="black", fancybox=False)
 #---
 
 #+++ Define simulation parameters for Southern Ocean and labanus comparison
@@ -232,11 +232,11 @@ for ax in [axes["a"], axes["b"], axes["c"]]:
     ax.axvline(x=Slope_Bu_SO, color="gray", linestyle="--", linewidth=2, alpha=0.5)
 for ax in axes.values():
     ax.grid(True, which="both", alpha=0.3)
-letterize(axes.values(), x=0.1, y=0.92, fontsize=13, bbox=dict(boxstyle="square", facecolor="white", alpha=0.4))
+letterize(axes.values(), x=0.11, y=0.92, fontsize=13, bbox=dict(boxstyle="square", facecolor="white", alpha=0.4))
 #---
 
 #+++ Save figure
-figure_name = f"../figures/paramsweep_bulk_metrics_{simname_base}_dz{aaaa_sweep.dz.item()}_buffer{aaaa_sweep.buffer.item()}.pdf"
+figure_name = f"../figures/paramsweep_bulk_metrics_{simname_bases[0]}_dz{aaaa_sweep.dz.item()}_buffer{aaaa_sweep.buffer.item()}.pdf"
 plt.savefig(figure_name, dpi=300, bbox_inches="tight")
 print(f"Figure saved to: {figure_name}")
 #---

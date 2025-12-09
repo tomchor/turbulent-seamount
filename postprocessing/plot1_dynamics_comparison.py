@@ -15,7 +15,7 @@ simname_base = "balanus"
 Ro_b = 0.1
 Fr_b = 1
 buffer = 5
-resolution = 2
+resolution = 1
 #---
 
 #+++ Load datasets
@@ -75,11 +75,13 @@ for L_val in L_values:
     datasets[L_val] = ds
 
 # Extract parameters
-H = datasets["0"].H
-FWHM = datasets["0"].FWHM
-bathymetry_extent = 1.3 * FWHM
 ds = datasets["0"]
+H = ds.H
+FWHM = ds.FWHM
+bathymetry_extent = 1.3 * FWHM
 xlims = (-ds.runway_length_fraction_FWHM * ds.FWHM, ds.x_caa.max().values)
+f_0 = ds.f_0.item()
+N2_inf = ds.N2_inf.item()
 #---
 
 #+++ Create figure with manual plot area positioning
@@ -183,40 +185,36 @@ yticks = [-500, 0, 500,]
 
 # Row configurations
 rows = [
-    dict(var="PV", label="Potential vorticity", cmap="RdBu_r",
-         get_data=lambda ds: ds["PV"].pnsel(z=H/3, method="nearest"),
-         vmin=lambda ds: -1.5 * ds.N2_inf * abs(ds.f_0),
-         vmax=lambda ds: 1.5 * ds.N2_inf * abs(ds.f_0),
+    dict(var="PV", label="Potential vorticity",
+         plot_kwargs=dict(vmin=-1.5 * N2_inf * abs(f_0),
+                          vmax=+1.5 * N2_inf * abs(f_0),
+                          cmap="RdBu_r"),
          xlabel="", remove_xticks=True, remove_xlabel=True,
          plot_type="xy", aspect=None, yticks=yticks, ylabel="y [m]"),
-    dict(var="⟨R̄o⟩ᶻ", label="⟨Ro⟩ᶻ", cmap="RdBu_r",
-         get_data=lambda ds: ds["⟨R̄o⟩ᶻ"],
-         vmin=lambda ds: -0.4,
-         vmax=lambda ds: 0.4,
+    dict(var="⟨R̄o⟩ᶻ", label="⟨Ro⟩ᶻ",
+         plot_kwargs=dict(vmin=-0.4,
+                          vmax=+0.4,
+                          cmap="RdBu_r"),
          xlabel="x [m]", remove_xticks=False, remove_xlabel=True,
          plot_type="xy", aspect=None, yticks=yticks, ylabel="y [m]"),
-    dict(var="∫ε̄ₖdy_normalized", label="∫ε̄ₖdy / W [m²/s³]", cmap="inferno",
-         get_data=lambda ds: ds["∫ε̄ₖdy_normalized"],
-         vmin=None, vmax=None,
-         norm=LogNorm(vmin=5e-10, vmax=5e-7),
+    dict(var="∫ε̄ₖdy_normalized", label="∫ε̄ₖdy / W [m²/s³]",
+         plot_kwargs=dict(norm=LogNorm(vmin=5e-10, vmax=5e-7),
+                          cmap="inferno"),
          xlabel="x [m]", remove_xticks=True, remove_xlabel=True,
          plot_type="xz", aspect=None, yticks=None, ylabel="z [m]", white_colorbar=True),
-    dict(var="∫ε̄ₖdz_normalized", label="∫ε̄ₖdz / H [m²/s³]", cmap="inferno",
-         get_data=lambda ds: ds["∫ε̄ₖdz_normalized"],
-         vmin=None, vmax=None,
-         norm=LogNorm(vmin=5e-10, vmax=5e-7),
+    dict(var="∫ε̄ₖdz_normalized", label="∫ε̄ₖdz / H [m²/s³]",
+         plot_kwargs=dict(norm=LogNorm(vmin=5e-10, vmax=5e-7),
+                          cmap="inferno"),
          xlabel="x [m]", remove_xticks=False, remove_xlabel=True,
          plot_type="xy", aspect=None, yticks=yticks, ylabel="y [m]", white_colorbar=True),
-    dict(var="∫ε̄ₚdy_normalized", label="∫ε̄ₚdy / W [m²/s³]", cmap="inferno",
-         get_data=lambda ds: ds["∫ε̄ₚdy_normalized"],
-         vmin=None, vmax=None,
-         norm=LogNorm(vmin=1e-11, vmax=5e-9),
+    dict(var="∫ε̄ₚdy_normalized", label="∫ε̄ₚdy / W [m²/s³]",
+         plot_kwargs=dict(norm=LogNorm(vmin=1e-11, vmax=5e-9),
+                          cmap="inferno"),
          xlabel="x [m]", remove_xticks=True, remove_xlabel=True,
          plot_type="xz", aspect=None, yticks=None, ylabel="z [m]", white_colorbar=True),
-    dict(var="∫ε̄ₚdz_normalized", label="∫ε̄ₚdz / H [m²/s³]", cmap="inferno",
-         get_data=lambda ds: ds["∫ε̄ₚdz_normalized"],
-         vmin=None, vmax=None,
-         norm=LogNorm(vmin=1e-11, vmax=5e-9),
+    dict(var="∫ε̄ₚdz_normalized", label="∫ε̄ₚdz / H [m²/s³]",
+         plot_kwargs=dict(norm=LogNorm(vmin=1e-11, vmax=5e-9),
+                          cmap="inferno"),
          xlabel="x [m]", remove_xticks=False, remove_xlabel=False,
          plot_type="xy", aspect=None, yticks=yticks, ylabel="y [m]", white_colorbar=True)
 ]
@@ -229,17 +227,8 @@ for row_idx, config in enumerate(rows):
         ax = axes[row_idx, col_idx]
 
         # Get data
-        if config["plot_type"] == "xy":
-            data = ds[config["var"]]
-            vmin = config["vmin"](ds) if config["vmin"] is not None else None
-            vmax = config["vmax"](ds) if config["vmax"] is not None else None
-
-            im = data.plot.imshow(ax=ax, x="x_caa", cmap=config["cmap"],
-                                  vmin=vmin, vmax=vmax, add_colorbar=False, rasterized=True)
-        else:  # xz plot
-            kwargs = dict(ax=ax, x="x_caa", y="z_aac", cmap=config["cmap"],
-                          norm=config["norm"], add_colorbar=False, rasterized=True)
-            im = ds[config["var"]].plot(**kwargs)
+        data = ds[config["var"]]
+        im = data.plot(ax=ax, x="x_caa", rasterized=True, add_colorbar=False, **config["plot_kwargs"])
 
         # Add bathymetry mask for PV and ∫ε̄ₖdz plots
         if row_idx == 0:  # PV plot

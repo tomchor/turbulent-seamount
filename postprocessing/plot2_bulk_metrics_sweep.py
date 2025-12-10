@@ -58,7 +58,7 @@ cd
 """
 
 # Create the figure and axes using subplot_mosaic
-fig, axes = plt.subplot_mosaic(mosaic, figsize=(11, 8))
+fig, axes = plt.subplot_mosaic(mosaic, figsize=(11, 8), constrained_layout=True, sharey=False)
 
 # Variables to plot (first 3 use buffer=5m, last 2 don"t have buffer dimension)
 variables = ["ℰₖ", "ℰₚ", "γ"]
@@ -119,14 +119,12 @@ for ax in (axes["a"], axes["b"]):
     ax.set_ylim(1e-5, 1)
 axes["c"].set_ylim(0, 1)
 
-axes["b"].set_yticklabels([])
-
 # Add legends for line plots only (in each panel)
 axes["a"].legend(loc="lower right", borderaxespad=0, framealpha=0.7, edgecolor="black", fancybox=False)
 axes["b"].legend(loc="lower right", borderaxespad=0, framealpha=0.7, edgecolor="black", fancybox=False)
 
 # Add shared legend for scatter plots at bottom right of figure
-fig.legend(scatter_handles, scatter_labels, loc="lower right", bbox_to_anchor=(0.3, 0.28), framealpha=0.7, edgecolor="black", fancybox=False)
+fig.legend(scatter_handles, scatter_labels, loc="lower right", bbox_to_anchor=(0.25, 0.28), framealpha=0.9, edgecolor="black", fancybox=False)
 #---
 
 #+++ Define simulation parameters for Southern Ocean and labanus comparison
@@ -193,8 +191,7 @@ for var_name, color in zip(variables, colors):
         variable_da = aaaa[var_name]
         label = variable_da.attrs["long_name"] if i == 0 else None  # Only label once per variable
         alpha = 0.5 if simname == "labanus" else 1.0
-        variable_da.plot.scatter(ax=ax, x="L", label=label, color=color,
-                                 marker=markers[simname], s=marker_sizes[simname]**2, alpha=alpha)
+        variable_da.plot.scatter(ax=ax, x="L", label=label, color=color, marker=markers[simname], s=marker_sizes[simname]**2, alpha=alpha)
 
 # Create custom legend with both variables and markers
 from matplotlib.lines import Line2D
@@ -225,6 +222,16 @@ delta_val = dataset.H.item() / dataset.FWHM.item()
 Slope_Bu_SO = dataset.Slope_Bu.mean().item()
 ax.set_ylabel(f"ℰₖ, ℰₚ for $S_b$ = {Slope_Bu_SO:.1f}", fontsize=13)
 ax.set_title("")
+
+# Add secondary x-axis with values multiplied by 10km
+def forward(x):
+    return x * 10000
+
+def inverse(x):
+    return x / 10000
+
+secax = ax.secondary_xaxis("top", functions=(forward, inverse))
+secax.set_xlabel("$L^{W=10\mathrm{km}}$ [m]", fontsize=12)
 #---
 
 #+++ Prettify

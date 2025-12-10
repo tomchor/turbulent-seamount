@@ -58,7 +58,7 @@ cd
 """
 
 # Create the figure and axes using subplot_mosaic
-fig, axes = plt.subplot_mosaic(mosaic, figsize=(11, 8), constrained_layout=True, sharey=False)
+fig, axes = plt.subplot_mosaic(mosaic, figsize=(10, 7), constrained_layout=True, sharey=False)
 
 # Variables to plot (first 3 use buffer=5m, last 2 don"t have buffer dimension)
 variables = ["ℰₖ", "ℰₚ", "γ"]
@@ -85,7 +85,7 @@ for i, var_name in zip(axes.keys(), variables):
             scatter_labels.append(f"L/W = {L_val} {easy_label}")
 
     ax.set_xscale("log")
-    ax.set_xlabel("Slope Burger number", fontsize=12)
+    ax.set_xlabel("Slope Burger number $S_b$", fontsize=12)
     ax.set_ylabel(var_name, fontsize=13)
 #---
 

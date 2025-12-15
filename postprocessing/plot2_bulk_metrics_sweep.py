@@ -89,7 +89,7 @@ for i, var_name in zip(axes.keys(), variables):
     ax.set_ylabel(var_name, fontsize=13)
 #---
 
-#+++ Add reference lines
+#+++ Add reference lines and legend
 import numpy as np
 Sb_ref = np.logspace(np.log10(3e-2), np.log10(1e1), 100)
 
@@ -124,7 +124,7 @@ axes["a"].legend(loc="lower right", borderaxespad=0, framealpha=0.7, edgecolor="
 axes["b"].legend(loc="lower right", borderaxespad=0, framealpha=0.7, edgecolor="black", fancybox=False)
 
 # Add shared legend for scatter plots at bottom right of figure
-fig.legend(scatter_handles, scatter_labels, loc="lower right", bbox_to_anchor=(0.25, 0.28), framealpha=0.9, edgecolor="black", fancybox=False)
+fig.legend(scatter_handles, scatter_labels, loc="lower right", bbox_to_anchor=(0.28, 0.28), framealpha=0.9, edgecolor="black", fancybox=False)
 #---
 
 #+++ Define simulation parameters for Southern Ocean and labanus comparison

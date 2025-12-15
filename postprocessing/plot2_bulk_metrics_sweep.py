@@ -140,7 +140,7 @@ configs    = resolutions
 runs = paramspace * configs
 #---
 
-#+++ Load and process datasets for both simulations
+#+++ Load and process datasets for panel d (L in x axis)
 datasets = {}
 
 for simname_base in simname_bases:
@@ -150,6 +150,10 @@ for simname_base in simname_bases:
     aaaa_south = merge_datasets(runs, base_name=f"aaaa.{simname_base}", verbose=True, add_min_spacings=False,
                           combine_by_coords_kwargs=dict(compat="override", combine_attrs="drop_conflicts", coords="minimal"))
     aaaa_south = aaaa_south.reindex(Ro_b = list(reversed(aaaa_south.Ro_b)))
+
+    L0 = aaaa_south.Δz_min * aaaa_south.aspect / aaaa_south.FWHM
+    L_new = np.insert(aaaa_south.L[1:], 0, L0)
+    aaaa_south = aaaa_south.assign_coords(L=L_new)
 
     # Condense buffer variables
     for var in ["ε̄ₚ", "ε̄ₖ"]:

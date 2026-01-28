@@ -2,12 +2,12 @@ from cycler import cycler
 from simulation_runner import run_simulation_batch
 
 #+++ Define run options
-Rossby_numbers = cycler(Ro_b = [0.05, 0.05, 0.05, 0.05, 0.05, 0.05])
-Froude_numbers = cycler(Fr_b = [0.05, 0.05, 0.08, 0.08, 0.3, 0.3])
-L              = cycler(L = [0, 0.8, 0, 0.8, 0, 0.8])
+Rossby_numbers = cycler(Ro_b = [0.05])
+Froude_numbers = cycler(Fr_b = [0.3])
+L              = cycler(L = [0])
 
 # Define numerical parameters
-resolutions    = cycler(dz = [1])
+resolutions    = cycler(dz = [4])
 T_adv_spinups  = cycler(T_adv_spinup = [12])
 
 paramspace = Rossby_numbers + Froude_numbers + L

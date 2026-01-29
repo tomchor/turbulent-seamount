@@ -31,7 +31,7 @@ end
 #---
 
 #+++ Read datasets
-variables = (:v, :PV, :εₖ, :Ro)
+variables = (:u, :PV, :εₖ, :Ro)
 
 # Get main dataset paths
 fpath_xyii = (@isdefined simulation) ? simulation.output_writers[:nc_xyii].filepath : "data/xyii.seamount_Ro_b0.1_Fr_b1.0_L0.8_FWHM400_dz8.nc"
@@ -64,6 +64,7 @@ frames = 1:frame_step:n_times
 #+++ Define plotting parameters
 # Color ranges for each variable
 color_ranges = Dict(
+    :u  => (range=(-params.U∞, +params.U∞) .* 1.2, colormap=:balance),
     :v  => (range=(-params.U∞, +params.U∞) .* 1.2, colormap=:balance),
     :PV => (range=params.N²∞ * abs(params.f₀) * [-5, +5], colormap=:seismic),
     :εₖ => (range=(1e-10, 1e-7), colormap=:inferno, colorscale=log10),

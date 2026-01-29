@@ -346,7 +346,7 @@ set!(model, b=(x, y, z) -> b∞(z), u=params.U∞)
 
 #+++ Create simulation
 params = (; params..., T_adv_max = params.T_adv_spinup + params.T_adv_stats)
-simulation = Simulation(model, Δt = 0.2 * minimum_zspacing(grid.underlying_grid) / params.U∞,
+simulation = Simulation(model, Δt = 0.2 * params.Δz_min / params.U∞,
                         stop_time = params.T_adv_max * params.T_adv,
                         wall_time_limit = 23hours,
                         minimum_relative_step = 1e-10,

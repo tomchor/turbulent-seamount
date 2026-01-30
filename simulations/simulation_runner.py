@@ -43,7 +43,7 @@ def get_submission_options(scheduler, job_size, gpu_type=None):
 
     elif job_size == "small":
         if scheduler == "pbs":
-            default_gpu_type = "cc80"
+            default_gpu_type = "cc80" # Compute capability 8.0
             gpu_type_override = gpu_type if gpu_type is not None else default_gpu_type
             options = [f"select=1:ncpus=1:ngpus=1:gpu_type={gpu_type_override}:mem=200GB"]
         elif scheduler == "slurm":
@@ -55,7 +55,7 @@ def get_submission_options(scheduler, job_size, gpu_type=None):
 
     elif job_size == "big":
         if scheduler == "pbs":
-            default_gpu_type = "h100"
+            default_gpu_type = "h100" # H100 GPUs specifically
             gpu_type_override = gpu_type if gpu_type is not None else default_gpu_type
             options = [f"select=1:ncpus=1:ngpus=1:gpu_type={gpu_type_override}:mem=200GB",
                        "job_priority=regular"]
@@ -138,7 +138,7 @@ def determine_job_size(modifiers):
     """
     dz = modifiers.get("dz", np.inf)
 
-    if dz >= 4:
+    if dz >= 8:
         return "very_small"
     elif dz >= 2:
         return "small"

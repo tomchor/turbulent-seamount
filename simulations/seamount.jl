@@ -327,8 +327,8 @@ b_sponge = Relaxation(rate=params.sponge_damping_rate, mask=mask_top, target=b�
 #+++ Model and ICs
 @info "Creating model"
 
-model = NonhydrostaticModel(grid = grid, timestepper = :RungeKutta3,
-                            advection = WENO(order=5),
+model = NonhydrostaticModel(grid, timestepper = :RungeKutta3,
+                            advection = WENO(order=5, minimum_buffer_upwind_order=1), # minimum_buffer_upwind_order=1 necessary for PerturbationAdvection
                             buoyancy = BuoyancyTracer(),
                             coriolis = FPlane(params.f_0),
                             tracers = :b,
@@ -346,7 +346,7 @@ set!(model, b=(x, y, z) -> b∞(z), u=params.U∞)
 
 #+++ Create simulation
 params = (; params..., T_adv_max = params.T_adv_spinup + params.T_adv_stats)
-simulation = Simulation(model, Δt = 0.2 * minimum_zspacing(grid.underlying_grid) / params.U∞,
+simulation = Simulation(model, Δt = 0.2 * params.Δz_min / params.U∞,
                         stop_time = params.T_adv_max * params.T_adv,
                         wall_time_limit = 23hours,
                         minimum_relative_step = 1e-10,
@@ -398,13 +398,13 @@ if write_ckpt
 
     #+++ Construct checkpointer
     @info "Setting up checkpointer"
-    simulation.output_writers[:ckpt_writer] = checkpointer = @CUDAstats Checkpointer(model;
-                                                                                     dir = "$rundir/data/",
-                                                                                     prefix = checkpointer_prefix,
-                                                                                     schedule = TimeInterval(interval_time_avg),
-                                                                                     overwrite_existing = true,
-                                                                                     cleanup = true,
-                                                                                     )
+    simulation.output_writers[:ckpt_writer] = @CUDAstats Checkpointer(model;
+                                                                      dir = "$rundir/data/",
+                                                                      prefix = checkpointer_prefix,
+                                                                      schedule = TimeInterval(interval_time_avg),
+                                                                      overwrite_existing = true,
+                                                                      cleanup = true,
+                                                                      )
     #---
 
 else
@@ -438,7 +438,7 @@ tock()
 #+++ Run simulations and plot video afterwards
 show_gpu_status()
 @info "Starting simulation"
-run!(simulation, pickup=write_ckpt)
+run!(simulation, pickup=write_ckpt, checkpoint_at_end=true)
 #---
 
 #+++ Plot video

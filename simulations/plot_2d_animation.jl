@@ -16,43 +16,49 @@ end
 #---
 
 #+++ Load required packages
-import Rasters as ra
-import NCDatasets
-using Rasters: Raster, RasterStack
 using Printf: @sprintf
+using Oceananigans
 using Oceananigans.Units
 using Oceananigans: prettytime
-
-#+++ Helper function to remove singleton dimensions
-function squeeze(ds::Union{Raster, RasterStack})
-    flat_dimensions = NamedTuple((ra.name(dim), 1) for dim in ra.dims(ds) if length(ra.dims(ds, dim)) == 1)
-    return getindex(ds; flat_dimensions...)
-end
+import NCDatasets
 #---
 
 #+++ Read datasets
 variables = (:u, :PV, :εₖ, :Ro)
 
 # Get main dataset paths
-fpath_xyii = (@isdefined simulation) ? simulation.output_writers[:nc_xyii].filepath : "data/xyii.seamount_Ro_b0.1_Fr_b1.0_L0.8_FWHM400_dz8.nc"
-fpath_xizi = (@isdefined simulation) ? simulation.output_writers[:nc_xizi].filepath : "data/xizi.seamount_Ro_b0.1_Fr_b1.0_L0.8_FWHM400_dz8.nc"
+simname_fallback = "balanus_Ro_b0.05_Fr_b0.3_L0.8_dz4_T_adv_spinup12"
+fpath_xyii = (@isdefined simulation) ? simulation.output_writers[:nc_xyii].filepath : "data/xyii.$simname_fallback.nc"
+fpath_xizi = (@isdefined simulation) ? simulation.output_writers[:nc_xizi].filepath : "data/xizi.$simname_fallback.nc"
 
 @info "Reading xyii dataset: $fpath_xyii"
-ds_xyii = RasterStack(fpath_xyii, lazy=true, name=variables) |> squeeze
+# Load each variable as a FieldTimeSeries
+timeseries_xyii = Dict(var => FieldTimeSeries(fpath_xyii, String(var),) for var in variables)
 
 @info "Reading xizi dataset: $fpath_xizi"
-ds_xizi = RasterStack(fpath_xizi, lazy=true, name=variables) |> squeeze
+timeseries_xizi = Dict(var => FieldTimeSeries(fpath_xizi, String(var)) for var in variables)
+
+# Also load buoyancy if available for contours
+try
+    timeseries_xyii[:b] = FieldTimeSeries(fpath_xyii, "b")
+    timeseries_xizi[:b] = FieldTimeSeries(fpath_xizi, "b")
+catch e
+    @warn "Could not load buoyancy field 'b': $e"
+end
 #---
 
 #+++ Get parameters
 if !((@isdefined params) && (@isdefined simulation))
-    md = ra.metadata(ds_xyii)
-    params = (; (Symbol(k) => v for (k, v) in md)...)
+    # Read metadata from NetCDF file
+    NCDatasets.NCDataset(fpath_xyii) do ds
+        params = (; (Symbol(k) => ds.attrib[k] for k in keys(ds.attrib))...)
+    end
 end
 #---
 
 #+++ Setup animation parameters
-times = ra.dims(ds_xyii, :Ti)
+# Get times from the first FieldTimeSeries
+times = timeseries_xyii[first(variables)].times
 n_times = length(times)
 max_frames = 200
 frame_step = max(1, floor(Int, n_times / max_frames))
@@ -102,39 +108,45 @@ colsize!(fig.layout, 3, Auto(0.6))  # Colorbar column (wider for better spacing)
 #---
 
 #+++ Create axes and plots
-dimnames_order = (:x_faa, :x_caa, :y_afa, :y_aca, :z_afa, :z_aac)
-
 for (i, variable) in enumerate(variables)
     @info "Creating panel: $variable"
 
-    # Create xyii plot (column 1)
-    var_data_xyii = ds_xyii[variable]
-    dimnames_xyii = [dim for dim in dimnames_order if dim in map(ra.name, ra.dims(var_data_xyii))]
-    push!(dimnames_xyii, :Ti)
+    # Get FieldTimeSeries for this variable
+    field_xyii = timeseries_xyii[variable]
+    field_xizi = timeseries_xizi[variable]
 
-    # Permute dimensions and create observable for xyii
-    v_xyii = permutedims(var_data_xyii, dimnames_xyii)
-    v_xyiiₙ = @lift v_xyii[Ti=$n]
+    # Create observables for current time step
+    fieldₙ_xyii = @lift field_xyii[$n]
+    fieldₙ_xizi = @lift field_xizi[$n]
 
-    # Calculate data aspect ratio for xyii
-    data_dims_xyii = size(v_xyii)
-    aspect_ratio_xyii = data_dims_xyii[1] / data_dims_xyii[2]
+    # Calculate data aspect ratio from grid
+    grid_xyii = field_xyii.grid
+    dims_xyii = size(field_xyii.grid)
+    # Estimate aspect ratio (first two dimensions)
+    aspect_ratio_xyii = dims_xyii[1] / dims_xyii[2]
 
-    # Set panel dimensions for xyii
+    # Set panel dimensions
     panel_width = layout_params.panel_width
     panel_height_xyii = panel_width / aspect_ratio_xyii
     panel_height_xyii = clamp(panel_height_xyii, panel_width * 0.3, panel_width * 2.0)
+
+    # Determine axis labels from grid and field location
+    # xyii is typically x-y plane, xizi is typically x-z plane
+    xlabel_xyii = "x (m)"
+    ylabel_xyii = "y (m)"
+    xlabel_xizi = "x (m)"
+    ylabel_xizi = "z (m)"
 
     # Create xyii axis
     if i == length(variables)
         # Bottom panel: show x label
         ax_xyii = Axis(fig[i+2, 1];
-                      xlabel=string(dimnames_xyii[1]), ylabel=string(dimnames_xyii[2]),
+                      xlabel=xlabel_xyii, ylabel=ylabel_xyii,
                       width=panel_width, height=panel_height_xyii)
     else
         # Upper panels: no x label
         ax_xyii = Axis(fig[i+2, 1];
-                       ylabel=string(dimnames_xyii[2]),
+                       ylabel=ylabel_xyii,
                        width=panel_width, height=panel_height_xyii)
 
         # Hide all x decorations for upper panels
@@ -146,45 +158,35 @@ for (i, variable) in enumerate(variables)
 
     # Create xyii heatmap
     color_params = color_ranges[variable]
-    global hm_xyii = heatmap!(v_xyiiₙ; colorrange=color_params.range, colormap=color_params.colormap,
+    global hm_xyii = heatmap!(ax_xyii, fieldₙ_xyii; 
+                              colorrange=color_params.range, 
+                              colormap=color_params.colormap,
                               (haskey(color_params, :colorscale) ? (colorscale=color_params.colorscale,) : ())...)
 
     # Add buoyancy contours to xyii if available
-    if haskey(ds_xyii, :b)
-        for dim_combo in [(:x_caa, :z_aac), (:y_aca, :z_aac)]
-            try
-                b = permutedims(ds_xyii[:b], (dim_combo..., :Ti))
-                bₙ = @lift b[:, :, $n]
-                contour!(ax_xyii, bₙ; levels=10, color=:white, linestyle=:dash, linewidth=0.5, alpha=0.6)
-                break
-            catch
-                continue
-            end
+    if haskey(timeseries_xyii, :b)
+        try
+            b_field_xyii = timeseries_xyii[:b]
+            bₙ_xyii = @lift b_field_xyii[$n]
+            contour!(ax_xyii, bₙ_xyii; levels=10, color=:white, linestyle=:dash, linewidth=0.5, alpha=0.6)
+        catch e
+            @warn "Could not add buoyancy contours to xyii: $e"
         end
     end
 
-    # Create xizi plot (column 2)
-    var_data_xizi = ds_xizi[variable]
-    dimnames_xizi = [dim for dim in dimnames_order if dim in map(ra.name, ra.dims(var_data_xizi))]
-    push!(dimnames_xizi, :Ti)
-
-    # Permute dimensions and create observable for xizi
-    v_xizi = permutedims(var_data_xizi, dimnames_xizi)
-    v_xiziₙ = @lift v_xizi[Ti=$n]
-
-    # Use the same panel height as xyii for consistent layout
+    # Use the same panel height for xizi for consistent layout
     panel_height_xizi = panel_height_xyii
 
     # Create xizi axis
     if i == length(variables)
         # Bottom panel: show x label
         ax_xizi = Axis(fig[i+2, 2];
-                       xlabel=string(dimnames_xizi[1]), ylabel=string(dimnames_xizi[2]),
+                       xlabel=xlabel_xizi, ylabel=ylabel_xizi,
                        width=panel_width, height=panel_height_xizi)
     else
         # Upper panels: no x label
         ax_xizi = Axis(fig[i+2, 2];
-                       ylabel=string(dimnames_xizi[2]),
+                       ylabel=ylabel_xizi,
                        width=panel_width, height=panel_height_xizi)
 
         # Hide all x decorations for upper panels
@@ -195,29 +197,24 @@ for (i, variable) in enumerate(variables)
     end
 
     # Create xizi heatmap
-    global hm_xizi = heatmap!(v_xiziₙ; colorrange=color_params.range, colormap=color_params.colormap,
+    global hm_xizi = heatmap!(ax_xizi, fieldₙ_xizi; 
+                              colorrange=color_params.range, 
+                              colormap=color_params.colormap,
                               (haskey(color_params, :colorscale) ? (colorscale=color_params.colorscale,) : ())...)
 
     # Add buoyancy contours to xizi if available
-    if haskey(ds_xizi, :b)
-        for dim_combo in [(:x_caa, :z_aac), (:y_aca, :z_aac)]
-            try
-                b = permutedims(ds_xizi[:b], (dim_combo..., :Ti))
-                bₙ = @lift b[:, :, $n]
-                contour!(ax_xizi, bₙ; levels=10, color=:white, linestyle=:dash, linewidth=0.5, alpha=0.6)
-                break
-            catch
-                continue
-            end
+    if haskey(timeseries_xizi, :b)
+        try
+            b_field_xizi = timeseries_xizi[:b]
+            bₙ_xizi = @lift b_field_xizi[$n]
+            contour!(ax_xizi, bₙ_xizi; levels=10, color=:white, linestyle=:dash, linewidth=0.5, alpha=0.6)
+        catch e
+            @warn "Could not add buoyancy contours to xizi: $e"
         end
     end
 
     # Add colorbar (column 3)
-    cbar_label = try
-        metadata(ds_xyii[variable])["units"]
-    catch
-        string(variable)
-    end
+    cbar_label = String(variable)
 
     # Use the same height for the colorbar since both panels have the same height
     Colorbar(fig[i+2, 3], hm_xyii;

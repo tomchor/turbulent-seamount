@@ -327,8 +327,8 @@ b_sponge = Relaxation(rate=params.sponge_damping_rate, mask=mask_top, target=bâˆ
 #+++ Model and ICs
 @info "Creating model"
 
-model = NonhydrostaticModel(grid = grid, timestepper = :RungeKutta3,
-                            advection = WENO(order=5, minimum_buffer_upwind_order=1),
+model = NonhydrostaticModel(grid, timestepper = :RungeKutta3,
+                            advection = WENO(order=5, minimum_buffer_upwind_order=1), # minimum_buffer_upwind_order=1 necessary for PerturbationAdvection
                             buoyancy = BuoyancyTracer(),
                             coriolis = FPlane(params.f_0),
                             tracers = :b,

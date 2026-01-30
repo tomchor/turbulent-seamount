@@ -398,13 +398,13 @@ if write_ckpt
 
     #+++ Construct checkpointer
     @info "Setting up checkpointer"
-    simulation.output_writers[:ckpt_writer] = checkpointer = @CUDAstats Checkpointer(model;
-                                                                                     dir = "$rundir/data/",
-                                                                                     prefix = checkpointer_prefix,
-                                                                                     schedule = TimeInterval(interval_time_avg),
-                                                                                     overwrite_existing = true,
-                                                                                     cleanup = true,
-                                                                                     )
+    simulation.output_writers[:ckpt_writer] = @CUDAstats Checkpointer(model;
+                                                                      dir = "$rundir/data/",
+                                                                      prefix = checkpointer_prefix,
+                                                                      schedule = TimeInterval(interval_time_avg),
+                                                                      overwrite_existing = true,
+                                                                      cleanup = true,
+                                                                      )
     #---
 
 else
@@ -438,7 +438,7 @@ tock()
 #+++ Run simulations and plot video afterwards
 show_gpu_status()
 @info "Starting simulation"
-run!(simulation, pickup=write_ckpt)
+run!(simulation, pickup=write_ckpt, checkpoint_at_end=true)
 #---
 
 #+++ Plot video
